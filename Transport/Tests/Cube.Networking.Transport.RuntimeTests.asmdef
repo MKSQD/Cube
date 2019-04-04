@@ -1,0 +1,16 @@
+{
+    "name": "Cube.Networking.Transport.RuntimeTests",
+    "references": [
+        "Cube.Networking.Transport"
+    ],
+    "optionalUnityReferences": [
+        "TestAssemblies"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": true,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": []
+}

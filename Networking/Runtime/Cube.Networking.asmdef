@@ -1,0 +1,15 @@
+{
+    "name": "Cube.Networking",
+    "references": [
+        "Cube.Networking.Transport",
+        "Cube.Networking.Replica"
+    ],
+    "optionalUnityReferences": [],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": true,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": []
+}
