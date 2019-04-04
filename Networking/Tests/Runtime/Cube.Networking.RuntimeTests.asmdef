@@ -2,9 +2,9 @@
     "name": "Cube.Networking.RuntimeTests",
     "references": [
         "Cube.Networking",
-        "Cube.Networking.Transport",
-        "Cube.Networking.Replica",
-        "Cube.Networking.Transport.RuntimeTests"
+        "Cube.Networking.Transport.RuntimeTests",
+        "Cube.Replica",
+        "Cube.Transport"
     ],
     "optionalUnityReferences": [
         "TestAssemblies"

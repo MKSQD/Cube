@@ -1,7 +1,7 @@
 {
     "name": "Cube.Networking.Transport.RuntimeTests",
     "references": [
-        "Cube.Networking.Transport"
+        "Cube.Transport"
     ],
     "optionalUnityReferences": [
         "TestAssemblies"

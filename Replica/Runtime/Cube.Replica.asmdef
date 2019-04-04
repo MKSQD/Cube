@@ -1,12 +1,10 @@
 {
-    "name": "Cube.Networking.Replica.Editor",
+    "name": "Cube.Replica",
     "references": [
-        "Cube.Networking.Replica"
+        "Cube.Transport"
     ],
     "optionalUnityReferences": [],
-    "includePlatforms": [
-        "Editor"
-    ],
+    "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
     "overrideReferences": false,

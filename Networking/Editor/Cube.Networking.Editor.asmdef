@@ -2,7 +2,7 @@
     "name": "Cube.Networking.Editor",
     "references": [
         "Cube.Networking",
-        "Cube.Networking.Replica.Editor"
+        "Cube.Replica.Editor"
     ],
     "optionalUnityReferences": [],
     "includePlatforms": [

@@ -1,8 +1,8 @@
 {
     "name": "Cube.Networking",
     "references": [
-        "Cube.Networking.Transport",
-        "Cube.Networking.Replica"
+        "Cube.Replica",
+        "Cube.Transport"
     ],
     "optionalUnityReferences": [],
     "includePlatforms": [],

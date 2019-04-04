@@ -1,5 +1,5 @@
 {
-    "name": "Cube.Networking.Transport",
+    "name": "Cube.Transport",
     "references": [],
     "optionalUnityReferences": [],
     "includePlatforms": [],
