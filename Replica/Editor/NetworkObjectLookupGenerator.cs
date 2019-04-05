@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using System.IO;
 using UnityEditor;
 using UnityEditor.Callbacks;
 using UnityEngine;
@@ -28,14 +27,12 @@ namespace Cube.Networking.Replicas {
             lookup.entries = networkObjects.ToArray();
 
             //
-            var newLookupPath = "Assets/Generated/Cube/Networking/Resources/NetworkObjectLookup.asset";
+            var newLookupPath = "Assets/Cube/Resources/NetworkObjectLookup.asset";
 
             var oldLookup = AssetDatabase.LoadAssetAtPath<NetworkObjectLookup>(newLookupPath);
             if (lookup == oldLookup)
                 return;
-
-            //
-            Directory.CreateDirectory(Application.dataPath + "/Generated/Cube/Networking/Resources");
+            
             AssetDatabase.CreateAsset(lookup, newLookupPath);
         }
     }

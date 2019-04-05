@@ -8,16 +8,6 @@ namespace Cube.Networking.Replicas {
         /// World this object is part of. Can be downcast to your actual implementation.
         /// </summary>
         /// <example> 
-        /// This sample shows how downcasting might look.
-        /// <code>
-        /// class Test :  NetworkBehaviour {
-        ///     void Awake() {
-        ///         var world = (World)replicaWorld;
-        ///         // Use world
-        ///     }
-        /// }
-        /// </code>
-        /// </example>
         public IReplicaWorld replicaWorld {
             get {
                 if (_world == null) {

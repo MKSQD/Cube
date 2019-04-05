@@ -7,7 +7,7 @@ namespace Cube.Networking.Replicas {
 #if SERVER
     /// <remarks>Available in: Editor/Server</remarks>
     [Serializable]
-    [AddComponentMenu("Cube.Networking.Replicas/ReplicaView")]
+    [AddComponentMenu("Cube/ReplicaView")]
     public class ReplicaView : MonoBehaviour {
 #if UNITY_EDITOR
         /// <summary>

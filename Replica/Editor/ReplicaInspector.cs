@@ -15,8 +15,8 @@ namespace Cube.Networking.Replicas {
                 var replica = target as Replica;
                 
                 EditorGUILayout.LabelField("Replica Id", replica.id.data.ToString());
-
-                if (PrefabUtility.GetPrefabType(replica) == PrefabType.None) {
+                
+                if (PrefabUtility.GetPrefabAssetType(replica) == PrefabAssetType.NotAPrefab) {
                     EditorGUILayout.LabelField("Prefab Id", replica.prefabIdx.ToString());
                 }
 

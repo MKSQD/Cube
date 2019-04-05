@@ -5,7 +5,7 @@ namespace Cube.Networking.Replicas {
     /// <summary>
     /// No support for parent transforms.
     /// </summary>
-    [AddComponentMenu("Cube.Networking.Replicas/ReplicaStaticTransform")]
+    [AddComponentMenu("Cube/ReplicaStaticTransform")]
     class ReplicaStaticTransform : ReplicaBehaviour {
 #if SERVER
         public override void Serialize(BitStream bs, ReplicaSerializationMode mode, ReplicaView view) {

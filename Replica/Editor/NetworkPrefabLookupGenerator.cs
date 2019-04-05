@@ -62,12 +62,13 @@ namespace Cube.Networking.Replicas {
             }
 
             //GetOrCreateLookup()
-            var lookup = AssetDatabase.LoadAssetAtPath<NetworkPrefabLookup>("Assets/Generated/Cube/Networking/Resources/NetworkPrefabLookup.asset");
+            var path = "Assets/Cube/Resources/NetworkPrefabLookup.asset";
+
+            var lookup = AssetDatabase.LoadAssetAtPath<NetworkPrefabLookup>(path);
             if (lookup == null) {
                 lookup = ScriptableObject.CreateInstance<NetworkPrefabLookup>();
-                var lookupPath = "Assets/Generated/Cube/Networking/Resources/NetworkPrefabLookup.asset";
-                Directory.CreateDirectory(Application.dataPath + "/Generated/Cube/Networking/Resources");
-                AssetDatabase.CreateAsset(lookup, lookupPath);
+                
+                AssetDatabase.CreateAsset(lookup, path);
             }
             ////////////////
 
@@ -137,13 +138,13 @@ namespace Cube.Networking.Replicas {
         }
 
         static ScenesInfo GetOrCreateScenesInfoFile() {
-            var scenesInfoFilePath = "Assets/Generated/Cube/Networking/Scenes/Infos.asset";
+            var scenesInfoFilePath = "Assets/Cube/Resources/SceneInfos.asset";
 
             var sceneInfos = AssetDatabase.LoadAssetAtPath<ScenesInfo>(scenesInfoFilePath);
             if (sceneInfos == null) {
                 sceneInfos = ScriptableObject.CreateInstance<ScenesInfo>();
                 sceneInfos.infos = new List<ScenesInfo.Entry>();
-                Directory.CreateDirectory(Application.dataPath + "/Generated/Cube/Networking/Scenes");
+
                 AssetDatabase.CreateAsset(sceneInfos, scenesInfoFilePath);
             }
 
@@ -162,7 +163,7 @@ namespace Cube.Networking.Replicas {
             }
 
             if (sceneId == byte.MaxValue) {
-                //#TODO check max scene id -> errror
+                //#TODO check max scene id -> error
                 sceneId = (byte)sceneInfos.infos.Count;
                 sceneInfos.infos.Add(new ScenesInfo.Entry {
                     id = sceneId,

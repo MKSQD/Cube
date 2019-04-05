@@ -6,7 +6,7 @@ namespace Cube.Networking.Replicas {
     /// 
     /// </summary>
     /// <remarks>Available in: Editor/Client/Server</remarks>
-    [AddComponentMenu("Cube.Networking.Replicas/ReplicaRigidbody")]
+    [AddComponentMenu("Cube/ReplicaRigidbody")]
     [RequireComponent(typeof(Rigidbody))]
     public class ReplicaRigidbody : ReplicaBehaviour {
         public GameObject model;

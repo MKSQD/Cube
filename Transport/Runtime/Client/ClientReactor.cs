@@ -39,14 +39,15 @@ namespace Cube.Networking.Transport {
                 var messageId = bs.ReadByte();
 
                 List<ClientMessageHandler> handlers;
-                if (_handlers.TryGetValue(messageId, out handlers)) {
-                    foreach (var handler in handlers) {
-                        var pos = bs.Position;
-                        handler(bs);
-                        bs.Position = pos;
-                    }
-                } else {
+                if (!_handlers.TryGetValue(messageId, out handlers)) {
                     Debug.LogWarning("Received unknown packet " + messageId);
+                    continue;
+                }
+
+                foreach (var handler in handlers) {
+                    var pos = bs.Position;
+                    handler(bs);
+                    bs.Position = pos;
                 }
             }
         }

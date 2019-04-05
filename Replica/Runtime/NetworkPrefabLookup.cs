@@ -2,7 +2,15 @@
 
 namespace Cube.Networking.Replicas {
     public class NetworkPrefabLookup : ScriptableObject {
-        public static NetworkPrefabLookup instance { get { return null; } }
+        static NetworkPrefabLookup _instance;
+        public static NetworkPrefabLookup instance {
+            get {
+                if (_instance == null) {
+                    _instance = Resources.Load<NetworkPrefabLookup>("NetworkPrefabLookup");
+                }
+                return _instance;
+            }
+        }
 
         public GameObject[] prefabs;
 

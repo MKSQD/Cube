@@ -2,7 +2,7 @@
 using UnityEngine.Assertions;
 
 namespace Cube.Networking.Replicas {
-    [AddComponentMenu("Cube.Networking.Replicas/Replica")]
+    [AddComponentMenu("Cube/Replica")]
     [DisallowMultipleComponent]
     public sealed class Replica : NetworkBehaviour {
         public ReplicaSettings settings;

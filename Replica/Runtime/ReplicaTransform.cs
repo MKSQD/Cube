@@ -6,16 +6,15 @@ namespace Cube.Networking.Replicas {
     /// Synchronize position, rotation and transform.parent.
     /// </summary>
     /// <remarks>Available in: Editor/Client/Server</remarks>
-    [AddComponentMenu("Cube.Networking.Replicas/ReplicaTransform")]
+    [AddComponentMenu("Cube/ReplicaTransform")]
     public class ReplicaTransform : ReplicaBehaviour {
-        public enum Mode {
+        public enum Interpolation {
             Raw,
             Interpolate
         }
 
-#if CLIENT
-        [SerializeField]
-        Mode _mode = Mode.Raw;
+#if CLIENT || UNITY_EDITOR
+        public Interpolation interpolation = Interpolation.Interpolate;
 #endif
 
         [Range(0, 800)]
@@ -30,16 +29,15 @@ namespace Cube.Networking.Replicas {
                 return _history;
             }
         }
-
-        [SerializeField]
-        bool _sendFullUpdateOnly;
+        
+        public bool sendFullUpdateOnly;
 
 #if CLIENT
 #if UNITY_EDITOR
         Vector3 _lastPos;
 #endif
         void Update() {
-            if (isClient && _mode != Mode.Raw) {
+            if (isClient && interpolation != Interpolation.Raw) {
 #if UNITY_EDITOR
                 Debug.DrawLine(_lastPos, transform.position, Color.red, 0.8f);
                 _lastPos = transform.position;
@@ -59,7 +57,7 @@ namespace Cube.Networking.Replicas {
 
 #if SERVER
         public override void Serialize(BitStream bs, ReplicaSerializationMode mode, ReplicaView view) {
-            if (_sendFullUpdateOnly && mode != ReplicaSerializationMode.Full)
+            if (sendFullUpdateOnly && mode != ReplicaSerializationMode.Full)
                 return;
 
             bs.Write(transform.position);
@@ -69,17 +67,17 @@ namespace Cube.Networking.Replicas {
 
 #if CLIENT
         public override void Deserialize(BitStream bs, ReplicaSerializationMode mode) {
-            if (_sendFullUpdateOnly && mode != ReplicaSerializationMode.Full)
+            if (sendFullUpdateOnly && mode != ReplicaSerializationMode.Full)
                 return;
 
             var position = bs.ReadVector3();
             var rotation = bs.ReadQuaternion();
 
-            if (_mode == Mode.Raw) {
+            if (interpolation == Interpolation.Raw) {
                 transform.position = position;
                 transform.rotation = rotation;
             }
-            else if (_mode == Mode.Interpolate) {
+            else if (interpolation == Interpolation.Interpolate) {
                 var velocity = Vector3.zero;
                 history.Write(Time.time + interpolateDelayMs * 0.001f, position, velocity, rotation);
             }
