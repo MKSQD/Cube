@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
 
-namespace Cube.Networking.Transport {
+namespace Cube.Transport {
 #if SERVER
     /// <summary>
     /// 

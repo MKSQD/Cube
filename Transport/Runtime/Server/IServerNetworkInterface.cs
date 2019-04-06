@@ -1,6 +1,6 @@
 using System;
 
-namespace Cube.Networking.Transport {
+namespace Cube.Transport {
     public interface IServerNetworkInterface {
         BitStreamPool bitStreamPool {
             get;

@@ -1,5 +1,5 @@
-using Cube.Networking.Replicas;
-using Cube.Networking.Transport;
+using Cube.Replication;
+using Cube.Transport;
 using UnityEngine;
 
 namespace Cube.Networking {

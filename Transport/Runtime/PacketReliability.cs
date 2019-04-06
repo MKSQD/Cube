@@ -1,5 +1,5 @@
 
-namespace Cube.Networking.Transport {
+namespace Cube.Transport {
     public enum PacketReliability {
         Unreliable,
         UnreliableSequenced,

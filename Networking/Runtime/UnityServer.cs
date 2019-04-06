@@ -1,8 +1,8 @@
-using Cube.Networking.Replicas;
-using Cube.Networking.Transport;
+using Cube.Replication;
+using Cube.Transport;
 using System.Collections.Generic;
 using UnityEngine;
-using BitStream = Cube.Networking.Transport.BitStream;
+using BitStream = Cube.Transport.BitStream;
 
 namespace Cube.Networking {
     [AddComponentMenu("Cube.Networking/UnityServer")]

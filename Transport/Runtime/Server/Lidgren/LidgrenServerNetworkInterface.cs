@@ -5,7 +5,7 @@ using Lidgren.Network;
 using UnityEngine.Assertions;
 using System;
 
-namespace Cube.Networking.Transport {
+namespace Cube.Transport {
     public class ConnectionNotFoundException : Exception {
     }
 

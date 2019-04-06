@@ -3,9 +3,8 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.TestTools;
 using NUnit.Framework;
-using Cube.Networking;
 
-namespace Cube.Networking.Transport.Tests {
+namespace Cube.Transport.Tests {
     public class TestReactor {
 #if CLIENT && SERVER
         [Test]

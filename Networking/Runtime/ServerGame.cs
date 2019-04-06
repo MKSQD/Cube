@@ -1,8 +1,9 @@
-using Cube.Networking.Replicas;
-using Cube.Networking.Transport;
+using Cube.Replication;
+using Cube.Transport;
 using UnityEngine;
 
 namespace Cube.Networking {
+    [AddComponentMenu("Core/ServerGame")]
     public class ServerGame : NetworkBehaviour {
         public DefaultReplicaPriorityManager priorityManager;
         public ushort port = 60000;
@@ -18,11 +19,11 @@ namespace Cube.Networking {
             server.reactor.AddHandler((byte)MessageId.DisconnectNotification, OnDisconnectionNotification);
         }
         
-        void OnNewIncomingConnection(Connection connection, Transport.BitStream bs) {
+        protected virtual void OnNewIncomingConnection(Connection connection, Transport.BitStream bs) {
             Debug.Log("New connection: " + connection);
         }
 
-        void OnDisconnectionNotification(Connection connection, Transport.BitStream bs) {
+        protected virtual void OnDisconnectionNotification(Connection connection, Transport.BitStream bs) {
             Debug.Log("Lost connection: " + connection);
         }
         

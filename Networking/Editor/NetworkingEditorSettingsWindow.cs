@@ -1,7 +1,7 @@
 ﻿using System;
 using UnityEngine;
 using UnityEditor;
-using Cube.Networking.Replicas;
+using Cube.Replication;
 
 namespace Cube.Networking {
     class NetworkingEditorSettingsWindow : EditorWindow {

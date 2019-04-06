@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace Cube.Networking.Transport.Tests {
+namespace Cube.Transport.Tests {
 #if CLIENT && SERVER
     public class LocalServerInterface : IServerNetworkInterface {
         class Message {

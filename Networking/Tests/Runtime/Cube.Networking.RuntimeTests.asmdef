@@ -3,7 +3,7 @@
     "references": [
         "Cube.Networking",
         "Cube.Networking.Transport.RuntimeTests",
-        "Cube.Replica",
+        "Cube.Replication",
         "Cube.Transport"
     ],
     "optionalUnityReferences": [

@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 using UnityEngine;
 using UnityEngine.Assertions;
 
-namespace Cube.Networking.Transport {
+namespace Cube.Transport {
     public class BitStream {
         byte[] _data;
         public byte[] data {

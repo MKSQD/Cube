@@ -2,7 +2,7 @@
 using UnityEngine.TestTools;
 using NUnit.Framework;
 
-namespace Cube.Networking.Transport.Tests {
+namespace Cube.Transport.Tests {
 #if CLIENT && SERVER
     public class TestNaiveClientServer {
         [Test]

@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace Cube.Networking.Transport {
+namespace Cube.Transport {
     public class BitStreamPool {
         List<BitStream> _pool = new List<BitStream>();
         int _current;

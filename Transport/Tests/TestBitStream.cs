@@ -1,7 +1,7 @@
 ﻿using NUnit.Framework;
 using UnityEngine;
 
-namespace Cube.Networking.Transport.Tests {
+namespace Cube.Transport.Tests {
     public class TestBitStream {
         [Test]
         public void Test_CompressDecompress_Float() {

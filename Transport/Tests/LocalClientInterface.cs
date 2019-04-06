@@ -3,9 +3,8 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.TestTools;
 using NUnit.Framework;
-using Cube.Networking;
 
-namespace Cube.Networking.Transport.Tests {
+namespace Cube.Transport.Tests {
 #if CLIENT && SERVER
     public class LocalClientInterface : IClientNetworkInterface {
         BitStreamPool _bitStreamPool = new BitStreamPool();

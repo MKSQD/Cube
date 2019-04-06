@@ -2,7 +2,7 @@
 using System.Collections;
 using System.Threading;
 
-namespace Cube.Networking.Transport.Tests {
+namespace Cube.Transport.Tests {
     
     public class Utils {
 

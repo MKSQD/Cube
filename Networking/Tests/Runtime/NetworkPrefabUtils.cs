@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
-using Cube.Networking.Replicas;
+using Cube.Replication;
 
 namespace Cube.Networking.Tests {
     public class NetworkPrefabUtils {

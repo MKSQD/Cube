@@ -1,4 +1,4 @@
-﻿namespace Cube.Networking.Transport {
+﻿namespace Cube.Transport {
 #if SERVER
     public delegate void ServerMessageHandler(Connection connection, BitStream bs);
 

@@ -1,4 +1,4 @@
-﻿namespace Cube.Networking.Transport {
+﻿namespace Cube.Transport {
 #if CLIENT
     public interface IClientNetworkInterface {
         BitStreamPool bitStreamPool {

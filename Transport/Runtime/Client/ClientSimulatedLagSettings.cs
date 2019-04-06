@@ -1,7 +1,7 @@
 ﻿using System;
 using UnityEngine;
 
-namespace Cube.Networking.Transport {
+namespace Cube.Transport {
     [Serializable]
     public struct ClientSimulatedLagSettings {
 #if UNITY_EDITOR

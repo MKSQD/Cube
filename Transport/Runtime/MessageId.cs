@@ -1,5 +1,5 @@
 ﻿
-namespace Cube.Networking.Transport {
+namespace Cube.Transport {
     public enum MessageId : byte {
         // Server
         /// <summary>Sent on the server for clients connecting</summary>
@@ -15,13 +15,6 @@ namespace Cube.Networking.Transport {
         ReplicaPartialUpdate,
         ReplicaRpc,
         ReplicaDestroy,
-
-        // Client.Gameplay
-        ControllerLocalPawnPossess, // Server -> Client
-        ControllerLocalPawnUnpossess, // Server -> Client
-        ControllerInput, // Client -> Server
-        ControllerResetPawnPosition, // Server -> Client
-        SetGameState, // Server -> Client
 
         FirstUserId
     };

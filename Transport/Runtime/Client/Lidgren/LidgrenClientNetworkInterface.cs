@@ -1,7 +1,7 @@
 ﻿using Lidgren.Network;
 using UnityEngine;
 
-namespace Cube.Networking.Transport {
+namespace Cube.Transport {
 #if CLIENT
     /// <summary>
     /// Client implementation with Lidgren.

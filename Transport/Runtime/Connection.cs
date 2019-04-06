@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Cube.Networking.Transport {
+namespace Cube.Transport {
     [Serializable]
     public struct Connection : IEquatable<Connection> {
         public static readonly Connection Invalid = new Connection(unchecked((ulong)-1));

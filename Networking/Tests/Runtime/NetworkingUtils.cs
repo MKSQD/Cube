@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.Threading;
 using UnityEngine;
-using Cube.Networking.Transport;
-using Cube.Networking.Transport.Tests;
-using Cube.Networking.Replicas;
+using Cube.Transport;
+using Cube.Transport.Tests;
+using Cube.Replication;
 
 namespace Cube.Networking.Tests {
 #if SERVER && CLIENT

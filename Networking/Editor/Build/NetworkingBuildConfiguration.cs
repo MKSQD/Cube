@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor.Compilation;
 using UnityEditor.Build.Reporting;
-using Cube.Networking.Replicas;
+using Cube.Replication;
 using UnityEditor;
 
 namespace Cube.Networking {

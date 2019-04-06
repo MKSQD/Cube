@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.TestTools;
 using NUnit.Framework;
-using Cube.Networking.Replicas;
+using Cube.Replication;
 
 namespace Cube.Networking.Tests {
 #if CLIENT && SERVER
