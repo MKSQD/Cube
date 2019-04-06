@@ -37,7 +37,7 @@ namespace Cube.Replication {
         void DestroyReplica(Replica replica);
 
         ReplicaView GetReplicaView(Connection connection);
-        void AddReplicaView(Connection connection, ReplicaView view);
+        void AddReplicaView(ReplicaView view);
         void RemoveReplicaView(Connection connection);
 
         ushort AllocateLocalReplicaId();

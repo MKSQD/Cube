@@ -72,6 +72,10 @@ namespace Cube.Replication {
 #endif
 
         public ServerReplicaManager(IServerReactor reactor, Transform serverTransform, IReplicaPriorityManager priorityManager) {
+            Assert.IsNotNull(reactor);
+            Assert.IsNotNull(serverTransform);
+            Assert.IsNotNull(priorityManager);
+
             _serverTransform = serverTransform;
             
             _networkScene = new NetworkScene();
@@ -368,13 +372,13 @@ namespace Cube.Replication {
             return null;
         }
 
-        public void AddReplicaView(Connection connection, ReplicaView view) {
-            if (connection == Connection.Invalid)
-                throw new ArgumentNullException("connection");
+        public void AddReplicaView(ReplicaView view) {
+            if (_replicaViews.Contains(view))
+                return;
 
-            Assert.IsTrue(!_replicaViews.Contains(view));
-
-            view.connection = connection;
+            if (view.connection == Connection.Invalid)
+                throw new ArgumentException("connection");
+            
             _replicaViews.Add(view);
         }
 

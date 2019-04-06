@@ -10,8 +10,7 @@ namespace Cube.Replication {
         }
 
         void Awake() {
-            if(defaultSettings == null) {
-                Debug.LogWarning("DefaultReplicaPriorityManager: Default ReplicaSettings not set. Initialize default ReplicaSettings object.");
+            if (defaultSettings == null) {
                 defaultSettings = ScriptableObject.CreateInstance<ReplicaSettings>();
             }
         }

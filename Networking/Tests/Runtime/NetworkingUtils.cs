@@ -65,7 +65,11 @@ namespace Cube.Networking.Tests {
             client = InitClient(prefabLookup, server.server);
 
             var view = server.replicaManager.InstantiateReplica(replicaViewPrefab);
-            server.replicaManager.AddReplicaView(client.client.connection, view.GetComponent<ReplicaView>());
+
+            var rw = view.GetComponent<ReplicaView>();
+            rw.connection = client.client.connection;
+
+            server.replicaManager.AddReplicaView(rw);
         }
 
         public static void UpdateServerAndClient(ServerObjects server, ClientObjects client) {

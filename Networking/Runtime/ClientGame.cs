@@ -4,7 +4,7 @@ using UnityEngine;
 using BitStream = Cube.Transport.BitStream;
 
 namespace Cube.Networking {
-    [AddComponentMenu("Core/ClientGame")]
+    [AddComponentMenu("Cube/ClientGame")]
     public class ClientGame : NetworkBehaviour {
         public ClientSimulatedLagSettings lagSettings;
 
