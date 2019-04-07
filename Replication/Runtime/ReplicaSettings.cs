@@ -11,7 +11,7 @@ namespace Cube.Replication {
     [CreateAssetMenu(menuName = "Cube/ReplicaSettings")]
     public class ReplicaSettings : ScriptableObject {
         [Tooltip("How often updates should be send about this object to clients. 0 means as fast as possible.")]
-        [Range(0, 2000)]
+        [Range(100, 2000)]
         public int desiredUpdateRateMs = 0;
         public ReplicaPriorityFlag priorityFlags = ReplicaPriorityFlag.None;
         [Range(1, 1000)]

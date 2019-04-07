@@ -29,20 +29,17 @@ namespace Cube.Replication {
                 return _history;
             }
         }
-        
+
 #if CLIENT
-#if UNITY_EDITOR
         Vector3 _lastPos;
-#endif
+        Vector3 _velocity;
         void Update() {
             if (isClient && interpolation != Interpolation.Raw) {
-#if UNITY_EDITOR
-                Debug.DrawLine(_lastPos, transform.position, Color.red, 0.8f);
-                _lastPos = transform.position;
-#endif
-
                 var position = transform.position;
                 var rotation = transform.rotation;
+
+                _velocity = transform.position - _lastPos;
+                _lastPos = transform.position;
 
                 var velocity = Vector3.zero;
                 history.Read(Time.time, ref position, ref velocity, ref rotation);
@@ -70,8 +67,7 @@ namespace Cube.Replication {
                 transform.rotation = rotation;
             }
             else if (interpolation == Interpolation.Interpolate) {
-                var velocity = Vector3.zero;
-                history.Write(Time.time + interpolateDelayMs * 0.001f, position, velocity, rotation);
+                history.Write(Time.time + interpolateDelayMs * 0.001f, position, _velocity, rotation);
             }
         }
 #endif

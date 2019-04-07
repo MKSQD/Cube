@@ -25,12 +25,12 @@ namespace Cube.Replication {
         public TransformHistory(float maxHistoryTimeSec) {
             _maxHistoryTimeSec = maxHistoryTimeSec;
         }
-        
+
         public void Write(float timeSec, Vector3 position, Vector3 velocity, Quaternion rotation) {
             while (_entries.Count > 0 && _entries.First().time < timeSec - _maxHistoryTimeSec) {
                 _entries.RemoveAt(0);
             }
-            
+
             _entries.Add(new Entry() {
                 time = timeSec,
                 position = position,
@@ -42,6 +42,10 @@ namespace Cube.Replication {
         }
 
         public ReadResult Read(float whenSec, ref Vector3 currentPosition, ref Vector3 currentVelocity, ref Quaternion currentRotation) {
+            for (int i = 1; i < _entries.Count; ++i) {
+                Debug.DrawLine(_entries[i - 1].position, _entries[i].position, Color.red);
+            }
+            
             for (int i = _entries.Count - 1; i >= 0; --i) {
                 if (whenSec >= _entries[i].time) {
                     var j = Math.Min(i + 1, _entries.Count - 1);
