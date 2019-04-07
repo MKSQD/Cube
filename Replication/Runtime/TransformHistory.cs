@@ -25,12 +25,12 @@ namespace Cube.Replication {
         public TransformHistory(float maxHistoryTimeSec) {
             _maxHistoryTimeSec = maxHistoryTimeSec;
         }
-
+        
         public void Write(float timeSec, Vector3 position, Vector3 velocity, Quaternion rotation) {
             while (_entries.Count > 0 && _entries.First().time < timeSec - _maxHistoryTimeSec) {
                 _entries.RemoveAt(0);
             }
-
+            
             _entries.Add(new Entry() {
                 time = timeSec,
                 position = position,
