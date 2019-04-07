@@ -70,4 +70,42 @@ and create a new prefab variant *Client_TestReplica* (The name prefixes **Server
 Now you can for instance set a blue transparent material color on the server prefab.
 
 #### ReplicaBehaviour
+Create a new script TestReplica:
+```C#
+using Cube.Replication;
+using UnityEngine;
+
+public class TestReplica : ReplicaBehaviour {
+    void Update() {
+        if (!isServer)
+            return;
+
+        var pos = transform.position;
+        pos.x += Time.deltaTime;
+        if (pos.x > 8)
+            pos.x = -8;
+        transform.position = pos;
+    }
+}
+```
+
+
 #### ReplicaRpc
+```C#
+using Cube.Replication;
+using UnityEngine;
+
+public class TestReplica : ReplicaBehaviour {
+    void Update() {
+        if (!isServer)
+            return;
+
+        RpcTest();
+    }
+
+    [ReplicaRpc(RpcTarget.Client)]
+    void RpcTest() {
+        Debug.Log("Client rpc called");
+    }
+}
+```
