@@ -7,6 +7,8 @@ namespace Cube.Networking {
     public class ServerGame : NetworkBehaviour {
         public ushort port = 60000;
 
+        public ServerReplicaManagerSettings replicaManagerSettings;
+
 #if SERVER
 
         public new UnityServer server;
@@ -16,8 +18,8 @@ namespace Cube.Networking {
             if (priorityManager == null) {
                 priorityManager = gameObject.AddComponent<DefaultReplicaPriorityManager>();
             }
-
-            server = new UnityServer(port, transform, priorityManager);
+            
+            server = new UnityServer(port, transform, priorityManager, replicaManagerSettings);
 
             server.reactor.AddHandler((byte)MessageId.NewConnectionEstablished, OnNewIncomingConnection);
             server.reactor.AddHandler((byte)MessageId.DisconnectNotification, OnDisconnectionNotification);

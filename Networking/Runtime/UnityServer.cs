@@ -29,14 +29,14 @@ namespace Cube.Networking {
             get { return _connections; }
         }
 
-        public UnityServer(ushort port, Transform serverTransform, IReplicaPriorityManager priorityManager) {
+        public UnityServer(ushort port, Transform serverTransform, IReplicaPriorityManager priorityManager, ServerReplicaManagerSettings replicaManagerSettings) {
             networkInterface = new LidgrenServerNetworkInterface(port);
 
             reactor = new ServerReactor(networkInterface);
             reactor.AddHandler((byte)MessageId.NewConnectionEstablished, OnNewConnectionEstablished);
             reactor.AddHandler((byte)MessageId.DisconnectNotification, OnDisconnectNotification);
             
-            replicaManager = new ServerReplicaManager(reactor, serverTransform, priorityManager);
+            replicaManager = new ServerReplicaManager(reactor, serverTransform, priorityManager, replicaManagerSettings);
         }
         
         public void Update() {

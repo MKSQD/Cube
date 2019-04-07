@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections.Generic;
 using System.Linq;
+using System;
 
 namespace Cube.Replication {
     public class TransformHistory {
@@ -16,76 +17,59 @@ namespace Cube.Replication {
             public Quaternion rotation;
         }
 
-        List<Entry> _entries;
-        float _writeInterval;
+        public float snapDistance = 3;
 
-        public TransformHistory(float maxWriteInterval, float maxHistoryTime) {
-            _writeInterval = maxWriteInterval;
-            _entries = new List<Entry>(Mathf.CeilToInt(maxHistoryTime / maxWriteInterval) + 1);
+        List<Entry> _entries = new List<Entry>();
+        float _maxHistoryTimeSec;
+
+        public TransformHistory(float maxHistoryTimeSec) {
+            _maxHistoryTimeSec = maxHistoryTimeSec;
         }
 
-        public void Write(float time, Vector3 position, Vector3 velocity, Quaternion rotation) {
-            var entry = new Entry() {
-                time = time,
+        public void Write(float timeSec, Vector3 position, Vector3 velocity, Quaternion rotation) {
+            while (_entries.Count > 0 && _entries.First().time < timeSec - _maxHistoryTimeSec) {
+                _entries.RemoveAt(0);
+            }
+
+            _entries.Add(new Entry() {
+                time = timeSec,
                 position = position,
                 velocity = velocity,
                 rotation = rotation
-            };
+            });
 
-            if (_entries.Count != 0) {
-                if (time - _entries[_entries.Count - 1].time >= _writeInterval) {
-                    if (_entries.Count == _entries.Capacity) {
-                        _entries.RemoveAt(0);
-                    }
-                    _entries.Add(entry);
-                }
-            } else {
-                _entries.Add(entry);
-            }
+            //Debug.Log("Write [" + string.Join("  ", _entries.Select(e2 => e2.time)) + "]");
         }
 
-        public ReadResult Read(float when, ref Vector3 currentPosition, ref Vector3 currentVelocity, ref Quaternion currentRotation) {
-            for (int i = 0; i < _entries.Count - 1; ++i) {
-                var p = _entries[i].position;
-                Debug.DrawLine(p, _entries[i + 1].position, Color.green);
-                Debug.DrawLine(p - Vector3.left * 0.2f, p + Vector3.right * 0.2f, Color.red);
-                Debug.DrawLine(p - Vector3.forward * 0.2f, p + Vector3.back * 0.2f, Color.red);
-            }
+        public ReadResult Read(float whenSec, ref Vector3 currentPosition, ref Vector3 currentVelocity, ref Quaternion currentRotation) {
+            for (int i = _entries.Count - 1; i >= 0; --i) {
+                if (whenSec >= _entries[i].time) {
+                    var j = Math.Min(i + 1, _entries.Count - 1);
 
-            if (_entries.Count == 0)
-                return ReadResult.None;
+                    var e1 = _entries[i];
+                    var e2 = _entries[j];
 
-            var lastEntry = _entries.Last();
-            if (when < lastEntry.time) {
-                for (var i = _entries.Count - 1; i >= 0; --i) {
-                    var C1 = _entries[i];
-                    var C2 = _entries[Mathf.Min(i + 1, _entries.Count - 1)];
+                    var r = Mathf.Max(e2.time - e1.time, 0.001f);
+                    var a = Mathf.Min((whenSec - e1.time) / r, 1);
 
-                    if (when > C1.time) {
-                        var divisor = C2.time - C1.time;
-                        var lerp = 0f;
-                        if (divisor > 0f) {
-                            lerp = (when - C1.time) / divisor;
-                        }
-
-                        var targetPosition = Vector3.Lerp(C1.position, C2.position, lerp);
-                        var targetVelocity = Vector3.Lerp(C1.velocity, C2.velocity, lerp);
-                        var targetRotation = Quaternion.Slerp(C1.rotation, C2.rotation, lerp);
-
-                        currentPosition = targetPosition;
-                        currentVelocity = targetVelocity;
-                        currentRotation = targetRotation;
+                    var lerp = (e1.position - e2.position).sqrMagnitude;
+                    if (lerp < snapDistance) {
+                        currentPosition = Vector3.LerpUnclamped(e1.position, e2.position, a);
+                        currentVelocity = Vector3.LerpUnclamped(e1.velocity, e2.velocity, a);
+                        currentRotation = Quaternion.SlerpUnclamped(e1.rotation, e2.rotation, a);
                     }
+                    else {
+                        currentPosition = e2.position;
+                        currentVelocity = e2.velocity;
+                        currentRotation = e2.rotation;
+                    }
+
+                    //Debug.Log("Read " + whenSec + " [" + i + ":" + e1.time + "  " + j + ":" + e2.time + "] a=" + a);
+                    return ReadResult.Interpolated;
                 }
-
-                return ReadResult.Interpolated;
-            } else {
-                currentPosition = lastEntry.position;
-                currentVelocity = lastEntry.velocity;
-                currentRotation = lastEntry.rotation;
-
-                return ReadResult.None;
             }
+
+            return ReadResult.None;
         }
     }
 }

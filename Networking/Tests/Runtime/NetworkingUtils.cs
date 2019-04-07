@@ -35,8 +35,10 @@ namespace Cube.Networking.Tests {
             var priorityManagerGO = new GameObject("priorityManager");
             objects.priorityManager = priorityManagerGO.AddComponent<DefaultReplicaPriorityManager>();
 
+            var replicaManagerSettings = new ServerReplicaManagerSettings();
+
             objects.gameObject = new GameObject("Server");
-            objects.replicaManager = new ServerReplicaManager(objects.reactor, objects.gameObject.transform, objects.priorityManager);
+            objects.replicaManager = new ServerReplicaManager(objects.reactor, objects.gameObject.transform, objects.priorityManager, replicaManagerSettings);
 
             return objects;
         }

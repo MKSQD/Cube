@@ -10,10 +10,10 @@ namespace Cube.Transport {
         public float simulatedLoss;
         [Range(0, 1)]
         public float duplicatesChance;
-        [Range(0, 1000)]
-        public float minimumLatencyMs;
-        [Range(0, 1000)]
-        public float randomLatencyMs;
+        [Range(0, 2)]
+        public float minimumLatencySec;
+        [Range(0, 1)]
+        public float randomLatencySec;
 #endif
     }
 }

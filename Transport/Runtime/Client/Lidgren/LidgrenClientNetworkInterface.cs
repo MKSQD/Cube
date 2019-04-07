@@ -28,8 +28,8 @@ namespace Cube.Transport {
                 
                 config.SimulatedLoss = lagSettings.simulatedLoss;
                 config.SimulatedDuplicatesChance = lagSettings.duplicatesChance;
-                config.SimulatedMinimumLatency = lagSettings.minimumLatencyMs * 0.001f;
-                config.SimulatedRandomLatency = lagSettings.randomLatencyMs * 0.001f;
+                config.SimulatedMinimumLatency = lagSettings.minimumLatencySec;
+                config.SimulatedRandomLatency = lagSettings.randomLatencySec;
             }
 #endif
 

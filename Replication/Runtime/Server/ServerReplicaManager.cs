@@ -8,6 +8,14 @@ using Cube.Transport;
 using BitStream = Cube.Transport.BitStream;
 
 namespace Cube.Replication {
+    [Serializable]
+    public class ServerReplicaManagerSettings {
+        [Range(0, 1500)]
+        public int maxBytesPerConnectionPerUpdate = 1400;
+        [Range(10, 1000)]
+        public float replicaUpdateRateMS = 33; // 30 times per second
+    }
+
 #if SERVER
     public sealed class ServerReplicaManager : IServerReplicaManager {
         public class Statistic {
@@ -51,10 +59,10 @@ namespace Cube.Replication {
             get { return _replicaViews; }
         }
 
-        public int maxBytesPerConnectionPerUpdate = 1400;
+        ServerReplicaManagerSettings _settings;
 
         float _nextUpdateTime;
-        
+
         ushort _nextLocalReplicaId = 1; // 1, so 0 can be the Invalid value (structs are zeroed to 0)
         Queue<ushort> _freeReplicaIds = new Queue<ushort>();
 
@@ -71,18 +79,21 @@ namespace Cube.Replication {
         }
 #endif
 
-        public ServerReplicaManager(IServerReactor reactor, Transform serverTransform, IReplicaPriorityManager priorityManager) {
+        public ServerReplicaManager(IServerReactor reactor, Transform serverTransform, IReplicaPriorityManager priorityManager, ServerReplicaManagerSettings settings) {
             Assert.IsNotNull(reactor);
             Assert.IsNotNull(serverTransform);
             Assert.IsNotNull(priorityManager);
+            Assert.IsNotNull(settings);
 
             _serverTransform = serverTransform;
-            
+
             _networkScene = new NetworkScene();
             _priorityManager = priorityManager;
 
             _reactor = reactor;
             _reactor.AddHandler((byte)MessageId.ReplicaRpc, OnReplicaRpc);
+
+            _settings = settings;
 
             SceneManager.sceneLoaded += InstantiateSceneReplicas;
         }
@@ -189,7 +200,7 @@ namespace Cube.Replication {
             if (Time.time < _nextUpdateTime)
                 return;
 
-            _nextUpdateTime = Time.time + Constants.replicaUpdateRateMS * 0.001f;
+            _nextUpdateTime = Time.time + _settings.replicaUpdateRateMS * 0.001f;
 #if UNITY_EDITOR
             _statistic = new Statistic();
 #endif
@@ -209,10 +220,10 @@ namespace Cube.Replication {
         }
 
         void UpdateReplicaViews() {
-            for(int i = 0; i < _replicaViews.Count; ++i) {
+            for (int i = 0; i < _replicaViews.Count; ++i) {
                 UpdateReplicaView(_replicaViews[i]);
             }
-            
+
             // #TODO remove replicas from view.replicaUpdateInfo when the client removes them due to no updates/client leaves
         }
 
@@ -293,7 +304,7 @@ namespace Cube.Replication {
                 perReplicaViewInfo.bytesPerPrefabIdx[replica.prefabIdx] = replicaTypeInfo;
 #endif
 
-                if (bytesSent >= maxBytesPerConnectionPerUpdate)
+                if (bytesSent >= _settings.maxBytesPerConnectionPerUpdate)
                     return;
 
                 // rpcs
@@ -303,7 +314,7 @@ namespace Cube.Replication {
                         ++numRpcsSent;
 
                         bytesSent += rpc.Length;
-                        if (bytesSent >= maxBytesPerConnectionPerUpdate)
+                        if (bytesSent >= _settings.maxBytesPerConnectionPerUpdate)
                             return;
                     }
                 }
@@ -378,7 +389,7 @@ namespace Cube.Replication {
 
             if (view.connection == Connection.Invalid)
                 throw new ArgumentException("connection");
-            
+
             _replicaViews.Add(view);
         }
 

@@ -24,14 +24,12 @@ namespace Cube.Replication {
         protected TransformHistory history {
             get {
                 if (_history == null) {
-                    _history = new TransformHistory(Constants.replicaUpdateRateMS * 0.001f, 1f);
+                    _history = new TransformHistory(interpolateDelayMs * 0.001f * 2);
                 }
                 return _history;
             }
         }
         
-        public bool sendFullUpdateOnly;
-
 #if CLIENT
 #if UNITY_EDITOR
         Vector3 _lastPos;
@@ -43,23 +41,20 @@ namespace Cube.Replication {
                 _lastPos = transform.position;
 #endif
 
-                var position = transform.localPosition;
-                var rotation = transform.localRotation;
+                var position = transform.position;
+                var rotation = transform.rotation;
 
                 var velocity = Vector3.zero;
                 history.Read(Time.time, ref position, ref velocity, ref rotation);
 
-                transform.localPosition = position;
-                transform.localRotation = rotation;
+                transform.position = position;
+                transform.rotation = rotation;
             }
         }
 #endif
 
 #if SERVER
         public override void Serialize(BitStream bs, ReplicaSerializationMode mode, ReplicaView view) {
-            if (sendFullUpdateOnly && mode != ReplicaSerializationMode.Full)
-                return;
-
             bs.Write(transform.position);
             bs.Write(transform.rotation);
         }
@@ -67,9 +62,6 @@ namespace Cube.Replication {
 
 #if CLIENT
         public override void Deserialize(BitStream bs, ReplicaSerializationMode mode) {
-            if (sendFullUpdateOnly && mode != ReplicaSerializationMode.Full)
-                return;
-
             var position = bs.ReadVector3();
             var rotation = bs.ReadQuaternion();
 

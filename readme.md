@@ -11,4 +11,4 @@ Note that the instant connection in ClientGame is just enabled in the Unity edit
 Now that we've got a connection we can start looking at replication.
 
 ### Replication
-The hearth of Core is a powerful replication system.
+The hearth of Cube is a powerful replication system.
