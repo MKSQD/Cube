@@ -8,6 +8,7 @@
 - Automation (client/server prefabs and assets are discovered automatically)
 
 ## Getting Started
+Clone the git repository into your **Assets** folder.
 
 ### Connecting server and client in editor
 Create new GameObject *ClientGame* in the scene and add the *Core/ClientGame* component.
