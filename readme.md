@@ -13,7 +13,9 @@ Now that we've got a connection we can start looking at replication.
 ### Replication
 The hearth of Cube is a powerful replication system.
 
+```
 A **Replica** is replicated from the server to all clients.
+```
 
 Create a new *GameObject* in the scene. Add the *Cube/Replica* component to mark it as an Replica. Add the *Cube/ReplicaTransform* component to keep their transforms synchronized.
 Then create a prefab *TestReplica* from it.
@@ -46,7 +48,9 @@ public class TestServerGame : ServerGame {
 ```
 Replace the *ServerGame* component on the ServerGame scene GameObject. Assign TestReplica to it's prefab field.
 
+```
 A **ReplicaView** observes Replicas for a connection.
+```
 
 Start the game now and you should see the Replica prefab being replicated. Try to move around the server-side instance in the editor.
 
