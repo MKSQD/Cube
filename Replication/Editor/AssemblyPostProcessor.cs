@@ -46,19 +46,19 @@ namespace Cube.Replication {
                         };
 
                         using (var assembly = AssemblyDefinition.ReadAssembly(assemblyPath, readerParameters)) {
-                            //skip Cube.Networking.Replica.Editor
+                            //skip Cube.Replication.Editor
                             if (assembly.FullName == Assembly.GetAssembly(typeof(AssemblyPostProcessor)).FullName)
                                 return;
                             
-                            bool hasRefToNetworkingReplica = false;
+                            bool hasRefToReplication = false;
                             foreach (var reference in assembly.MainModule.AssemblyReferences) {
-                                if (reference.Name == "Cube.Networking.Replica") {
-                                    hasRefToNetworkingReplica = true;
+                                if (reference.Name == "Cube.Replication") {
+                                    hasRefToReplication = true;
                                     break;
                                 }
                             }
 
-                            if (!hasRefToNetworkingReplica)
+                            if (!hasRefToReplication)
                                 return;
 
                             foreach (var module in assembly.Modules) {

@@ -194,6 +194,9 @@ namespace Cube.Replication {
         }
 
         protected AssemblyDefinition ResolveAssembly(string name) {
+            if (module.Assembly.Name.Name == name)
+                return module.Assembly;
+
             var assembly = module.AssemblyResolver.Resolve(new AssemblyNameReference(name, new Version()));
             if (assembly == null) {
                 Debug.LogError("Cannot resolve Assembly '" + name + "'");
@@ -211,17 +214,6 @@ namespace Cube.Replication {
             }
 
             throw new Exception("Enum value not found for " + name);
-        }
-
-        protected AssemblyDefinition ResolveNetworkingReplicaAssembly() {
-            if (module.Assembly.Name.Name == "Cube.Networking.Replica")
-                return module.Assembly;
-
-            var assembly = module.AssemblyResolver.Resolve(new AssemblyNameReference("Cube.Networking.Replica", new Version()));
-            if (assembly == null)
-                Debug.LogError("RPC Patcher: Cannot resolve 'Cube.Networking.Replica'");
-
-            return assembly;
         }
     }
 }

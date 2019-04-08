@@ -32,10 +32,16 @@ namespace Cube.Replication {
         }
 
 #if CLIENT
+        float _lastTime;
         void Update() {
             if (model == null || !isClient)
                 return;
-            
+
+            if (Time.time - _lastTime > 0.1f) {
+                _lastTime = Time.time;
+                _history.Write(Time.time + interpolateDelayMs * 0.001f, transform.position, _rigidbody.velocity, transform.rotation);
+            }
+
             var position = transform.position;
             var rotation = transform.rotation;
 
@@ -65,7 +71,7 @@ namespace Cube.Replication {
         public override void Deserialize(BitStream bs, ReplicaSerializationMode mode) {
             var position = bs.ReadVector3();
             var rotation = bs.ReadQuaternion();
-            
+
             transform.position = position;
             transform.rotation = rotation;
 
@@ -77,8 +83,6 @@ namespace Cube.Replication {
             else {
                 _rigidbody.Sleep();
             }
-            
-            _history.Write(Time.time + interpolateDelayMs * 0.001f, position, _rigidbody.velocity, rotation);
         }
 #endif
     }

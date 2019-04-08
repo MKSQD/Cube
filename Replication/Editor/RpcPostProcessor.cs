@@ -45,10 +45,10 @@ namespace Cube.Replication {
             if (unityEngineAssembly == null)
                 Debug.LogError("RPC Patcher: Cannot resolve 'UnityEngine'");
 
-            var networkingReplicaAssembly = ResolveNetworkingReplicaAssembly();
+            var networkingReplicaAssembly = ResolveAssembly("Cube.Replication");
 
-            _networkBehaviourType = GetTypeDefinitionByName(networkingReplicaAssembly.MainModule, "Cube.Networking.Replicas.NetworkBehaviour");
-            _replicaBehaviourType = GetTypeDefinitionByName(networkingReplicaAssembly.MainModule, "Cube.Networking.Replicas.ReplicaBehaviour");
+            _networkBehaviourType = GetTypeDefinitionByName(networkingReplicaAssembly.MainModule, "Cube.Replication.NetworkBehaviour");
+            _replicaBehaviourType = GetTypeDefinitionByName(networkingReplicaAssembly.MainModule, "Cube.Replication.ReplicaBehaviour");
 
             var debugType = GetTypeDefinitionByName(unityEngineAssembly.MainModule, "UnityEngine.Debug");
             _debugLogErrorMethod = ImportMethod(GetMethodDefinitionByName(debugType, "LogError"));
@@ -75,7 +75,7 @@ namespace Cube.Replication {
 
             _dictionaryAddMethod = module.Assembly.MainModule.ImportReference(typeof(Dictionary<byte, string>).GetMethod("Add"));
 
-            _rpcTargetType = GetTypeDefinitionByName(networkingReplicaAssembly.MainModule, "Cube.Networking.Replicas.RpcTarget");
+            _rpcTargetType = GetTypeDefinitionByName(networkingReplicaAssembly.MainModule, "Cube.Replication.RpcTarget");
             _rpcTargetServerValue = GetEnumValueByName(_rpcTargetType, "Server");
         }
 
@@ -101,11 +101,11 @@ namespace Cube.Replication {
             var remoteMethods = new List<MethodDefinition>();
 
             TypeDefinition baseType = null;
-            if (InheritsTypeFrom(type, "Cube.Networking.Replicas.ReplicaBehaviour")) {
+            if (InheritsTypeFrom(type, "Cube.Replication.ReplicaBehaviour")) {
                 var tmp = ResolveTypeReference(type.BaseType);
 
                 //#TODO classes from other modules (filter "tmp.Module.path" in "Application.dataPath" ?)
-                if (tmp.FullName != "Cube.Networking.Replicas.ReplicaBehaviour" && tmp.Module.Name == module.Name) {
+                if (tmp.FullName != "Cube.Replication.ReplicaBehaviour" && tmp.Module.Name == module.Name) {
                     baseType = tmp;
                     ProcessType(baseType);
                     nextRpcMethodId = _processedTypes[baseType.FullName];
@@ -123,7 +123,7 @@ namespace Cube.Replication {
                 if (method.IsConstructor || !method.HasBody)
                     continue;
 
-                if (!HasAttribute("Cube.Networking.Replicas.ReplicaRpcAttribute", method))
+                if (!HasAttribute("Cube.Replication.ReplicaRpcAttribute", method))
                     continue;
 
                 var remoteMethod = CreateRpcRemoteMethod(method);
@@ -251,7 +251,7 @@ namespace Cube.Replication {
             il.Append(firstInstruction);
 
             //target validation
-            var type = (int)GetAttributeByName("Cube.Networking.Replicas.ReplicaRpcAttribute", method.CustomAttributes).ConstructorArguments[0].Value;
+            var type = (int)GetAttributeByName("Cube.Replication.ReplicaRpcAttribute", method.CustomAttributes).ConstructorArguments[0].Value;
 
             string error = "Cannot call rpc method \"" + method.FullName + "\" on client";
             Instruction conditionInstruction = il.Create(OpCodes.Call, ImportMethod(_isClientProperty.GetMethod));
@@ -323,7 +323,7 @@ namespace Cube.Replication {
                 return false;
             }
 
-            if (!InheritsTypeFrom(method.DeclaringType, "Cube.Networking.Replicas.ReplicaBehaviour")) {
+            if (!InheritsTypeFrom(method.DeclaringType, "Cube.Replication.ReplicaBehaviour")) {
                 error = "Rpc methods are only supported in \"ReplicaBehaviour\"";
                 return false;
             }

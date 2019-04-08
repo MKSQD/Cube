@@ -24,16 +24,16 @@ namespace Cube.Replication {
         Dictionary<FieldDefinition, MethodDefinition> _setters = new Dictionary<FieldDefinition, MethodDefinition>();
 
         public VarPostProcessor(ApplicationType appType, ModuleDefinition module) : base(appType, module) {
-            var networkingReplicaAssembly = ResolveNetworkingReplicaAssembly();
-            var networkingTransportAssembly = ResolveAssembly("Cube.Networking.Transport");
+            var networkingReplicaAssembly = ResolveAssembly("Cube.Replication");
+            var networkingTransportAssembly = ResolveAssembly("Cube.Transport");
 
-            _replicaBehaviourType = GetTypeDefinitionByName(networkingReplicaAssembly.MainModule, "Cube.Networking.Replicas.ReplicaBehaviour");
+            _replicaBehaviourType = GetTypeDefinitionByName(networkingReplicaAssembly.MainModule, "Cube.Replication.ReplicaBehaviour");
             _replicaDirtyFieldsMask = ImportField(GetFieldDefinitionByName(_replicaBehaviourType, "dirtyFieldsMask"));
 
-            _replicaSerializationModeType = ImportType(GetTypeDefinitionByName(networkingReplicaAssembly.MainModule, "Cube.Networking.Replicas.ReplicaSerializationMode"));
-            _replicaVarAttributeType = ImportType(GetTypeDefinitionByName(networkingReplicaAssembly.MainModule, "Cube.Networking.Replicas.ReplicaVarAttribute"));
+            _replicaSerializationModeType = ImportType(GetTypeDefinitionByName(networkingReplicaAssembly.MainModule, "Cube.Replication.ReplicaSerializationMode"));
+            _replicaVarAttributeType = ImportType(GetTypeDefinitionByName(networkingReplicaAssembly.MainModule, "Cube.Replication.ReplicaVarAttribute"));
 
-            _bitStreamType = GetTypeDefinitionByName(networkingTransportAssembly.MainModule, "Cube.Networking.Transport.BitStream");
+            _bitStreamType = GetTypeDefinitionByName(networkingTransportAssembly.MainModule, "Cube.Transport.BitStream");
 
             foreach (var writeMethod in ImportMethods(GetMethodDefinitionsByName(_bitStreamType, "Write")))
                 _bitStreamWrite[writeMethod.Parameters[0].ParameterType.Name] = writeMethod;
@@ -44,7 +44,7 @@ namespace Cube.Replication {
             _bitStreamReadBool = ImportMethod(GetMethodDefinitionByName(_bitStreamType, "ReadBool"));
 
             if ((appType & ApplicationType.Server) != 0) {
-                _replicaViewType = ImportType(GetTypeDefinitionByName(networkingReplicaAssembly.MainModule, "Cube.Networking.Replicas.ReplicaView"));
+                _replicaViewType = ImportType(GetTypeDefinitionByName(networkingReplicaAssembly.MainModule, "Cube.Replication.ReplicaView"));
             }
         }
 
@@ -73,7 +73,7 @@ namespace Cube.Replication {
 
             PatchReplicaVars(fields, type);
 
-            if (!InheritsTypeFrom(type, "Cube.Networking.Replicas.ReplicaBehaviour")) {
+            if (!InheritsTypeFrom(type, "Cube.Replication.ReplicaBehaviour")) {
                 Debug.LogError("VAR Patcher: ReplicaVar on type '" + type.FullName + "' which is not derived from Cube.Networking.Replicas.ReplicaBehaviour");
                 return;
             }
@@ -94,7 +94,7 @@ namespace Cube.Replication {
         List<FieldDefinition> FindReplicaVarFields(TypeDefinition type) {
             var fields = new List<FieldDefinition>();
             foreach (var field in type.Fields) {
-                if (!HasAttribute("Cube.Networking.Replicas.ReplicaVarAttribute", field))
+                if (!HasAttribute("Cube.Replication.ReplicaVarAttribute", field))
                     continue;
 
                 fields.Add(field);
