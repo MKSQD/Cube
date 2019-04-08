@@ -9,44 +9,40 @@ namespace Cube.Replication {
     [AddComponentMenu("Cube/ReplicaRigidbody")]
     [RequireComponent(typeof(Rigidbody))]
     public class ReplicaRigidbody : ReplicaBehaviour {
-        public GameObject model;
+        public Transform model;
+
+        [Range(0, 800)]
+        public int interpolateDelayMs;
+
+        TransformHistory _history;
 
         Rigidbody _rigidbody;
         Vector3 _modelOffset;
         Quaternion _modelRotationOffset;
-        Vector3 _lastPos;
-        Quaternion _lastRot;
 
         void Awake() {
-            _rigidbody = GetComponent<Rigidbody>();
+            _history = new TransformHistory(interpolateDelayMs * 0.001f * 2);
 
             if (model != null) {
-                _lastPos = transform.position;
-                _lastRot = transform.rotation;
-                _modelOffset = model.transform.localPosition;
-                _modelRotationOffset = model.transform.localRotation;
+                _modelOffset = model.localPosition;
+                _modelRotationOffset = model.localRotation;
             }
+
+            _rigidbody = GetComponent<Rigidbody>();
         }
 
 #if CLIENT
         void Update() {
-            if (model == null)
+            if (model == null || !isClient)
                 return;
-
-            var newPos = transform.position + _modelOffset;
-            var newRot = transform.rotation * _modelRotationOffset;
-
-            if ((_lastPos - newPos).sqrMagnitude < 0.5f) {
-                model.transform.position = Vector3.Lerp(_lastPos, newPos, Time.deltaTime * 8);
-                model.transform.rotation = Quaternion.Slerp(_lastRot, newRot, Time.deltaTime * 12);
-            }
-            else {
-                model.transform.position = newPos;
-                model.transform.rotation = newRot;
-            }
             
-            _lastPos = model.transform.position;
-            _lastRot = model.transform.rotation;
+            var position = transform.position;
+            var rotation = transform.rotation;
+
+            _history.Read(Time.time, ref position, ref rotation);
+
+            model.position = position + _modelOffset;
+            model.rotation = rotation * _modelRotationOffset;
         }
 #endif
 
@@ -69,21 +65,20 @@ namespace Cube.Replication {
         public override void Deserialize(BitStream bs, ReplicaSerializationMode mode) {
             var position = bs.ReadVector3();
             var rotation = bs.ReadQuaternion();
-
+            
             transform.position = position;
             transform.rotation = rotation;
 
             var sleeping = bs.ReadBool();
-            if (sleeping) {
-                _rigidbody.Sleep();
-
-
-                return;
+            if (!sleeping) {
+                _rigidbody.velocity = bs.ReadVector3();
+                _rigidbody.angularVelocity = bs.ReadVector3();
             }
-
-            _rigidbody.velocity = bs.ReadVector3();
-            _rigidbody.angularVelocity = bs.ReadVector3();
-
+            else {
+                _rigidbody.Sleep();
+            }
+            
+            _history.Write(Time.time + interpolateDelayMs * 0.001f, position, _rigidbody.velocity, rotation);
         }
 #endif
     }

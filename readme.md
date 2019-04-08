@@ -17,7 +17,7 @@ When you start the game now you should see log output of the client connecting t
 
 Note that the instant connection in ClientGame is just enabled in the Unity editor.
 
-Now that we've got a connection we can start looking at replication.
+Now that we've got a connection we can start looking at ...
 
 ### Replication
 The hearth of Cube is a powerful replication system.

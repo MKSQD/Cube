@@ -15,34 +15,25 @@ namespace Cube.Replication {
 
 #if CLIENT || UNITY_EDITOR
         public Interpolation interpolation = Interpolation.Interpolate;
-#endif
+
 
         [Range(0, 800)]
         public int interpolateDelayMs;
-
-        TransformHistory _history;
-        protected TransformHistory history {
-            get {
-                if (_history == null) {
-                    _history = new TransformHistory(interpolateDelayMs * 0.001f * 2);
-                }
-                return _history;
-            }
-        }
+#endif
 
 #if CLIENT
-        Vector3 _lastPos;
-        Vector3 _velocity;
+        TransformHistory _history;
+
+        void Awake() {
+            _history = new TransformHistory(interpolateDelayMs * 0.001f * 2);
+        }
+
         void Update() {
             if (isClient && interpolation != Interpolation.Raw) {
                 var position = transform.position;
                 var rotation = transform.rotation;
-
-                _velocity = transform.position - _lastPos;
-                _lastPos = transform.position;
-
-                var velocity = Vector3.zero;
-                history.Read(Time.time, ref position, ref velocity, ref rotation);
+                
+                _history.Read(Time.time, ref position, ref rotation);
 
                 transform.position = position;
                 transform.rotation = rotation;
@@ -67,7 +58,7 @@ namespace Cube.Replication {
                 transform.rotation = rotation;
             }
             else if (interpolation == Interpolation.Interpolate) {
-                history.Write(Time.time + interpolateDelayMs * 0.001f, position, _velocity, rotation);
+                _history.Write(Time.time + interpolateDelayMs * 0.001f, position, Vector3.zero, rotation);
             }
         }
 #endif
