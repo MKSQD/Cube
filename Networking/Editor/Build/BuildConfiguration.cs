@@ -1,12 +1,8 @@
-using System;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
 using UnityEditor.Build.Reporting;
-using Cube;
 
-namespace Cube {
+namespace Cube.Networking {
 
     /// <summary>
     /// Base class for build configurations

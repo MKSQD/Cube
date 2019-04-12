@@ -1,15 +1,19 @@
 ﻿
 namespace Cube.Transport {
     public enum MessageId : byte {
-        // Server
+        // To Server
         /// <summary>Sent on the server for clients connecting</summary>
         NewConnectionEstablished,
         /// <summary>Sent on the server for clients disconnecting</summary>
         DisconnectNotification,
 
-        // Client
+        LoadSceneDone,
+
+        // To Client
         ConnectionRequestAccepted,
         ConnectionRequestFailed,
+
+        LoadScene,
 
         ReplicaFullUpdate,
         ReplicaPartialUpdate,

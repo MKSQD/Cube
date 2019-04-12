@@ -7,8 +7,8 @@ using Object = UnityEngine.Object;
 using UnityEditor;
 #endif
 
-namespace Cube {
-    [System.Serializable]
+namespace Cube.Networking {
+    [Serializable]
     public class SceneReference {
         [SerializeField]
         Object _sceneAsset;

@@ -1,13 +1,9 @@
 using System;
 using System.IO;
 using System.Collections.Generic;
-using UnityEngine;
 using UnityEditor;
-using UnityEditor.Build.Reporting;
-using UnityEditor.Callbacks;
-using Cube;
 
-namespace Cube {
+namespace Cube.Networking {
     public class Build {
         public static bool isBuilding {
             get { return _currentConfiguration != null; }

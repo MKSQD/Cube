@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using Cube.Transport;
+using UnityEngine;
 using UnityEngine.Assertions;
 
 namespace Cube.Replication {
@@ -12,8 +13,7 @@ namespace Cube.Replication {
         
         public ushort prefabIdx;
         public byte sceneIdx = byte.MaxValue;
-
-
+        
         public ReplicaBehaviour[] replicaBehaviours {
             get;
             internal set;

@@ -47,20 +47,26 @@ namespace Cube.Transport.Tests {
             return msg.bs;
         }
 
-        public void Send(BitStream bs, PacketPriority priority, PacketReliability reliablity, Connection connection) {
-            LocalClientInterface client = null;
+        public void Send(BitStream bs, PacketPriority priority, PacketReliability reliablity, Connection connection, int sequenceChannel) {
+            LocalClientInterface targetClient = null;
 
-            foreach(var tmp in clients) {
-                if(tmp.connection == connection) {
-                    client = tmp;
+            foreach (var client in clients) {
+                if(client.connection == connection) {
+                    targetClient = client;
                     break;
                 }
             }
 
-            if (client == null)
+            if (targetClient == null)
                 throw new Exception("Client not found.");
 
-            client.EnqueueMessage(bs);
+            targetClient.EnqueueMessage(bs);
+        }
+
+        public void Broadcast(BitStream bs, PacketPriority priority, PacketReliability reliablity, int sequenceChannel) {
+            foreach (var client in clients) {
+                client.EnqueueMessage(bs);
+            }
         }
 
         public void Shutdown() {
