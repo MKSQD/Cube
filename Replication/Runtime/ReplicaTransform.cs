@@ -12,7 +12,7 @@ namespace Cube.Replication {
             Raw,
             Interpolate
         }
-
+        
 #if CLIENT || UNITY_EDITOR
         public Interpolation interpolation = Interpolation.Interpolate;
 
@@ -32,7 +32,7 @@ namespace Cube.Replication {
             if (isClient && interpolation != Interpolation.Raw) {
                 var position = transform.position;
                 var rotation = transform.rotation;
-                
+
                 _history.Read(Time.time, ref position, ref rotation);
 
                 transform.position = position;

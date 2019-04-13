@@ -3,12 +3,12 @@ using System;
 using System.Collections.Generic;
 using Cube.Transport;
 
-namespace Cube.Replication {
-#if SERVER
-    /// <remarks>Available in: Editor/Server</remarks>
+namespace Cube.Replication {    /// <remarks>Available in: Editor/Server</remarks>
     [Serializable]
     [AddComponentMenu("Cube/ReplicaView")]
     public class ReplicaView : MonoBehaviour {
+#if SERVER
+
         public struct UpdateInfo {
             public float lastUpdateTime;
             public float nextFullUpdateTime;
@@ -25,6 +25,6 @@ namespace Cube.Replication {
         public bool ignoreReplicaPositionsForPriority = false;
 
         public Dictionary<Replica, UpdateInfo> replicaUpdateInfo = new Dictionary<Replica, UpdateInfo>();
-    }
 #endif
+    }
 }

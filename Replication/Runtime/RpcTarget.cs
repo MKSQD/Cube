@@ -2,13 +2,18 @@
 namespace Cube.Replication {
     public enum RpcTarget {
         /// <summary>
-        /// Client to server rpc.
+        /// Client to server rpc (dropped if the sending client doesn't own the Replica).
         /// </summary>
         Server,
 
         /// <summary>
-        /// Server to client rpc.
+        /// RPC from the server to the owning client or, if the server owns the Replica, to itself.
         /// </summary>
-        Client
+        Owner,
+
+        /// <summary>
+        /// RPC from the server to all clients and to itself.
+        /// </summary>
+        All
     }
 }

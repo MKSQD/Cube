@@ -205,8 +205,11 @@ namespace Cube.Replication {
             _statistic = new Statistic();
 #endif
 
-            UpdateReplicaViews();
-            ClearReplicaBehavioursRpcsInNetworkScene();
+            for (int i = 0; i < _replicaViews.Count; ++i) {
+                UpdateReplicaView(_replicaViews[i]);
+            }
+
+            ClearReplicaQueuedRpcs();
 
             foreach (var replicaId in _destroyedReplicas) {
                 FreeLocalReplicaId(replicaId.data);
@@ -218,20 +221,10 @@ namespace Cube.Replication {
             }
             _constructingReplicas.Clear();
         }
-
-        void UpdateReplicaViews() {
-            for (int i = 0; i < _replicaViews.Count; ++i) {
-                UpdateReplicaView(_replicaViews[i]);
-            }
-
-            // #TODO remove replicas from view.replicaUpdateInfo when the client removes them due to no updates/client leaves
-        }
-
-        void ClearReplicaBehavioursRpcsInNetworkScene() {
+        
+        void ClearReplicaQueuedRpcs() {
             foreach (var replica in _networkScene.replicas) {
-                foreach (var component in replica.replicaBehaviours) {
-                    component.rpcs.Clear();
-                }
+                replica.queuedRpcs.Clear();
             }
         }
 
@@ -251,38 +244,41 @@ namespace Cube.Replication {
             foreach (var replica in replicas) {
                 ReplicaView.UpdateInfo info;
                 var firstUpdate = false;
-
                 if (!view.replicaUpdateInfo.TryGetValue(replica, out info)) {
-                    firstUpdate = true;
                     info = new ReplicaView.UpdateInfo();
+                    firstUpdate = true;
                 }
 
-                var updateBitStream = _reactor.networkInterface.bitStreamPool.Create();
+                var updateBs = _reactor.networkInterface.bitStreamPool.Create();
 
                 var isFullUpdate = Time.time >= info.nextFullUpdateTime || firstUpdate;
 
                 var messageId = !isFullUpdate ? (byte)MessageId.ReplicaPartialUpdate : (byte)MessageId.ReplicaFullUpdate;
-                updateBitStream.Write(messageId);
+                updateBs.Write(messageId);
 
                 if (isFullUpdate) {
                     bool isSceneReplica = replica.sceneIdx != byte.MaxValue;
-                    updateBitStream.Write(isSceneReplica);
+                    updateBs.Write(isSceneReplica);
+
+                    bool isOwner = view.connection == replica.owner;
+                    updateBs.Write(isOwner);
 
                     if (isSceneReplica) {
-                        updateBitStream.Write(replica.sceneIdx);
+                        updateBs.Write(replica.sceneIdx);
                     }
 
-                    updateBitStream.Write(replica.prefabIdx);
+                    updateBs.Write(replica.prefabIdx);
                 }
 
-                updateBitStream.Write(replica.id);
+                updateBs.Write(replica.id);
 
                 var serializationMode = isFullUpdate ? ReplicaSerializationMode.Full : ReplicaSerializationMode.Partial;
                 foreach (var component in replica.replicaBehaviours) {
-                    component.Serialize(updateBitStream, serializationMode, view);
+                    component.Serialize(updateBs, serializationMode, view);
                 }
 
-                _reactor.networkInterface.Send(updateBitStream, PacketPriority.Medium, PacketReliability.Unreliable, view.connection);
+                _reactor.networkInterface.Send(updateBs, PacketPriority.Medium, PacketReliability.Unreliable, view.connection);
+
 
                 ++numUpdatesSent;
 
@@ -293,13 +289,13 @@ namespace Cube.Replication {
 
                 view.replicaUpdateInfo[replica] = info;
 
-                bytesSent += updateBitStream.Length;
+                bytesSent += updateBs.Length;
 
 #if UNITY_EDITOR
                 Statistic.PerReplicaTypeInfo replicaTypeInfo;
                 perReplicaViewInfo.bytesPerPrefabIdx.TryGetValue(replica.prefabIdx, out replicaTypeInfo);
                 ++replicaTypeInfo.numInstances;
-                replicaTypeInfo.totalBytes += updateBitStream.Length;
+                replicaTypeInfo.totalBytes += updateBs.Length;
 
                 perReplicaViewInfo.bytesPerPrefabIdx[replica.prefabIdx] = replicaTypeInfo;
 #endif
@@ -308,15 +304,19 @@ namespace Cube.Replication {
                     return;
 
                 // rpcs
-                foreach (var component in replica.replicaBehaviours) {
-                    foreach (var rpc in component.rpcs) {
-                        _reactor.networkInterface.Send(rpc, PacketPriority.Low, PacketReliability.Unreliable, view.connection);
-                        ++numRpcsSent;
-
-                        bytesSent += rpc.Length;
-                        if (bytesSent >= _settings.maxBytesPerConnectionPerUpdate)
-                            return;
+                foreach (var queuedRpc in replica.queuedRpcs) {
+                    if (queuedRpc.target == RpcTarget.Owner && replica.owner == view.connection) {
+                        _reactor.networkInterface.Send(queuedRpc.bs, PacketPriority.Low, PacketReliability.Unreliable, replica.owner);
                     }
+                    else if (queuedRpc.target == RpcTarget.All) {
+                        _reactor.networkInterface.Broadcast(queuedRpc.bs, PacketPriority.Low, PacketReliability.Unreliable);
+                    }
+                    
+                    ++numRpcsSent;
+
+                    bytesSent += queuedRpc.bs.Length;
+                    if (bytesSent >= _settings.maxBytesPerConnectionPerUpdate)
+                        return;
                 }
             }
         }
@@ -337,7 +337,7 @@ namespace Cube.Replication {
 
             for (int i = 0; i < replicas.Count; ++i) {
                 var replica = replicas[i];
-                if (!replica.gameObject.activeInHierarchy)
+                if (!replica.IsRelevantFor(view))
                     continue;
 
                 var priority = priorityManager.GetPriority(replica, view);
@@ -425,8 +425,8 @@ namespace Cube.Replication {
 #endif
                 return;
             }
-
-            ReplicaBehaviour.CallRpc(replica, connection, bs, this);
+            
+            replica.CallRpcServer(connection, bs, this);
         }
     }
 #endif

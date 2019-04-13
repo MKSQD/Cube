@@ -4,10 +4,10 @@ using UnityEngine;
 using UnityEditor;
 using System;
 
-namespace Cube.Replication {
+namespace Cube.Replication.Editor {
     [CustomEditor(typeof(Replica))]
     [CanEditMultipleObjects]
-    public class ReplicaInspector : Editor {
+    public class ReplicaInspector : UnityEditor.Editor {
         public override void OnInspectorGUI() {
             DrawDefaultInspector();
 

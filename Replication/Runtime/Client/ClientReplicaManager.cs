@@ -69,9 +69,12 @@ namespace Cube.Replication {
         
         void OnReplicaFullUpdate(BitStream bs) {
             var isSceneReplica = bs.ReadBool();
+            var isOwner = bs.ReadBool();
+
             var sceneIdx = byte.MaxValue;
-            if (isSceneReplica)
+            if (isSceneReplica) {
                 sceneIdx = bs.ReadByte();
+            }
 
             var prefabIdx = bs.ReadUShort();
             var replicaId = bs.ReadReplicaId();
@@ -84,6 +87,8 @@ namespace Cube.Replication {
 
                 _networkScene.AddReplica(replica);
             }
+
+            replica.isOwner = isOwner;
 
             foreach (var component in replica.replicaBehaviours) {
                 component.Deserialize(bs, ReplicaSerializationMode.Full);
@@ -168,7 +173,7 @@ namespace Cube.Replication {
                 return;
             }
 
-            ReplicaBehaviour.CallRpc(replica, Connection.Invalid, bs, this);
+            replica.CallRpcClient(bs, this);
         }
 
         void OnReplicaDestroy(BitStream bs) {
@@ -182,7 +187,7 @@ namespace Cube.Replication {
                     continue;
 
                 replica.gameObject.SendMessage("OnReplicaDestroy", SendMessageOptions.DontRequireReceiver);
-                GameObject.Destroy(replica.gameObject);
+                Object.Destroy(replica.gameObject);
             }
         }
     }

@@ -37,7 +37,6 @@ namespace Cube.Replication {
             }
 
             var relevance = distanceRelevance;
-            Assert.IsTrue(relevance >= 0 && relevance <= 1);
 
             //
             ReplicaView.UpdateInfo updateInfo;

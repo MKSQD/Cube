@@ -20,11 +20,11 @@ namespace Cube.Networking {
 
             client = new UnityClient(transform, lagSettings);
 
-#if UNITY_EDITOR
+//#if UNITY_EDITOR
             if (connectInEditor) {
                 client.networkInterface.Connect("127.0.0.1", portInEditor);
             }
-#endif
+//#endif
 
             client.reactor.AddHandler((byte)MessageId.ConnectionRequestAccepted, OnConnectionRequestAccepted);
             client.reactor.AddHandler((byte)MessageId.ConnectionRequestFailed, OnConnectionRequestFailed);
@@ -54,6 +54,9 @@ namespace Cube.Networking {
             Debug.Log("Loading level: " + sceneName);
 
             var op = SceneManager.LoadSceneAsync(sceneName);
+            if (op == null)
+                return; // See log for errors
+
             op.completed += _ => {
                 var bs2 = new BitStream();
                 bs2.Write((byte)MessageId.LoadSceneDone);

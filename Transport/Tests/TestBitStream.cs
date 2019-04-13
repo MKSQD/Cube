@@ -8,8 +8,8 @@ namespace Cube.Transport.Tests {
             var bs = new BitStream();
 
             for (int i = -32; i < 32; ++i) {
-                bs.CompressFloat(i, -32, 32);
-                Assert.AreEqual(i, bs.DecompressFloat(-32, 32));
+                bs.CompressFloat(i, -32, 32, 1);
+                Assert.AreEqual(i, bs.DecompressFloat(-32, 32, 1));
             }
 
             bs.CompressFloat(1.5f, 0, 3, 0.5f);

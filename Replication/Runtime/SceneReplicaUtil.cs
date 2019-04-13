@@ -8,27 +8,30 @@ namespace Cube.Replication {
         public const byte INVALID_SCENE_IDX = byte.MaxValue;
 
         public static List<Replica> FindSceneReplicasInScene(Scene scene) {
+            var result = new List<Replica>();
+
             var rootObjects = scene.GetRootGameObjects();
             if (rootObjects.Length == 0)
-                return null;
-
-            var replicas = new List<Replica>();
+                return result;
+            
             Action<GameObject> findReplicas = null;
             findReplicas = (obj) => {
                 var replica = obj.GetComponent<Replica>();
                 if (replica != null && replica.gameObject.activeInHierarchy == true) {
-                    replicas.Add(replica);
+                    result.Add(replica);
                     return;
                 }
 
-                foreach (Transform child in obj.transform)
+                foreach (Transform child in obj.transform) {
                     findReplicas(child.gameObject);
+                }
             };
 
-            foreach (var obj in rootObjects)
+            foreach (var obj in rootObjects) {
                 findReplicas(obj);
+            }
 
-            return replicas;
+            return result;
         }
 
         public static SceneReplicaWrapper GetSceneReplicaWrapper(Scene scene) {

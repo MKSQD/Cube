@@ -17,7 +17,7 @@ namespace Cube.Replication {
             public Quaternion rotation;
         }
 
-        public float snapDistance = 10;
+        public float snapDistance = 8;
 
         List<Entry> _entries = new List<Entry>();
         float _maxHistoryTimeSec;

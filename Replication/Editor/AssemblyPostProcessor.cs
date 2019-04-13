@@ -6,7 +6,7 @@ using Mono.Cecil;
 using UnityEditor;
 
 #if UNITY_EDITOR
-namespace Cube.Replication {
+namespace Cube.Replication.Editor {
     class ReloadAssembiesLocker : IDisposable {
         public ReloadAssembiesLocker() {
             EditorApplication.LockReloadAssemblies();
@@ -35,8 +35,9 @@ namespace Cube.Replication {
                     throw new Exception("RPC Patcher skipped - File not exists:" + assemblyPath);
 
                 using (var resolver = new CachedAssemblyResolver()) {
-                    foreach (var path in assemblySearchPaths)
+                    foreach (var path in assemblySearchPaths) {
                         resolver.AddSearchDirectory(path);
+                    }
 
                     try {
                         var readerParameters = new ReaderParameters() {

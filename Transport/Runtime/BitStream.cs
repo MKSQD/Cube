@@ -109,15 +109,9 @@ namespace Cube.Transport {
         }
 
         public unsafe float DecompressFloat(float min, float max, float precision = 0.1f) {
-            var bits = ComputeRequiredFloatBits(min, max, precision);
-
-            uint val;
-            Read((byte*)&val, bits);
-
-            var adjusted = (val * precision) + min;
-            Assert.IsTrue(adjusted >= min && adjusted <= max);
-
-            return adjusted;
+            var inv = 1 / precision;
+            var val = DecompressInt((int)(min * inv), (int)(max * inv));
+            return val * precision;
         }
 
         public void Read(ref int val) {
@@ -354,7 +348,7 @@ namespace Cube.Transport {
             Write((byte*)&val, 32);
         }
 
-        public unsafe void CompressFloat(float val, float min, float max, float precision = 1) {
+        public unsafe void CompressFloat(float val, float min, float max, float precision = 0.1f) {
             if (val < min || val > max) {
 #if UNITY_EDITOR
                 Debug.LogWarning("Clamped value " + val + " to (" + min + "," + max + ")");
@@ -362,13 +356,8 @@ namespace Cube.Transport {
                 val = Mathf.Clamp(val, min, max);
             }
 
-            var bits = ComputeRequiredFloatBits(min, max, precision);
-            var mask = (uint)((1L << bits) - 1);
-
-            var adjusted = (val - min) * (1f / precision);
-            var data = (uint)(adjusted + 0.5f) & mask;
-
-            Write((byte*)&data, bits);
+            var inv = 1 / precision;
+            CompressInt((int)(val * inv), (int)(min * inv), (int)(max * inv));
         }
 
         public unsafe void Write(long val) {

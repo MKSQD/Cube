@@ -7,7 +7,7 @@ using System.Collections.Generic;
 using System;
 using UnityEngine;
 
-namespace Cube.Replication {
+namespace Cube.Replication.Editor {
     class VarPostProcessor : PostProcessor {
         TypeDefinition _replicaBehaviourType;
         TypeReference _replicaSerializationModeType;

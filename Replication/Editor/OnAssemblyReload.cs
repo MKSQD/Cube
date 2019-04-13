@@ -5,7 +5,7 @@ using UnityEngine;
 using UnityEditor;
 using UnityEditor.Compilation;
 
-namespace Cube.Replication {
+namespace Cube.Replication.Editor {
     [InitializeOnLoad]
     public static class OnAssemblyReload {
         static OnAssemblyReload() {
@@ -26,6 +26,7 @@ namespace Cube.Replication {
 
             var searchPathList = new List<string>();
             searchPathList.Add(unityAssemblyPath + "/Data/Managed");
+            searchPathList.Add(unityAssemblyPath + "/Data/NetStandard/ref/2.0.0");
             searchPathList.Add(unityAssemblyPath + "/Data/PlaybackEngines/windowsstandalonesupport/Managed");
             searchPathList.Add(unityAssemblyPath + "/Data/UnityExtensions/Unity/Timeline/Editor");
             searchPathList.Add(unityAssemblyPath + "/Data/UnityExtensions/Unity/Timeline/RuntimeEditor");

@@ -3,13 +3,13 @@ using UnityEditor;
 using UnityEngine;
 using System.Collections.Generic;
 
-namespace Cube.Replication {
+namespace Cube.Replication.Editor {
     /// <summary>
     /// 
     /// </summary>
     /// <remarks>Available in: Editor</remarks>
     [CustomEditor(typeof(ReplicaView))]
-    class ReplicaViewInspector : Editor {
+    class ReplicaViewInspector : UnityEditor.Editor {
         public override void OnInspectorGUI() {
             DrawDefaultInspector();
 

@@ -8,26 +8,28 @@ using Mono.Cecil;
 using Mono.Cecil.Cil;
 using UnityEngine;
 
-namespace Cube.Replication {
-    /// <remarks>Available in: Editor</remarks>
+namespace Cube.Replication.Editor {
     class RpcPostProcessor : PostProcessor {
-        const string SEND_RPC_METHOD_NAME_POSTFIX = "__CUBE_NETWORKING_REMOTE__";
+        const string RPC_IMPL = "_RpcImpl";
         const string ADD_RPC_TO_RPC_MAP_METHOD_NAME = "__ADD_RPC_TO_RPC_MAP__";
 
         TypeDefinition _networkBehaviourType;
         TypeDefinition _replicaBehaviourType;
+        TypeDefinition _replicaType;
 
         TypeReference _voidTypeReference;
         TypeReference _objectTypeReference;
         TypeReference _systemTypeTypeReference;
 
-        MethodReference _systemTypeGetTypeFromHandleMethod; // typeof()
-        MethodReference _systemTypeGetMethodMethod; //System.Type.GetMethod();
+        MethodReference _systemTypeGetTypeFromHandleMethod;
+        MethodReference _systemTypeGetMethodMethod;
 
         MethodReference _debugLogErrorMethod;
         MethodReference _dictionaryAddMethod;
 
         MethodReference _sendRpcMethod;
+        FieldReference _replicaComponentIdxProperty;
+        PropertyDefinition _replicaProperty;
 
         PropertyDefinition _isServerProperty;
         PropertyDefinition _isClientProperty;
@@ -36,6 +38,8 @@ namespace Cube.Replication {
 
         TypeDefinition _rpcTargetType;
         int _rpcTargetServerValue;
+        int _rpcTargetOwnerValue;
+        int _rpcTargetAllValue;
 
         Dictionary<string, byte> _processedTypes = new Dictionary<string, byte>();
 
@@ -49,11 +53,15 @@ namespace Cube.Replication {
 
             _networkBehaviourType = GetTypeDefinitionByName(networkingReplicaAssembly.MainModule, "Cube.Replication.NetworkBehaviour");
             _replicaBehaviourType = GetTypeDefinitionByName(networkingReplicaAssembly.MainModule, "Cube.Replication.ReplicaBehaviour");
+            _replicaType = GetTypeDefinitionByName(networkingReplicaAssembly.MainModule, "Cube.Replication.Replica");
 
             var debugType = GetTypeDefinitionByName(unityEngineAssembly.MainModule, "UnityEngine.Debug");
             _debugLogErrorMethod = ImportMethod(GetMethodDefinitionByName(debugType, "LogError"));
 
-            _sendRpcMethod = ImportMethod(GetMethodDefinitionByName(_replicaBehaviourType, "SendRpc"));
+            _sendRpcMethod = ImportMethod(GetMethodDefinitionByName(_replicaType, "SendRpc"));
+
+            _replicaComponentIdxProperty = ImportField(GetFieldDefinitionByName(_replicaBehaviourType, "replicaComponentIdx"));
+            _replicaProperty = GetPropertyDefinitionByName(_replicaBehaviourType, "replica");
 
             _isServerProperty = GetPropertyDefinitionByName(_networkBehaviourType, "isServer");
             _isClientProperty = GetPropertyDefinitionByName(_networkBehaviourType, "isClient");
@@ -77,6 +85,8 @@ namespace Cube.Replication {
 
             _rpcTargetType = GetTypeDefinitionByName(networkingReplicaAssembly.MainModule, "Cube.Replication.RpcTarget");
             _rpcTargetServerValue = GetEnumValueByName(_rpcTargetType, "Server");
+            _rpcTargetOwnerValue = GetEnumValueByName(_rpcTargetType, "Owner");
+            _rpcTargetAllValue = GetEnumValueByName(_rpcTargetType, "All");
         }
 
         public override bool Process() {
@@ -126,13 +136,13 @@ namespace Cube.Replication {
                 if (!HasAttribute("Cube.Replication.ReplicaRpcAttribute", method))
                     continue;
 
-                var remoteMethod = CreateRpcRemoteMethod(method);
-                remoteMethods.Add(remoteMethod);
+                var implMethod = CreateRpcRemoteMethod(method);
+                remoteMethods.Add(implMethod);
 
-                CopyMethodBody(method, remoteMethod);
+                CopyMethodBody(method, implMethod);
                 ClearMethodBody(method);
 
-                if (InjectSendRpcInstructions(type, nextRpcMethodId, method)) {
+                if (InjectSendRpcInstructions(type, nextRpcMethodId, method, implMethod)) {
                     rpcMethods.Add(nextRpcMethodId, method);
                 }
 
@@ -164,12 +174,14 @@ namespace Cube.Replication {
         }
 
         MethodDefinition CreateAddRpcsToMapMethod(TypeDefinition type) {
-            MethodDefinition addRpcsToMapMethod = GetMethodDefinitionByName(type, ADD_RPC_TO_RPC_MAP_METHOD_NAME);
+            var addRpcsToMapMethod = GetMethodDefinitionByName(type, ADD_RPC_TO_RPC_MAP_METHOD_NAME);
 
-            if (addRpcsToMapMethod != null)
+            if (addRpcsToMapMethod != null) {
                 ClearMethodBody(addRpcsToMapMethod);
-            else
+            }
+            else {
                 addRpcsToMapMethod = new MethodDefinition(ADD_RPC_TO_RPC_MAP_METHOD_NAME, Mono.Cecil.MethodAttributes.Private, _voidTypeReference);
+            }
 
             var il = addRpcsToMapMethod.Body.GetILProcessor();
             il.Append(il.Create(OpCodes.Ret));
@@ -188,7 +200,7 @@ namespace Cube.Replication {
 
             il.InsertBefore(last, il.Create(OpCodes.Ldtoken, type));
             il.InsertBefore(last, il.Create(OpCodes.Call, _systemTypeGetTypeFromHandleMethod));
-            il.InsertBefore(last, il.Create(OpCodes.Ldstr, rpcMethod.Name + SEND_RPC_METHOD_NAME_POSTFIX));
+            il.InsertBefore(last, il.Create(OpCodes.Ldstr, rpcMethod.Name + RPC_IMPL));
             il.InsertBefore(last, il.Create(OpCodes.Ldc_I4, (int)(BindingFlags.NonPublic | BindingFlags.Instance)));
             il.InsertBefore(last, il.Create(OpCodes.Ldnull));
 
@@ -199,7 +211,7 @@ namespace Cube.Replication {
                 var parameter = rpcMethod.Parameters[i];
 
                 il.InsertBefore(last, il.Create(OpCodes.Dup));
-                il.InsertBefore(last, il.Create(OpCodes.Ldc_I4, (int)i));
+                il.InsertBefore(last, il.Create(OpCodes.Ldc_I4, i));
 
                 il.InsertBefore(last, il.Create(OpCodes.Ldtoken, parameter.ParameterType));
                 il.InsertBefore(last, il.Create(OpCodes.Call, _systemTypeGetTypeFromHandleMethod));
@@ -221,18 +233,19 @@ namespace Cube.Replication {
         }
 
         MethodDefinition CreateRpcRemoteMethod(MethodDefinition method) {
-            var newMethod = new MethodDefinition(method.Name + SEND_RPC_METHOD_NAME_POSTFIX, method.Attributes, method.ReturnType);
+            var newMethod = new MethodDefinition(method.Name + RPC_IMPL, method.Attributes, method.ReturnType);
 
-            foreach (var param in method.Parameters)
+            foreach (var param in method.Parameters) {
                 newMethod.Parameters.Add(new ParameterDefinition(param.Name, param.Attributes, param.ParameterType));
+            }
 
             return newMethod;
         }
 
-        bool InjectSendRpcInstructions(TypeDefinition type, byte methodId, MethodDefinition method) {
+        bool InjectSendRpcInstructions(TypeDefinition type, byte methodId, MethodDefinition method, MethodDefinition implMethod) {
             string error;
             if (IsRpcMethodValid(method, out error)) {
-                InjectValidSendRpcInstructions(methodId, method);
+                InjectValidSendRpcInstructions(methodId, method, implMethod);
                 //Utilities.LogWarning("RPC method patched \"" + method.FullName + "\"");
             }
             else {
@@ -244,18 +257,18 @@ namespace Cube.Replication {
             return true;
         }
 
-        void InjectValidSendRpcInstructions(int methodId, MethodDefinition method) {
+        void InjectValidSendRpcInstructions(int methodId, MethodDefinition method, MethodDefinition implMethod) {
             var il = method.Body.GetILProcessor();
 
-            var firstInstruction = il.Create(OpCodes.Ldarg_0);
+            var firstInstruction = il.Create(OpCodes.Nop);
             il.Append(firstInstruction);
 
-            //target validation
-            var type = (int)GetAttributeByName("Cube.Replication.ReplicaRpcAttribute", method.CustomAttributes).ConstructorArguments[0].Value;
+            var rpcTarget = (int)GetAttributeByName("Cube.Replication.ReplicaRpcAttribute", method.CustomAttributes).ConstructorArguments[0].Value;
 
+            // target validation
             string error = "Cannot call rpc method \"" + method.FullName + "\" on client";
             Instruction conditionInstruction = il.Create(OpCodes.Call, ImportMethod(_isClientProperty.GetMethod));
-            if (type == _rpcTargetServerValue) {
+            if (rpcTarget == _rpcTargetServerValue) {
                 error = "Cannot call rpc method \"" + method.FullName + "\" on server";
                 conditionInstruction = il.Create(OpCodes.Call, ImportMethod(_isServerProperty.GetMethod));
             }
@@ -267,10 +280,23 @@ namespace Cube.Replication {
             il.InsertBefore(firstInstruction, il.Create(OpCodes.Call, _debugLogErrorMethod));
             il.InsertBefore(firstInstruction, il.Create(OpCodes.Ret));
 
-            //method id
-            il.Append(il.Create(OpCodes.Ldc_I4, (int)methodId));
 
-            //parameters
+
+
+            il.Append(il.Create(OpCodes.Ldarg_0));
+            il.Append(il.Create(OpCodes.Call, ImportMethod(_replicaProperty.GetMethod)));
+
+            // method id
+            il.Append(il.Create(OpCodes.Ldc_I4, methodId));
+
+            // replicaComponentIdx
+            il.Append(il.Create(OpCodes.Ldarg_0));
+            il.Append(il.Create(OpCodes.Ldfld, _replicaComponentIdxProperty));
+
+            // target
+            il.Append(il.Create(OpCodes.Ldc_I4, rpcTarget));
+
+            // parameters
             il.Append(il.Create(OpCodes.Ldc_I4_S, (sbyte)method.Parameters.Count));
             il.Append(il.Create(OpCodes.Newarr, _objectTypeReference));
 
@@ -283,6 +309,14 @@ namespace Cube.Replication {
             }
 
             il.Append(il.Create(OpCodes.Call, _sendRpcMethod));
+
+            if (rpcTarget == _rpcTargetAllValue) {
+                for (int i = 0; i < method.Parameters.Count + 1; ++i) { // +1 for implicit this
+                    il.Append(il.Create(OpCodes.Ldarg_S, (byte)i));
+                }
+                il.Append(il.Create(OpCodes.Call, implMethod));
+            }
+            
             il.Append(il.Create(OpCodes.Ret));
         }
 
@@ -296,33 +330,26 @@ namespace Cube.Replication {
         }
 
         bool IsRpcMethodValid(MethodDefinition method, out string error) {
-            error = "";
-
             if (!method.Name.StartsWith("Rpc")) {
                 error = "Rpc method name must start with \"Rpc\"";
                 return false;
             }
-
             if (method.IsPublic) {
                 error = "Rpc method cannot be public";
                 return false;
             }
-
             if (method.IsVirtual) {
                 error = "Rpc method cannot be virtual";
                 return false;
             }
-
             if (method.ReturnType.FullName != "System.Void") {
                 error = "Rpc method cannot return a value";
                 return false;
             }
-
             if (method.IsStatic) {
                 error = "Rpc method cannot be static";
                 return false;
             }
-
             if (!InheritsTypeFrom(method.DeclaringType, "Cube.Replication.ReplicaBehaviour")) {
                 error = "Rpc methods are only supported in \"ReplicaBehaviour\"";
                 return false;
@@ -350,6 +377,7 @@ namespace Cube.Replication {
                 }
             }
 
+            error = "";
             return true;
         }
     }

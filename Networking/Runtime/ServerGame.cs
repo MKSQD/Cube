@@ -10,9 +10,8 @@ namespace Cube.Networking {
 
         public ServerReplicaManagerSettings replicaManagerSettings;
 
-#if SERVER
-
         public new UnityServer server;
+#if SERVER
 
         string _loadSceneName;
         byte _loadSceneGeneration;
@@ -49,6 +48,7 @@ namespace Cube.Networking {
         protected virtual void OnNewIncomingConnection(Connection connection, BitStream bs) {
             Debug.Log("New connection: " + connection);
 
+            // Send load scene packet if we loaded one previously
             if (_loadSceneName != null) {
                 var bs2 = new BitStream();
                 bs2.Write((byte)MessageId.LoadScene);
