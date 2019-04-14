@@ -18,7 +18,7 @@ namespace Cube.Replication {
         }
 
         void Update();
-
+        
         GameObject InstantiateReplica(GameObject prefab);
         GameObject InstantiateReplica(GameObject prefab, Vector3 position);
         GameObject InstantiateReplica(GameObject prefab, Vector3 position, Quaternion rotation);

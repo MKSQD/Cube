@@ -22,7 +22,7 @@ namespace Cube.Replication {
         public Transform instantiateTransform {
             get { return _clientTransform; }
         }
-        
+
         float _nextUpdateTime;
 
         public ClientReplicaManager(IClientReactor reactor, NetworkPrefabLookup networkPrefabLookup, Transform clientTransform) {
@@ -41,6 +41,12 @@ namespace Cube.Replication {
             _sceneReplicaLookup = new Dictionary<byte, SceneReplicaWrapper>();
         }
 
+        public void DestroyAllReplicas() {
+            for (int i = 0; i < _networkScene.replicas.Count; ++i) {
+                UnityEngine.Object.Destroy(_networkScene.replicas[i].gameObject);
+            }
+        }
+
         public void RemoveReplica(Replica replica) {
             _networkScene.RemoveReplica(replica);
         }
@@ -48,7 +54,7 @@ namespace Cube.Replication {
         public Replica GetReplicaById(ReplicaId id) {
             return _networkScene.GetReplicaById(id);
         }
-        
+
         public void Update() {
             if (Time.time < _nextUpdateTime)
                 return;
@@ -66,7 +72,7 @@ namespace Cube.Replication {
                 }
             }
         }
-        
+
         void OnReplicaFullUpdate(BitStream bs) {
             var isSceneReplica = bs.ReadBool();
             var isOwner = bs.ReadBool();
@@ -192,4 +198,4 @@ namespace Cube.Replication {
         }
     }
 #endif
-        }
+}

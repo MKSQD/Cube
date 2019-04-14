@@ -1,7 +1,6 @@
 ﻿using UnityEngine;
 
 namespace Cube.Replication {
-    // #todo this should be in Cube.Networking, but ReplicaBehaviour needs it for rpcs
     public class NetworkObject : ScriptableObject {
         public string networkAssetId;
 

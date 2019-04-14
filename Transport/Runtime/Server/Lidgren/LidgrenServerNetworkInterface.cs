@@ -45,8 +45,9 @@ namespace Cube.Transport {
 
         public Connection[] GetConnections() {
             var connections = new Connection[_server.ConnectionsCount];
-            for (int i = 0; i < connections.Length; i++)
+            for (int i = 0; i < connections.Length; ++i) {
                 connections[i] = new Connection((ulong)_server.Connections[0].RemoteUniqueIdentifier);
+            }
 
             return connections;
         }
@@ -63,6 +64,9 @@ namespace Cube.Transport {
         }
 
         public void Broadcast(BitStream bs, PacketPriority priority, PacketReliability reliablity, int sequenceChannel) {
+            if (_server.Connections.Count == 0)
+                return;
+
             var msg = _server.CreateMessage(bs.Length);
             msg.Write(bs.data, 0, bs.Length);
             msg.LengthBits = bs.LengthInBits;

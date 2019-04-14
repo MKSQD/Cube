@@ -6,7 +6,15 @@ namespace Cube.Replication {
     /// Used for runtime lookup of NetworkObject derived ScriptableObject instances in the Assets folder.
     /// </summary>
     public class NetworkObjectLookup : ScriptableObject, IEquatable<NetworkObjectLookup> {
-        public static NetworkObjectLookup instance { get { return null; } }
+        static NetworkObjectLookup _instance;
+        public static NetworkObjectLookup instance {
+            get {
+                if (_instance == null) {
+                    _instance = Resources.Load<NetworkObjectLookup>("NetworkObjectLookup");
+                }
+                return _instance;
+            }
+        }
 
         public NetworkObject[] entries;
 

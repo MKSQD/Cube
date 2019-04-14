@@ -8,7 +8,6 @@ namespace Cube.Replication {    /// <remarks>Available in: Editor/Server</remark
     [AddComponentMenu("Cube/ReplicaView")]
     public class ReplicaView : MonoBehaviour {
 #if SERVER
-
         public struct UpdateInfo {
             public float lastUpdateTime;
             public float nextFullUpdateTime;
@@ -21,6 +20,7 @@ namespace Cube.Replication {    /// <remarks>Available in: Editor/Server</remark
         public static ReplicaView debug;
 #endif
         
+        [HideInInspector]
         public Connection connection;
         public bool ignoreReplicaPositionsForPriority = false;
 

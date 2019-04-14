@@ -1,6 +1,7 @@
 using Cube.Replication;
 using Cube.Transport;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using BitStream = Cube.Transport.BitStream;
 
 namespace Cube.Networking {
@@ -17,17 +18,21 @@ namespace Cube.Networking {
         byte _loadSceneGeneration;
         byte _loadScenePlayerAcks;
 
-        public void LoadScene(string scene) {
+        public void LoadScene(string sceneName) {
             ++_loadSceneGeneration;
             _loadScenePlayerAcks = 0;
-            _loadSceneName = scene;
+            _loadSceneName = sceneName;
+
+            server.replicaManager.DestroyAllReplicas();
 
             var bs = new BitStream();
             bs.Write((byte)MessageId.LoadScene);
-            bs.Write(scene);
+            bs.Write(sceneName); // #todo send scene idx instead
             bs.Write(_loadSceneGeneration);
 
             server.networkInterface.Broadcast(bs, PacketPriority.High, PacketReliability.ReliableSequenced);
+
+            SceneManager.LoadScene(sceneName);
         }
 
         protected virtual void Awake() {
@@ -81,7 +86,7 @@ namespace Cube.Networking {
             Debug.Log("All clients loaded the scene");
         }
 
-        void Update() {
+        protected virtual void Update() {
             server.Update();
         }
 

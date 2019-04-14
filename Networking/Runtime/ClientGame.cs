@@ -12,9 +12,9 @@ namespace Cube.Networking {
         public bool connectInEditor = true;
         public ushort portInEditor = 60000;
 
-#if CLIENT
         public new UnityClient client;
 
+#if CLIENT
         protected virtual void Awake() {
             DontDestroyOnLoad(gameObject);
 
@@ -23,6 +23,7 @@ namespace Cube.Networking {
 //#if UNITY_EDITOR
             if (connectInEditor) {
                 client.networkInterface.Connect("127.0.0.1", portInEditor);
+                Debug.Log("Connecting to server...");
             }
 //#endif
 
@@ -53,12 +54,14 @@ namespace Cube.Networking {
 
             Debug.Log("Loading level: " + sceneName);
 
+            client.replicaManager.DestroyAllReplicas();
+
             var op = SceneManager.LoadSceneAsync(sceneName);
             if (op == null)
                 return; // See log for errors
 
             op.completed += _ => {
-                var bs2 = new BitStream();
+            var bs2 = new BitStream();
                 bs2.Write((byte)MessageId.LoadSceneDone);
                 bs2.Write(generation);
 

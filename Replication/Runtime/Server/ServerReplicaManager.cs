@@ -98,6 +98,12 @@ namespace Cube.Replication {
             SceneManager.sceneLoaded += InstantiateSceneReplicas;
         }
 
+        public void DestroyAllReplicas() {
+            for (int i = 0; i < _networkScene.replicas.Count; ++i) {
+                UnityEngine.Object.Destroy(_networkScene.replicas[i].gameObject);
+            }
+        }
+
         void InstantiateSceneReplicas(Scene scene, LoadSceneMode mode) {
             var sceneReplicas = SceneReplicaUtil.FindSceneReplicasInScene(scene);
             foreach (var sceneReplica in sceneReplicas) {
@@ -221,7 +227,7 @@ namespace Cube.Replication {
             }
             _constructingReplicas.Clear();
         }
-        
+
         void ClearReplicaQueuedRpcs() {
             foreach (var replica in _networkScene.replicas) {
                 replica.queuedRpcs.Clear();
@@ -311,7 +317,7 @@ namespace Cube.Replication {
                     else if (queuedRpc.target == RpcTarget.All) {
                         _reactor.networkInterface.Broadcast(queuedRpc.bs, PacketPriority.Low, PacketReliability.Unreliable);
                     }
-                    
+
                     ++numRpcsSent;
 
                     bytesSent += queuedRpc.bs.Length;
@@ -425,7 +431,7 @@ namespace Cube.Replication {
 #endif
                 return;
             }
-            
+
             replica.CallRpcServer(connection, bs, this);
         }
     }

@@ -250,6 +250,14 @@ namespace Cube.Transport {
             return new Connection(id);
         }
         
+        public void Read(ref ISerializable obj) {
+            ReadSerializable(obj);
+        }
+
+        public void ReadSerializable(ISerializable obj) {
+            obj.Deserialize(this);
+        }
+
         public unsafe int Read(byte[] buffer, int count) {
             if (count > buffer.Length * 8)
                 throw new Exception("Buffer overflow");
@@ -471,6 +479,10 @@ namespace Cube.Transport {
 
             val = Mathf.Clamp(val, -1f, 1f);
             Write((ushort)((val + 1f) * 32767.5f));
+        }
+
+        public void Write(ISerializable obj) {
+            obj.Serialize(this);
         }
 
         public unsafe void Write(BitStream bs) {
