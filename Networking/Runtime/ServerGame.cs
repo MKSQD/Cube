@@ -1,10 +1,16 @@
 using Cube.Replication;
 using Cube.Transport;
+using System;
 using UnityEngine;
+using UnityEngine.Events;
 using UnityEngine.SceneManagement;
 using BitStream = Cube.Transport.BitStream;
 
 namespace Cube.Networking {
+    [Serializable]
+    public class ConnectionEvent : UnityEvent<Connection> {
+    }
+
     [AddComponentMenu("Cube/ServerGame")]
     public class ServerGame : NetworkBehaviour {
         public ushort port = 60000;
@@ -12,8 +18,12 @@ namespace Cube.Networking {
         public ServerReplicaManagerSettings replicaManagerSettings;
 
         public new UnityServer server;
-#if SERVER
 
+        public ConnectionEvent onNewIncomingConnection;
+        public ConnectionEvent onDisconnectionNotification;
+        public UnityEvent onAllClientLoadedScene;
+
+#if SERVER
         string _loadSceneName;
         byte _loadSceneGeneration;
         byte _loadScenePlayerAcks;
@@ -35,7 +45,7 @@ namespace Cube.Networking {
             SceneManager.LoadScene(sceneName);
         }
 
-        protected virtual void Awake() {
+        void Awake() {
             DontDestroyOnLoad(gameObject);
 
             var priorityManager = GetComponent<IReplicaPriorityManager>();
@@ -50,7 +60,7 @@ namespace Cube.Networking {
             server.reactor.AddHandler((byte)MessageId.LoadSceneDone, OnLoadSceneDone);
         }
 
-        protected virtual void OnNewIncomingConnection(Connection connection, BitStream bs) {
+        void OnNewIncomingConnection(Connection connection, BitStream bs) {
             Debug.Log("New connection: " + connection);
 
             // Send load scene packet if we loaded one previously
@@ -62,13 +72,17 @@ namespace Cube.Networking {
 
                 server.networkInterface.Send(bs2, PacketPriority.High, PacketReliability.ReliableSequenced, connection);
             }
+
+            onNewIncomingConnection.Invoke(connection);
         }
 
-        protected virtual void OnDisconnectionNotification(Connection connection, BitStream bs) {
+        void OnDisconnectionNotification(Connection connection, BitStream bs) {
             Debug.Log("Lost connection: " + connection);
+
+            onDisconnectionNotification.Invoke(connection);
         }
 
-        protected virtual void OnLoadSceneDone(Connection connection, BitStream bs) {
+        void OnLoadSceneDone(Connection connection, BitStream bs) {
             Debug.Log("On load scene done: " + connection);
 
             var generation = bs.ReadByte();
@@ -78,15 +92,11 @@ namespace Cube.Networking {
             ++_loadScenePlayerAcks;
 
             if (_loadScenePlayerAcks >= server.connections.Count) {
-                OnAllClientLoadedScene();
+                onAllClientLoadedScene.Invoke();
             }
         }
-
-        protected virtual void OnAllClientLoadedScene() {
-            Debug.Log("All clients loaded the scene");
-        }
-
-        protected virtual void Update() {
+        
+        void Update() {
             server.Update();
         }
 

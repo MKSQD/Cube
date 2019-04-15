@@ -1,6 +1,7 @@
 using Cube.Replication;
 using Cube.Transport;
 using UnityEngine;
+using UnityEngine.Events;
 using UnityEngine.SceneManagement;
 using BitStream = Cube.Transport.BitStream;
 
@@ -14,8 +15,11 @@ namespace Cube.Networking {
 
         public new UnityClient client;
 
+        public UnityEvent onConnectionRequestAccepted;
+        public UnityEvent onConnectionRequestFailed;
+
 #if CLIENT
-        protected virtual void Awake() {
+        void Awake() {
             DontDestroyOnLoad(gameObject);
 
             client = new UnityClient(transform, lagSettings);
@@ -40,12 +44,16 @@ namespace Cube.Networking {
             client.Shutdown();
         }
 
-        protected virtual void OnConnectionRequestAccepted(BitStream bs) {
+        void OnConnectionRequestAccepted(BitStream bs) {
             Debug.Log("Connection request to server accepted");
+
+            onConnectionRequestAccepted.Invoke();
         }
 
-        protected virtual void OnConnectionRequestFailed(BitStream bs) {
+        void OnConnectionRequestFailed(BitStream bs) {
             Debug.Log("Connection request to server failed");
+
+            onConnectionRequestFailed.Invoke();
         }
 
         protected virtual void OnLoadScene(BitStream bs) {
