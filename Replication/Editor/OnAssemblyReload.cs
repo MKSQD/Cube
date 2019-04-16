@@ -26,6 +26,7 @@ namespace Cube.Replication.Editor {
 
             var searchPathList = new List<string>();
             searchPathList.Add(unityAssemblyPath + "/Data/Managed");
+            searchPathList.Add(unityAssemblyPath + "/Data/Managed/UnityEngine");
             searchPathList.Add(unityAssemblyPath + "/Data/NetStandard/ref/2.0.0");
             searchPathList.Add(unityAssemblyPath + "/Data/PlaybackEngines/windowsstandalonesupport/Managed");
             searchPathList.Add(unityAssemblyPath + "/Data/UnityExtensions/Unity/Timeline/Editor");
