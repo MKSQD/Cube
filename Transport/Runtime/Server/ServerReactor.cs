@@ -29,6 +29,14 @@ namespace Cube.Transport {
             existingHandlers.Add(handler);
         }
 
+        public void RemoveHandler(byte id, ServerMessageHandler handler) {
+            List<ServerMessageHandler> existingHandlers;
+            if (!_handlers.TryGetValue(id, out existingHandlers))
+                return;
+
+            existingHandlers.Remove(handler);
+        }
+
         public void Update() {
             while (true) {
                 Connection connection;
