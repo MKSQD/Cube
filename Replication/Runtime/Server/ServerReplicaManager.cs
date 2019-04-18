@@ -100,8 +100,15 @@ namespace Cube.Replication {
 
         public void DestroyAllReplicas() {
             for (int i = 0; i < _networkScene.replicas.Count; ++i) {
-                UnityEngine.Object.Destroy(_networkScene.replicas[i].gameObject);
+                var replica = _networkScene.replicas[i];
+                _networkScene.RemoveReplica(replica);
+                UnityEngine.Object.Destroy(replica.gameObject);
             }
+
+            foreach (var pair in _constructingReplicas) {
+                UnityEngine.Object.Destroy(pair.Value.gameObject);
+            }
+            _constructingReplicas.Clear();
         }
 
         void InstantiateSceneReplicas(Scene scene, LoadSceneMode mode) {
@@ -212,7 +219,11 @@ namespace Cube.Replication {
 #endif
 
             for (int i = 0; i < _replicaViews.Count; ++i) {
-                UpdateReplicaView(_replicaViews[i]);
+                var replicaView = _replicaViews[i];
+                if (replicaView.isLoadingLevel)
+                    continue;
+
+                UpdateReplicaView(replicaView);
             }
 
             ClearReplicaQueuedRpcs();
@@ -283,6 +294,7 @@ namespace Cube.Replication {
                     component.Serialize(updateBs, serializationMode, view);
                 }
 
+                Debug.Log("[Server] Send Replica Update");
                 _reactor.networkInterface.Send(updateBs, PacketPriority.Medium, PacketReliability.Unreliable, view.connection);
 
 

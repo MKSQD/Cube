@@ -24,6 +24,11 @@ namespace Cube.Replication {    /// <remarks>Available in: Editor/Server</remark
         public Connection connection;
         public bool ignoreReplicaPositionsForPriority = false;
 
+        /// <summary>
+        /// If true this ReplicaView is ignored. Will be set automatically.
+        /// </summary>
+        public bool isLoadingLevel;
+
         public Dictionary<Replica, UpdateInfo> replicaUpdateInfo = new Dictionary<Replica, UpdateInfo>();
 #endif
     }

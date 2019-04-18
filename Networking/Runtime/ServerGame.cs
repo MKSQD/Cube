@@ -42,6 +42,15 @@ namespace Cube.Networking {
 
             server.networkInterface.Broadcast(bs, PacketPriority.High, PacketReliability.ReliableSequenced);
 
+            // Disable Replicas during level load
+            foreach (var connection in server.connections) {
+                var replicaView = server.replicaManager.GetReplicaView(connection);
+                if (replicaView == null)
+                    continue;
+
+                replicaView.isLoadingLevel = true;
+            }
+
             SceneManager.LoadScene(sceneName);
         }
 
@@ -61,7 +70,7 @@ namespace Cube.Networking {
         }
 
         void OnNewIncomingConnection(Connection connection, BitStream bs) {
-            Debug.Log("New connection: " + connection);
+            Debug.Log("[Server] New connection: " + connection);
 
             // Send load scene packet if we loaded one previously
             if (_loadSceneName != null) {
@@ -77,25 +86,31 @@ namespace Cube.Networking {
         }
 
         void OnDisconnectionNotification(Connection connection, BitStream bs) {
-            Debug.Log("Lost connection: " + connection);
+            Debug.Log("[Server] Lost connection: " + connection);
 
             onDisconnectionNotification.Invoke(connection);
         }
 
         void OnLoadSceneDone(Connection connection, BitStream bs) {
-            Debug.Log("On load scene done: " + connection);
-
             var generation = bs.ReadByte();
             if (generation != _loadSceneGeneration)
                 return;
+
+            Debug.Log("[Server] On load scene done: " + connection + " generation=" + generation);
 
             ++_loadScenePlayerAcks;
 
             if (_loadScenePlayerAcks >= server.connections.Count) {
                 onAllClientLoadedScene.Invoke();
             }
+
+            //
+            var replicaView = server.replicaManager.GetReplicaView(connection);
+            if (replicaView != null) {
+                replicaView.isLoadingLevel = false;
+            }
         }
-        
+
         void Update() {
             server.Update();
         }

@@ -60,7 +60,7 @@ namespace Cube.Networking {
             var sceneName = bs.ReadString();
             var generation = bs.ReadByte();
 
-            Debug.Log("Loading level: " + sceneName);
+            Debug.Log("[Client] Loading level: " + sceneName + " generation=" + generation);
 
             client.replicaManager.DestroyAllReplicas();
 

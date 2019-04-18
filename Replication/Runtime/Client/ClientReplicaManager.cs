@@ -43,7 +43,7 @@ namespace Cube.Replication {
 
         public void DestroyAllReplicas() {
             for (int i = 0; i < _networkScene.replicas.Count; ++i) {
-                UnityEngine.Object.Destroy(_networkScene.replicas[i].gameObject);
+                Object.Destroy(_networkScene.replicas[i].gameObject);
             }
         }
 
@@ -114,6 +114,8 @@ namespace Cube.Replication {
         }
 
         Replica ConstructReplicaImpl(GameObject prefab, ReplicaId replicaId) {
+            Debug.Log("[Client] ConstructReplicaImpl");
+
             var newInstance = Object.Instantiate(prefab, _clientTransform);
 
             var newReplica = newInstance.GetComponent<Replica>();
