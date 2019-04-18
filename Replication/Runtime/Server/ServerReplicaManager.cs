@@ -293,8 +293,7 @@ namespace Cube.Replication {
                 foreach (var component in replica.replicaBehaviours) {
                     component.Serialize(updateBs, serializationMode, view);
                 }
-
-                Debug.Log("[Server] Send Replica Update");
+                
                 _reactor.networkInterface.Send(updateBs, PacketPriority.Medium, PacketReliability.Unreliable, view.connection);
 
 

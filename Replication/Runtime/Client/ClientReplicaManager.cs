@@ -114,8 +114,6 @@ namespace Cube.Replication {
         }
 
         Replica ConstructReplicaImpl(GameObject prefab, ReplicaId replicaId) {
-            Debug.Log("[Client] ConstructReplicaImpl");
-
             var newInstance = Object.Instantiate(prefab, _clientTransform);
 
             var newReplica = newInstance.GetComponent<Replica>();
