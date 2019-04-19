@@ -45,7 +45,7 @@ namespace Cube.Networking {
         }
 
         void OnConnectionRequestAccepted(BitStream bs) {
-            Debug.Log("Connection request to server accepted");
+            Debug.Log("[Client] Connection request to server accepted");
 
             onConnectionRequestAccepted.Invoke();
         }

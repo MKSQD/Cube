@@ -21,17 +21,19 @@ namespace Cube.Networking {
 
         public ConnectionEvent onNewIncomingConnection;
         public ConnectionEvent onDisconnectionNotification;
-        public UnityEvent onAllClientLoadedScene;
+        public UnityEvent onAllClientsLoadedScene;
 
 #if SERVER
         string _loadSceneName;
         byte _loadSceneGeneration;
         byte _loadScenePlayerAcks;
+        bool _onAllClientsLoadedSceneTriggeredThisGeneration;
 
         public void LoadScene(string sceneName) {
             ++_loadSceneGeneration;
             _loadScenePlayerAcks = 0;
             _loadSceneName = sceneName;
+            _onAllClientsLoadedSceneTriggeredThisGeneration = false;
 
             server.replicaManager.DestroyAllReplicas();
 
@@ -89,6 +91,11 @@ namespace Cube.Networking {
             Debug.Log("[Server] Lost connection: " + connection);
 
             onDisconnectionNotification.Invoke(connection);
+
+            if (!_onAllClientsLoadedSceneTriggeredThisGeneration && _loadScenePlayerAcks >= server.connections.Count) {
+                _onAllClientsLoadedSceneTriggeredThisGeneration = true;
+                onAllClientsLoadedScene.Invoke();
+            }
         }
 
         void OnLoadSceneDone(Connection connection, BitStream bs) {
@@ -100,8 +107,9 @@ namespace Cube.Networking {
 
             ++_loadScenePlayerAcks;
 
-            if (_loadScenePlayerAcks >= server.connections.Count) {
-                onAllClientLoadedScene.Invoke();
+            if (!_onAllClientsLoadedSceneTriggeredThisGeneration && _loadScenePlayerAcks >= server.connections.Count) {
+                _onAllClientsLoadedSceneTriggeredThisGeneration = true;
+                onAllClientsLoadedScene.Invoke();
             }
 
             //
