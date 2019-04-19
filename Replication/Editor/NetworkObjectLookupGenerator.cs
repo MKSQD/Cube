@@ -6,7 +6,6 @@ using UnityEngine;
 namespace Cube.Replication {
     public class NetworkObjectLookupGenerator {
         [DidReloadScripts]
-        [MenuItem("Cube/Generated/Generate NetworkObjectLookup")]
         public static void ForceRefreshCode() {
             var networkObjects = new List<NetworkObject>();
 

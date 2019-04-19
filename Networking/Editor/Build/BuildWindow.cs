@@ -4,9 +4,7 @@ using UnityEditor;
 
 namespace Cube.Networking {
     public class BuildWindow : EditorWindow {
-
-        [MenuItem("Window/Cube/Build Window")]
-        [MenuItem("Cube/Window/Build Window")]
+        [MenuItem("Cube/Build Window")]
         public static void ShowWindow() {
             var window = EditorWindow.GetWindow(typeof(BuildWindow));
             window.titleContent = new GUIContent("Build configuration");

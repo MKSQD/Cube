@@ -38,7 +38,7 @@ namespace Cube.Networking.Tests {
             var replicaManagerSettings = new ServerReplicaManagerSettings();
 
             objects.gameObject = new GameObject("Server");
-            objects.replicaManager = new ServerReplicaManager(objects.reactor, objects.gameObject.transform, objects.priorityManager, replicaManagerSettings);
+            objects.replicaManager = new ServerReplicaManager(null, objects.gameObject.transform, objects.priorityManager, replicaManagerSettings);
 
             return objects;
         }
@@ -51,7 +51,7 @@ namespace Cube.Networking.Tests {
             objects.client = new LocalClientInterface(server);
             objects.reactor = new ClientReactor(objects.client);
             objects.gameObject = new GameObject("Client");
-            objects.replicaManager = new ClientReplicaManager(objects.reactor, prefabLookup, objects.gameObject.transform);
+            objects.replicaManager = new ClientReplicaManager(null, prefabLookup, objects.gameObject.transform);
 
             return objects;
         }

@@ -34,18 +34,13 @@ namespace Cube.Replication.Editor {
             searchPathList.Add(unityAssemblyPath + "/Data/UnityExtensions/Unity/Timeline/Runtime");
             searchPathList.Add(Application.dataPath + "/../Library/ScriptAssemblies");
 
-            try {
-                var definitions = new ScriptDefinitions(BuildTargetGroup.Standalone);
-                
-                var appType = ApplicationType.None;
-                appType |= definitions.IsSet("CLIENT") ? ApplicationType.Client : 0;
-                appType |= definitions.IsSet("SERVER") ? ApplicationType.Server : 0;
-                
-                AssemblyPostProcessor.Start(appType, assemblyPath, searchPathList.ToArray(), true);
-            }
-            catch (Exception e) {
-                Debug.LogError(e);
-            }
+            var definitions = new ScriptDefinitions(BuildTargetGroup.Standalone);
+
+            var appType = ApplicationType.None;
+            appType |= definitions.IsSet("CLIENT") ? ApplicationType.Client : 0;
+            appType |= definitions.IsSet("SERVER") ? ApplicationType.Server : 0;
+
+            AssemblyPostProcessor.Start(appType, assemblyPath, searchPathList.ToArray(), true);
         }
     }
 }

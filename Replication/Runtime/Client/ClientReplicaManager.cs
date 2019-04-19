@@ -8,10 +8,7 @@ using BitStream = Cube.Transport.BitStream;
 namespace Cube.Replication {
 #if CLIENT
     public sealed class ClientReplicaManager : IClientReplicaManager {
-        IClientReactor _reactor;
-        public IClientReactor reactor {
-            get { return _reactor; }
-        }
+        IUnityClient _client;
 
         NetworkScene _networkScene;
 
@@ -25,23 +22,45 @@ namespace Cube.Replication {
 
         float _nextUpdateTime;
 
-        public ClientReplicaManager(IClientReactor reactor, NetworkPrefabLookup networkPrefabLookup, Transform clientTransform) {
+        public ClientReplicaManager(IUnityClient client, NetworkPrefabLookup networkPrefabLookup, Transform clientTransform) {
             Assert.IsNotNull(networkPrefabLookup);
 
             _clientTransform = clientTransform;
             _networkPrefabLookup = networkPrefabLookup;
 
-            _reactor = reactor;
-            _reactor.AddHandler((byte)MessageId.ReplicaFullUpdate, new ClientMessageHandler(OnReplicaFullUpdate));
-            _reactor.AddHandler((byte)MessageId.ReplicaPartialUpdate, new ClientMessageHandler(OnReplicaPartialUpdate));
-            _reactor.AddHandler((byte)MessageId.ReplicaRpc, new ClientMessageHandler(OnReplicaRpc));
-            _reactor.AddHandler((byte)MessageId.ReplicaDestroy, new ClientMessageHandler(OnReplicaDestroy));
+            _client = client;
+
+            _client.reactor.AddHandler((byte)MessageId.ReplicaFullUpdate, new ClientMessageHandler(OnReplicaFullUpdate));
+            _client.reactor.AddHandler((byte)MessageId.ReplicaPartialUpdate, new ClientMessageHandler(OnReplicaPartialUpdate));
+            _client.reactor.AddHandler((byte)MessageId.ReplicaRpc, new ClientMessageHandler(OnReplicaRpc));
+            _client.reactor.AddHandler((byte)MessageId.ReplicaDestroy, new ClientMessageHandler(OnReplicaDestroy));
 
             _networkScene = new NetworkScene();
             _sceneReplicaLookup = new Dictionary<byte, SceneReplicaWrapper>();
+
+            SceneManager.sceneLoaded += OnSceneLoaded;
         }
 
-        public void DestroyAllReplicas() {
+        void OnSceneLoaded(Scene scene, LoadSceneMode mode) {
+            var sceneReplicas = new List<Replica>();
+            foreach (var go in scene.GetRootGameObjects()) {
+                var replica = go.GetComponent<Replica>();
+                if (replica == null)
+                    continue;
+
+                sceneReplicas.Add(replica);
+            }
+
+            sceneReplicas.Sort((r1, r2) => r1.sceneIdx - r2.sceneIdx);
+
+            foreach (var replica in sceneReplicas) {
+                replica.client = _client;
+                replica.id = ReplicaId.CreateFromExisting(replica.sceneIdx);
+                _networkScene.AddReplica(replica);
+            }
+        }
+
+        public void Reset() {
             for (int i = 0; i < _networkScene.replicas.Count; ++i) {
                 Object.Destroy(_networkScene.replicas[i].gameObject);
             }
@@ -66,6 +85,9 @@ namespace Cube.Replication {
             var replicas = _networkScene.replicas;
             for (int i = 0; i < replicas.Count; ++i) {
                 var replica = replicas[i];
+                if (replica.isSceneReplica)
+                    continue;
+
                 if (replica.lastUpdateTime <= removeTime) {
                     // Note we modify the replicas variable implicitly here -> the Replica deletes itself
                     Object.Destroy(replica.gameObject);
@@ -74,20 +96,20 @@ namespace Cube.Replication {
         }
 
         void OnReplicaFullUpdate(BitStream bs) {
-            var isSceneReplica = bs.ReadBool();
             var isOwner = bs.ReadBool();
-
-            var sceneIdx = byte.MaxValue;
-            if (isSceneReplica) {
-                sceneIdx = bs.ReadByte();
+            var isSceneReplica = bs.ReadBool();
+            ushort prefabIdx = ushort.MaxValue;
+            if (!isSceneReplica) {
+                prefabIdx = bs.ReadUShort();
             }
-
-            var prefabIdx = bs.ReadUShort();
             var replicaId = bs.ReadReplicaId();
 
             var replica = _networkScene.GetReplicaById(replicaId);
             if (replica == null) {
-                replica = !isSceneReplica ? ConstructReplica(prefabIdx, replicaId) : ConstructSceneReplica(sceneIdx, prefabIdx, replicaId);
+                if (isSceneReplica)
+                    return;
+
+                replica = ConstructReplica(prefabIdx, replicaId);
                 if (replica == null)
                     return;
 
@@ -110,10 +132,6 @@ namespace Cube.Replication {
                 return null;
             }
 
-            return ConstructReplicaImpl(prefab, replicaId);
-        }
-
-        Replica ConstructReplicaImpl(GameObject prefab, ReplicaId replicaId) {
             var newInstance = Object.Instantiate(prefab, _clientTransform);
 
             var newReplica = newInstance.GetComponent<Replica>();
@@ -122,37 +140,11 @@ namespace Cube.Replication {
                 return null;
             }
 
+            newReplica.client = _client;
             newReplica.id = replicaId;
             return newReplica;
         }
-
-        Replica ConstructSceneReplica(byte sceneIdx, ushort prefabIdx, ReplicaId replicaId) {
-            SceneReplicaWrapper wrapper = null;
-
-            //wrapper can be null because we never cleanup the dictionary
-            if (!_sceneReplicaLookup.TryGetValue(sceneIdx, out wrapper) || wrapper == null) {
-                //because => lazy == cool
-                for (int i = 0; i < SceneManager.sceneCount; i++) {
-                    var scene = SceneManager.GetSceneAt(i);
-
-                    wrapper = SceneReplicaUtil.GetSceneReplicaWrapper(scene);
-                    if (wrapper == null || wrapper.sceneId != sceneIdx)
-                        continue;
-
-                    _sceneReplicaLookup[sceneIdx] = wrapper;
-                }
-            }
-
-            //This can happen if the scene is not loaded on client side. Ignore and try again next time
-            if (wrapper == null)
-                return null;
-
-            var blueprint = wrapper.transform.GetChild(prefabIdx).gameObject;   //prefabIdx == childIdx;
-            var newInstance = ConstructReplicaImpl(blueprint, replicaId);
-            newInstance.gameObject.SetActive(true);
-            return newInstance;
-        }
-
+        
         void OnReplicaPartialUpdate(BitStream bs) {
             var replicaId = bs.ReadReplicaId();
             var replica = _networkScene.GetReplicaById(replicaId);

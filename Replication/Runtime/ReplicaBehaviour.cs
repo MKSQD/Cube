@@ -1,8 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Reflection;
 using UnityEngine;
-using System;
-using Cube.Transport;
 using BitStream = Cube.Transport.BitStream;
 
 namespace Cube.Replication {
@@ -14,7 +12,7 @@ namespace Cube.Replication {
     /// <summary>
     /// 
     /// </summary>
-    public abstract class ReplicaBehaviour : NetworkBehaviour {
+    public abstract class ReplicaBehaviour : MonoBehaviour {
         [HideInInspector]
         public byte replicaComponentIdx;
 
@@ -25,15 +23,27 @@ namespace Cube.Replication {
         public Dictionary<byte, MethodInfo> rpcMethods {
             get { return _rpcMethods; }
         }
+        
+        [HideInInspector]
+        public Replica replica;
 
-        Replica _replica;
-        public Replica replica {
-            get {
-                if (_replica == null) {
-                    _replica = GetComponentInParent<Replica>();
-                }
-                return _replica;
-            }
+#if SERVER
+        public IUnityServer server {
+            get { return replica.server; }
+        }
+#endif
+#if CLIENT
+        public IUnityClient client {
+            get { return replica.client; }
+        }
+#endif
+
+        public bool isServer {
+            get { return replica.isServer; }
+        }
+
+        public bool isClient {
+            get { return replica.isClient; }
         }
 
         public bool isOwner {

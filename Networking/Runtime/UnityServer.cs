@@ -36,7 +36,7 @@ namespace Cube.Networking {
             reactor.AddHandler((byte)MessageId.NewConnectionEstablished, OnNewConnectionEstablished);
             reactor.AddHandler((byte)MessageId.DisconnectNotification, OnDisconnectNotification);
             
-            replicaManager = new ServerReplicaManager(reactor, serverTransform, priorityManager, replicaManagerSettings);
+            replicaManager = new ServerReplicaManager(this, serverTransform, priorityManager, replicaManagerSettings);
         }
         
         public void Update() {

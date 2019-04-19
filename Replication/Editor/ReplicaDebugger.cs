@@ -105,7 +105,7 @@ namespace Cube.Replication {
         TreeViewState _treeViewState;
 
         [MenuItem("Window/Analysis/Network ReplicaDebugger")]
-        [MenuItem("Cube/Window/Network ReplicaDebugger")]
+        [MenuItem("Cube/Network ReplicaDebugger")]
         public static void ShowWindow() {
             var window = GetWindow(typeof(ReplicaDebugger));
             window.titleContent = new GUIContent("ReplicaDebugger");

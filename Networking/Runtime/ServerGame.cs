@@ -12,12 +12,12 @@ namespace Cube.Networking {
     }
 
     [AddComponentMenu("Cube/ServerGame")]
-    public class ServerGame : NetworkBehaviour {
+    public class ServerGame : MonoBehaviour {
         public ushort port = 60000;
 
         public ServerReplicaManagerSettings replicaManagerSettings;
 
-        public new UnityServer server;
+        public UnityServer server;
 
         public ConnectionEvent onNewIncomingConnection;
         public ConnectionEvent onDisconnectionNotification;
@@ -35,13 +35,13 @@ namespace Cube.Networking {
             _loadSceneName = sceneName;
             _onAllClientsLoadedSceneTriggeredThisGeneration = false;
 
-            server.replicaManager.DestroyAllReplicas();
+            server.replicaManager.Reset();
 
             var bs = new BitStream();
             bs.Write((byte)MessageId.LoadScene);
             bs.Write(sceneName); // #todo send scene idx instead
             bs.Write(_loadSceneGeneration);
-
+            
             server.networkInterface.Broadcast(bs, PacketPriority.High, PacketReliability.ReliableSequenced);
 
             // Disable Replicas during level load
@@ -53,7 +53,10 @@ namespace Cube.Networking {
                 replicaView.isLoadingLevel = true;
             }
 
+#if !UNITY_EDITOR
+            Debug.Log("[Server] Loading level " + sceneName);
             SceneManager.LoadScene(sceneName);
+#endif
         }
 
         void Awake() {
@@ -80,7 +83,7 @@ namespace Cube.Networking {
                 bs2.Write((byte)MessageId.LoadScene);
                 bs2.Write(_loadSceneName);
                 bs2.Write(_loadSceneGeneration);
-
+                
                 server.networkInterface.Send(bs2, PacketPriority.High, PacketReliability.ReliableSequenced, connection);
             }
 
@@ -127,5 +130,5 @@ namespace Cube.Networking {
             server.Shutdown();
         }
 #endif
-    }
+        }
 }

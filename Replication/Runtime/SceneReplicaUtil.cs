@@ -5,8 +5,6 @@ using UnityEngine.SceneManagement;
 
 namespace Cube.Replication {
     public class SceneReplicaUtil {
-        public const byte INVALID_SCENE_IDX = byte.MaxValue;
-
         public static List<Replica> FindSceneReplicasInScene(Scene scene) {
             var result = new List<Replica>();
 

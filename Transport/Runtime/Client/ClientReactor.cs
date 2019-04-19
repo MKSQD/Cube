@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Cube.Transport {
@@ -46,7 +47,14 @@ namespace Cube.Transport {
 
                 foreach (var handler in handlers) {
                     var pos = bs.Position;
-                    handler(bs);
+
+                    try {
+                        handler(bs);
+                    }
+                    catch (Exception e) {
+                        Debug.LogException(e);
+                    }
+
                     bs.Position = pos;
                 }
             }

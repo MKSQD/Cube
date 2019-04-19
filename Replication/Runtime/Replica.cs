@@ -9,11 +9,11 @@ using BitStream = Cube.Transport.BitStream;
 namespace Cube.Replication {
     [AddComponentMenu("Cube/Replica")]
     [DisallowMultipleComponent]
-    public sealed class Replica : NetworkBehaviour {
+    public sealed class Replica : MonoBehaviour {
 #if SERVER
         public struct QueuedRpc {
-            public BitStream bs;
             public RpcTarget target;
+            public BitStream bs;
         }
 #endif
 
@@ -24,7 +24,38 @@ namespace Cube.Replication {
         public ReplicaId id = ReplicaId.Invalid;
 
         public ushort prefabIdx;
-        public byte sceneIdx = byte.MaxValue;
+        public byte sceneIdx;
+
+        public bool isSceneReplica {
+            get { return sceneIdx != 0; }
+        }
+
+#if SERVER
+        public IUnityServer server;
+#endif
+#if CLIENT
+        public IUnityClient client;
+#endif
+
+        public bool isServer {
+            get {
+#if SERVER
+                return server != null;
+#else
+                return false;
+#endif
+            }
+        }
+
+        public bool isClient {
+            get {
+#if CLIENT
+                return client != null;
+#else
+                return false;
+#endif
+            }
+        }
 
 #if SERVER
         public Connection owner {
@@ -90,7 +121,9 @@ namespace Cube.Replication {
         public void RebuildReplicaBehaviourCache() {
             replicaBehaviours = GetComponentsInChildren<ReplicaBehaviour>();
             for (byte i = 0; i < replicaBehaviours.Length; ++i) {
-                replicaBehaviours[i].replicaComponentIdx = i;
+                var behaviour = replicaBehaviours[i];
+                behaviour.replica = this;
+                behaviour.replicaComponentIdx = i;
             }
         }
 
@@ -162,7 +195,18 @@ namespace Cube.Replication {
 #if SERVER
         public void CallRpcServer(Connection connection, BitStream bs, IReplicaManager replicaManager) {
             if (owner != connection) {
-                Debug.LogWarning("Got Replica rpc from non-owning client replica=" + gameObject);
+                var componentIdx = bs.ReadByte();
+                var methodId = bs.ReadByte();
+
+                var component = replicaBehaviours[componentIdx];
+
+                MethodInfo methodInfo;
+                if (!component.rpcMethods.TryGetValue(methodId, out methodInfo)) {
+                    Debug.LogError("Cannot find rpc method with id " + methodId + " in " + component + " on " + (component.isServer ? "server" : "client") + ".");
+                    return;
+                }
+                
+                Debug.LogWarning("Got Replica rpc from non-owning client replica=" + gameObject + " method=" + methodInfo.Name);
                 return;
             }
 
@@ -340,7 +384,11 @@ namespace Cube.Replication {
             }
             else if (type == typeof(Replica)) {
                 var id = bs.ReadReplicaId();
+                
                 value = replicaManager.GetReplicaById(id);
+                if(value == null) {
+                    Debug.Log("null");
+                }
             }
             else if (type.IsSubclassOf(typeof(NetworkObject))) {
                 value = bs.ReadNetworkObject<NetworkObject>();

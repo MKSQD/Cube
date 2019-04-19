@@ -18,7 +18,7 @@ namespace Cube.Replication {
             }
 
             if (_replicasById.ContainsKey(replica.id)) {
-                Debug.LogError("ReplicaId " + replica.id + " (" + replica.gameObject.name + ") already known on (" + (replica.isServer ? "Server" : "Client") + ")");
+                Debug.LogError("ReplicaId " + replica.id + " (" + replica.gameObject.name + ") already known on " + (replica.isServer ? "server" : "client"));
                 return;
             }
 

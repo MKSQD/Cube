@@ -13,7 +13,6 @@ namespace Cube.Replication.Editor {
         const string RPC_IMPL = "_RpcImpl";
         const string ADD_RPC_TO_RPC_MAP_METHOD_NAME = "__ADD_RPC_TO_RPC_MAP__";
 
-        TypeDefinition _networkBehaviourType;
         TypeDefinition _replicaBehaviourType;
         TypeDefinition _replicaType;
 
@@ -29,7 +28,7 @@ namespace Cube.Replication.Editor {
 
         MethodReference _sendRpcMethod;
         FieldReference _replicaComponentIdxProperty;
-        PropertyDefinition _replicaProperty;
+        FieldReference _replicaField;
 
         PropertyDefinition _isServerProperty;
         PropertyDefinition _isClientProperty;
@@ -51,7 +50,6 @@ namespace Cube.Replication.Editor {
 
             var networkingReplicaAssembly = ResolveAssembly("Cube.Replication");
 
-            _networkBehaviourType = GetTypeDefinitionByName(networkingReplicaAssembly.MainModule, "Cube.Replication.NetworkBehaviour");
             _replicaBehaviourType = GetTypeDefinitionByName(networkingReplicaAssembly.MainModule, "Cube.Replication.ReplicaBehaviour");
             _replicaType = GetTypeDefinitionByName(networkingReplicaAssembly.MainModule, "Cube.Replication.Replica");
 
@@ -61,10 +59,10 @@ namespace Cube.Replication.Editor {
             _sendRpcMethod = ImportMethod(GetMethodDefinitionByName(_replicaType, "SendRpc"));
 
             _replicaComponentIdxProperty = ImportField(GetFieldDefinitionByName(_replicaBehaviourType, "replicaComponentIdx"));
-            _replicaProperty = GetPropertyDefinitionByName(_replicaBehaviourType, "replica");
+            _replicaField = ImportField(GetFieldDefinitionByName(_replicaBehaviourType, "replica"));
 
-            _isServerProperty = GetPropertyDefinitionByName(_networkBehaviourType, "isServer");
-            _isClientProperty = GetPropertyDefinitionByName(_networkBehaviourType, "isClient");
+            _isServerProperty = GetPropertyDefinitionByName(_replicaBehaviourType, "isServer");
+            _isClientProperty = GetPropertyDefinitionByName(_replicaBehaviourType, "isClient");
 
             _replicaBehaviourRpcMap = ImportField(GetFieldDefinitionByName(_replicaBehaviourType, "_rpcMethods"));
 
@@ -259,44 +257,45 @@ namespace Cube.Replication.Editor {
 
         void InjectValidSendRpcInstructions(int methodId, MethodDefinition method, MethodDefinition implMethod) {
             var il = method.Body.GetILProcessor();
-
-            var firstInstruction = il.Create(OpCodes.Nop);
-            il.Append(firstInstruction);
-
+            
             var rpcTarget = (int)GetAttributeByName("Cube.Replication.ReplicaRpcAttribute", method.CustomAttributes).ConstructorArguments[0].Value;
-
+            
             // target validation
-            string error = "Cannot call rpc method \"" + method.FullName + "\" on client";
-            Instruction conditionInstruction = il.Create(OpCodes.Call, ImportMethod(_isClientProperty.GetMethod));
+            string error;
+            MethodDefinition meth;
             if (rpcTarget == _rpcTargetServerValue) {
                 error = "Cannot call rpc method \"" + method.FullName + "\" on server";
-                conditionInstruction = il.Create(OpCodes.Call, ImportMethod(_isServerProperty.GetMethod));
+                meth = _isClientProperty.GetMethod;
+            }
+            else {
+                error = "Cannot call rpc method \"" + method.FullName + "\" on client";
+                meth = _isServerProperty.GetMethod;
             }
 
-            il.InsertBefore(firstInstruction, il.Create(OpCodes.Ldarg_0));
-            il.InsertBefore(firstInstruction, conditionInstruction);
-            il.InsertBefore(firstInstruction, il.Create(OpCodes.Brfalse, firstInstruction));
-            il.InsertBefore(firstInstruction, il.Create(OpCodes.Ldstr, error));
-            il.InsertBefore(firstInstruction, il.Create(OpCodes.Call, _debugLogErrorMethod));
-            il.InsertBefore(firstInstruction, il.Create(OpCodes.Ret));
-
-
-
-
+            // Check isClient/isServer
+            var ok = il.Create(OpCodes.Nop);
             il.Append(il.Create(OpCodes.Ldarg_0));
-            il.Append(il.Create(OpCodes.Call, ImportMethod(_replicaProperty.GetMethod)));
+            il.Append(il.Create(OpCodes.Call, ImportMethod(meth)));
+            il.Append(il.Create(OpCodes.Ldc_I4_0));
+            il.Append(il.Create(OpCodes.Ceq));
+            il.Append(il.Create(OpCodes.Brfalse_S, ok));
+            il.Append(il.Create(OpCodes.Ldstr, error));
+            il.Append(il.Create(OpCodes.Call, _debugLogErrorMethod));
+            il.Append(il.Create(OpCodes.Ret));
+            il.Append(ok);
 
-            // method id
+
+            //
+            il.Append(il.Create(OpCodes.Ldarg_0));
+            il.Append(il.Create(OpCodes.Ldfld, _replicaField));
+
             il.Append(il.Create(OpCodes.Ldc_I4, methodId));
 
-            // replicaComponentIdx
             il.Append(il.Create(OpCodes.Ldarg_0));
             il.Append(il.Create(OpCodes.Ldfld, _replicaComponentIdxProperty));
-
-            // target
+            
             il.Append(il.Create(OpCodes.Ldc_I4, rpcTarget));
-
-            // parameters
+            
             il.Append(il.Create(OpCodes.Ldc_I4_S, (sbyte)method.Parameters.Count));
             il.Append(il.Create(OpCodes.Newarr, _objectTypeReference));
 
@@ -316,7 +315,7 @@ namespace Cube.Replication.Editor {
                 }
                 il.Append(il.Create(OpCodes.Call, implMethod));
             }
-            
+
             il.Append(il.Create(OpCodes.Ret));
         }
 

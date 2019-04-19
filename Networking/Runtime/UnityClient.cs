@@ -25,7 +25,7 @@ namespace Cube.Networking {
         public UnityClient(Transform clientTransform, ClientSimulatedLagSettings lagSettings) {
             networkInterface = new LidgrenClientNetworkInterface(lagSettings);
             reactor = new ClientReactor(networkInterface);
-            replicaManager = new ClientReplicaManager(reactor, NetworkPrefabLookup.instance, clientTransform);
+            replicaManager = new ClientReplicaManager(this, NetworkPrefabLookup.instance, clientTransform);
         }
         
         public void Update() {

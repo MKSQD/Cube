@@ -5,10 +5,6 @@ using UnityEngine;
 namespace Cube.Replication {
 #if SERVER
     public interface IServerReplicaManager : IReplicaManager {
-        IServerReactor reactor {
-            get;
-        }
-
         IReplicaPriorityManager priorityManager {
             get;
         }

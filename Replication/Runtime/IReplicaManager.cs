@@ -9,6 +9,6 @@ namespace Cube.Replication {
 
         Replica GetReplicaById(ReplicaId id);
 
-        void DestroyAllReplicas();
+        void Reset();
     }
 }

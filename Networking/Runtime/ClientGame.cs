@@ -7,13 +7,13 @@ using BitStream = Cube.Transport.BitStream;
 
 namespace Cube.Networking {
     [AddComponentMenu("Cube/ClientGame")]
-    public class ClientGame : NetworkBehaviour {
+    public class ClientGame : MonoBehaviour {
         public ClientSimulatedLagSettings lagSettings;
 
         public bool connectInEditor = true;
         public ushort portInEditor = 60000;
 
-        public new UnityClient client;
+        public UnityClient client;
 
         public UnityEvent onConnectionRequestAccepted;
         public UnityEvent onConnectionRequestFailed;
@@ -62,7 +62,7 @@ namespace Cube.Networking {
 
             Debug.Log("[Client] Loading level: " + sceneName + " generation=" + generation);
 
-            client.replicaManager.DestroyAllReplicas();
+            client.replicaManager.Reset();
 
             var op = SceneManager.LoadSceneAsync(sceneName);
             if (op == null)

@@ -1,12 +1,11 @@
-﻿using System;
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEditor;
 using Cube.Replication;
 
 namespace Cube.Networking {
     class NetworkingEditorSettingsWindow : EditorWindow {
 
-        [MenuItem("Cube/Window/Networking Editor Settings")]
+        [MenuItem("Cube/Networking Editor Settings")]
         public static void ShowWindow() {
             var window = GetWindow(typeof(NetworkingEditorSettingsWindow));
             window.titleContent = new GUIContent("Networking editor settings");
