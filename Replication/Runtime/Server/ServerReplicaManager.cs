@@ -115,11 +115,7 @@ namespace Cube.Replication {
         }
 
         public void Reset() {
-            for (int i = 0; i < _networkScene.replicas.Count; ++i) {
-                var replica = _networkScene.replicas[i];
-                _networkScene.RemoveReplica(replica);
-                UnityEngine.Object.Destroy(replica.gameObject);
-            }
+            _networkScene.DestroyAll();
 
             foreach (var pair in _constructingReplicas) {
                 UnityEngine.Object.Destroy(pair.Value.gameObject);

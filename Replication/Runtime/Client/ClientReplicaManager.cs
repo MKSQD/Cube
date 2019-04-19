@@ -61,9 +61,7 @@ namespace Cube.Replication {
         }
 
         public void Reset() {
-            for (int i = 0; i < _networkScene.replicas.Count; ++i) {
-                Object.Destroy(_networkScene.replicas[i].gameObject);
-            }
+            _networkScene.DestroyAll();
         }
 
         public void RemoveReplica(Replica replica) {

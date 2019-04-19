@@ -43,5 +43,17 @@ namespace Cube.Replication {
             _replicasById.TryGetValue(id, out replica);
             return replica;
         }
+
+        public void DestroyAll() {
+            for (int i = 0; i < _replicas.Count; ++i) {
+                var replica = _replicas[i];
+                if (replica == null)
+                    continue;
+
+                RemoveReplica(replica);
+                Object.Destroy(replica.gameObject);
+            }
+            _replicas.Clear();
+        }
     }
 }
