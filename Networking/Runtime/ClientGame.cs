@@ -26,7 +26,7 @@ namespace Cube.Networking {
 
 //#if UNITY_EDITOR
             if (connectInEditor) {
-                client.networkInterface.Connect("127.0.0.1", portInEditor);
+                client.networkInterface.Connect("127.0.0.1", portInEditor); /*127.0.0.1 91.10.118.236*/
                 Debug.Log("Connecting to server...");
             }
 //#endif

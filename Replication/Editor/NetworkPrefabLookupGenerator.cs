@@ -77,11 +77,9 @@ namespace Cube.Replication {
         static void OnSceneSaving(Scene scene, string path) {
             var sceneReplicas = new List<Replica>();
             foreach (var go in scene.GetRootGameObjects()) {
-                var replica = go.GetComponent<Replica>();
-                if (replica == null)
-                    continue;
-
-                sceneReplicas.Add(replica);
+                foreach (var replica in go.GetComponentsInChildren<Replica>()) {
+                    sceneReplicas.Add(replica);
+                }
             }
 
             sceneReplicas.Sort((r1, r2) => r1.GetInstanceID() - r2.GetInstanceID()); // Mostly stable so sceneIdxs don't change so often
@@ -113,7 +111,7 @@ namespace Cube.Replication {
                 PrefabUtility.RecordPrefabInstancePropertyModifications(replica);
             }
         }
-        
+
         static string ReplaceString(string str, string oldValue, string newValue, StringComparison comparison) {
             StringBuilder sb = new StringBuilder();
 
