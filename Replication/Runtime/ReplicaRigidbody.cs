@@ -55,29 +55,41 @@ namespace Cube.Replication {
 #if SERVER
         public override void Serialize(BitStream bs, ReplicaSerializationMode mode, ReplicaView view) {
             bs.Write(transform.position);
-            bs.Write(transform.rotation);
+
+            var euler = transform.rotation.eulerAngles;
+            if (euler.x < 0) euler.x += 360;
+            if (euler.y < 0) euler.y += 360;
+            if (euler.z < 0) euler.z += 360;
+
+            bs.CompressFloat(euler.x, 0, 360, 0.1f);
+            bs.CompressFloat(euler.y, 0, 360, 0.1f);
+            bs.CompressFloat(euler.z, 0, 360, 0.1f);
 
             var sleeping = _rigidbody.IsSleeping();
             bs.Write(sleeping);
-            if (sleeping)
-                return;
+            if (!sleeping) {
+                bs.Write(_rigidbody.velocity);
 
-            bs.Write(_rigidbody.velocity);
-            bs.Write(_rigidbody.angularVelocity);
+                bs.Write(_rigidbody.angularVelocity);
+            }
         }
 #endif
 
 #if CLIENT
         public override void Deserialize(BitStream bs, ReplicaSerializationMode mode) {
-            var position = bs.ReadVector3();
-            var rotation = bs.ReadQuaternion();
+            transform.position = bs.ReadVector3();
 
-            transform.position = position;
-            transform.rotation = rotation;
+            var euler = new Vector3 {
+                x = bs.DecompressFloat(0, 360, 0.1f),
+                y = bs.DecompressFloat(0, 360, 0.1f),
+                z = bs.DecompressFloat(0, 360, 0.1f)
+            };
+            transform.rotation = Quaternion.Euler(euler);
 
             var sleeping = bs.ReadBool();
             if (!sleeping) {
                 _rigidbody.velocity = bs.ReadVector3();
+
                 _rigidbody.angularVelocity = bs.ReadVector3();
             }
             else {

@@ -23,7 +23,9 @@ namespace Cube.Replication {
         [HideInInspector]
         public ReplicaId id = ReplicaId.Invalid;
 
+        [HideInInspector]
         public ushort prefabIdx;
+        [HideInInspector]
         public byte sceneIdx;
 
         public bool isSceneReplica {
@@ -386,9 +388,6 @@ namespace Cube.Replication {
                 var id = bs.ReadReplicaId();
                 
                 value = replicaManager.GetReplicaById(id);
-                if(value == null) {
-                    Debug.Log("null");
-                }
             }
             else if (type.IsSubclassOf(typeof(NetworkObject))) {
                 value = bs.ReadNetworkObject<NetworkObject>();

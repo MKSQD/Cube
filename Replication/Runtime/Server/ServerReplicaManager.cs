@@ -18,6 +18,10 @@ namespace Cube.Replication {
 
 #if SERVER
     public sealed class ServerReplicaManager : IServerReplicaManager {
+#if UNITY_EDITOR
+        public static List<ServerReplicaManager> all = new List<ServerReplicaManager>();
+#endif
+
         public class Statistic {
             public struct PerReplicaTypeInfo {
                 public int numInstances;
@@ -93,16 +97,18 @@ namespace Cube.Replication {
             _settings = settings;
 
             SceneManager.sceneLoaded += OnSceneLoaded;
-        }
 
-        void OnSceneLoaded(Scene scene, LoadSceneMode mode) {
+#if UNITY_EDITOR
+            all.Add(this);
+#endif
+    }
+
+    void OnSceneLoaded(Scene scene, LoadSceneMode mode) {
             var sceneReplicas = new List<Replica>();
             foreach (var go in scene.GetRootGameObjects()) {
-                var replica = go.GetComponent<Replica>();
-                if (replica == null)
-                    continue;
-
-                sceneReplicas.Add(replica);
+                foreach (var replica in go.GetComponentsInChildren<Replica>()) {
+                    sceneReplicas.Add(replica);
+                }
             }
 
             sceneReplicas.Sort((r1, r2) => r1.sceneIdx - r2.sceneIdx);
@@ -290,7 +296,7 @@ namespace Cube.Replication {
                 foreach (var component in replica.replicaBehaviours) {
                     component.Serialize(updateBs, serializationMode, view);
                 }
-                
+
                 _server.reactor.networkInterface.Send(updateBs, PacketPriority.Medium, PacketReliability.Unreliable, view.connection);
 
 
@@ -425,7 +431,9 @@ namespace Cube.Replication {
         }
 
         public void FreeLocalReplicaId(ushort localId) {
-            Assert.IsTrue(localId < _nextLocalReplicaId);
+            if (localId >= _nextLocalReplicaId)
+                return; // Tried to free id after Reset() was called
+
             _replicaIdRecycleQueue.Enqueue(localId);
         }
 

@@ -5,10 +5,10 @@ using Cube.Replication;
 namespace Cube.Networking {
     class NetworkingEditorSettingsWindow : EditorWindow {
 
-        [MenuItem("Cube/Networking Editor Settings")]
+        [MenuItem("Cube/Editor Settings")]
         public static void ShowWindow() {
             var window = GetWindow(typeof(NetworkingEditorSettingsWindow));
-            window.titleContent = new GUIContent("Networking editor settings");
+            window.titleContent = new GUIContent("Cube Editor Settings");
         }
 
         ApplicationType _appType;

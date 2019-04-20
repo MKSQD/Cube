@@ -31,6 +31,11 @@ namespace Cube.Transport {
             var config = new NetPeerConfiguration("Cube.Networking");
             config.Port = port; //#TODO move host and port to Interface (maybe as IServerNetworkInterfaceConfiguration)
 
+#if !NETWORKING_LOG_INFO
+            config.DisableMessageType(NetIncomingMessageType.VerboseDebugMessage);
+            config.DisableMessageType(NetIncomingMessageType.DebugMessage);
+#endif
+
             _server = new NetServer(config);
             _server.Start();
         }
@@ -133,7 +138,7 @@ namespace Cube.Transport {
                     break;
 
                 default:
-                    Debug.Log("Server - Unhandled type: " + msg.MessageType);
+                    Debug.Log("[Server] Unhandled type: " + msg.MessageType);
                     break;
             }
 

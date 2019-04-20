@@ -103,12 +103,11 @@ namespace Cube.Replication {
     public class ReplicaDebugger : EditorWindow {
         SimpleTreeView _simpleTreeView;
         TreeViewState _treeViewState;
-
-        [MenuItem("Window/Analysis/Network ReplicaDebugger")]
-        [MenuItem("Cube/Network ReplicaDebugger")]
+        
+        [MenuItem("Cube/Replica Debugger")]
         public static void ShowWindow() {
             var window = GetWindow(typeof(ReplicaDebugger));
-            window.titleContent = new GUIContent("ReplicaDebugger");
+            window.titleContent = new GUIContent("Replica Debugger");
         }
 
         void OnEnable() {
@@ -138,41 +137,36 @@ namespace Cube.Replication {
                 return;
 
             var statistics = new List<ServerReplicaManager.Statistic>();
+            
+            foreach (var replicaManager in ServerReplicaManager.all) {
+                statistics.Add(replicaManager.statistic);
+            }
 
-            throw new Exception("Fixme");
-//             foreach (var server in UnityServer.all) {
-//                 var replicaManager = server.replicaManager as ServerReplicaManager;
-//                 if (replicaManager == null)
-//                     continue;
-// 
-//                 statistics.Add(replicaManager.statistic);
-//             }
-// 
-//             var columns = new MultiColumnHeaderState.Column[4];
-//             columns[0] = new MultiColumnHeaderState.Column() {
-//                 headerContent = new GUIContent("context"),
-//                 width = 300
-//             };
-//             columns[1] = new MultiColumnHeaderState.Column() {
-//                 headerContent = new GUIContent("instances"),
-//                 width = 80,
-//                 canSort = true
-//             };
-//             columns[2] = new MultiColumnHeaderState.Column() {
-//                 headerContent = new GUIContent("bytes/instance"),
-//                 width = 100,
-//                 canSort = true
-//             };
-//             columns[3] = new MultiColumnHeaderState.Column() {
-//                 headerContent = new GUIContent("bytes total"),
-//                 width = 100,
-//                 canSort = true
-//             };
-// 
-//             var header = new MultiColumnHeader(new MultiColumnHeaderState(columns));
-//             _simpleTreeView = new SimpleTreeView(_treeViewState, header, statistics);
-// 
-//             Repaint();
+            var columns = new MultiColumnHeaderState.Column[4];
+            columns[0] = new MultiColumnHeaderState.Column() {
+                headerContent = new GUIContent("context"),
+                width = 300
+            };
+            columns[1] = new MultiColumnHeaderState.Column() {
+                headerContent = new GUIContent("instances"),
+                width = 80,
+                canSort = true
+            };
+            columns[2] = new MultiColumnHeaderState.Column() {
+                headerContent = new GUIContent("bytes/instance"),
+                width = 100,
+                canSort = true
+            };
+            columns[3] = new MultiColumnHeaderState.Column() {
+                headerContent = new GUIContent("bytes total"),
+                width = 100,
+                canSort = true
+            };
+
+            var header = new MultiColumnHeader(new MultiColumnHeaderState(columns));
+            _simpleTreeView = new SimpleTreeView(_treeViewState, header, statistics);
+
+            Repaint();
         }
     }
 #endif

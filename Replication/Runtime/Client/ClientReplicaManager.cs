@@ -44,16 +44,16 @@ namespace Cube.Replication {
         void OnSceneLoaded(Scene scene, LoadSceneMode mode) {
             var sceneReplicas = new List<Replica>();
             foreach (var go in scene.GetRootGameObjects()) {
-                var replica = go.GetComponent<Replica>();
-                if (replica == null)
-                    continue;
-
-                sceneReplicas.Add(replica);
+                foreach (var replica in go.GetComponentsInChildren<Replica>()) {
+                    sceneReplicas.Add(replica);
+                }
             }
 
             sceneReplicas.Sort((r1, r2) => r1.sceneIdx - r2.sceneIdx);
 
             foreach (var replica in sceneReplicas) {
+                Assert.IsTrue(replica.sceneIdx != 0);
+
                 replica.client = _client;
                 replica.id = ReplicaId.CreateFromExisting(replica.sceneIdx);
                 _networkScene.AddReplica(replica);
@@ -116,6 +116,11 @@ namespace Cube.Replication {
 
             replica.isOwner = isOwner;
 
+#if UNITY_EDITOR
+            if (isSceneReplica)
+                return;
+#endif
+
             foreach (var component in replica.replicaBehaviours) {
                 component.Deserialize(bs, ReplicaSerializationMode.Full);
             }
@@ -150,6 +155,11 @@ namespace Cube.Replication {
             //This can happen if the Replica is not fully constructed
             if (replica == null)
                 return;
+
+#if UNITY_EDITOR
+            if (replica.isSceneReplica)
+                return;
+#endif
 
             foreach (var component in replica.replicaBehaviours) {
                 component.Deserialize(bs, ReplicaSerializationMode.Partial);

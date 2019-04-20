@@ -6,10 +6,10 @@ namespace Cube.Replication {
     class ReplicaViewWindow : EditorWindow {
         ReplicaView[] _replicaViews;
 
-        [MenuItem("Cube/Network ReplicaViews")]
+        [MenuItem("Cube/Replica Views")]
         public static void ShowWindow() {
             var window = GetWindow(typeof(ReplicaViewWindow));
-            window.titleContent = new GUIContent("ReplicaViews");
+            window.titleContent = new GUIContent("Replica Views");
         }
 
         void OnGUI() {
