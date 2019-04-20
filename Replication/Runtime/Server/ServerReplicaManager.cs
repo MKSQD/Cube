@@ -425,7 +425,9 @@ namespace Cube.Replication {
         }
 
         public void FreeLocalReplicaId(ushort localId) {
-            Assert.IsTrue(localId < _nextLocalReplicaId);
+            if (localId >= _nextLocalReplicaId)
+                return; // Tried to free id after Reset() was called
+            
             _replicaIdRecycleQueue.Enqueue(localId);
         }
 
