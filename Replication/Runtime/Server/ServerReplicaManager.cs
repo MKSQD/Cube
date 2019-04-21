@@ -433,7 +433,7 @@ namespace Cube.Replication {
         public void FreeLocalReplicaId(ushort localId) {
             if (localId >= _nextLocalReplicaId)
                 return; // Tried to free id after Reset() was called
-
+            
             _replicaIdRecycleQueue.Enqueue(localId);
         }
 
