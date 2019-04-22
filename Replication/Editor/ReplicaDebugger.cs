@@ -14,12 +14,10 @@ namespace Cube.Replication {
     }
 
     class SimpleTreeView : TreeView {
-        List<ServerReplicaManager.Statistic> _data;
+        public List<ServerReplicaManager.Statistic> data;
 
-        public SimpleTreeView(TreeViewState treeViewState, MultiColumnHeader header, List<ServerReplicaManager.Statistic> data)
+        public SimpleTreeView(TreeViewState treeViewState, MultiColumnHeader header)
             : base(treeViewState, header) {
-            _data = data;
-
             showAlternatingRowBackgrounds = true;
 
             Reload();
@@ -30,38 +28,47 @@ namespace Cube.Replication {
 
             var root = new TreeViewItem { id = nextIdx++, depth = -1, displayName = "root" };
 
-            for (int i = 0; i < _data.Count; ++i) {
-                var statistic = _data[i];
+            if (data != null) {
+                for (int i = 0; i < data.Count; ++i) {
+                    var statistic = data[i];
 
-                var serverItem = new SimpleTreeViewItem { id = nextIdx++, displayName = "Server " + i };
-                root.AddChild(serverItem);
+                    var serverItem = new SimpleTreeViewItem { id = nextIdx++, displayName = "Server " + i };
+                    root.AddChild(serverItem);
 
-                foreach (var viewInfoPair in statistic.viewInfos) {
-                    var replicaViewItem = new SimpleTreeViewItem { id = nextIdx++, displayName = viewInfoPair.view.name };
-                    serverItem.AddChild(replicaViewItem);
+                    foreach (var viewInfoPair in statistic.viewInfos) {
+                        if (viewInfoPair.view == null)
+                            continue;
 
-                    foreach (var info in viewInfoPair.info.bytesPerPrefabIdx) {
-                        var name = info.Key.ToString();
+                        var replicaViewItem = new SimpleTreeViewItem { id = nextIdx++, displayName = viewInfoPair.view.name };
+                        serverItem.AddChild(replicaViewItem);
 
-                        GameObject prefab;
-                        if (NetworkPrefabLookup.instance.TryGetClientPrefabForIndex(info.Key, out prefab)) {
-                            name = prefab.name;
+                        foreach (var info in viewInfoPair.info.bytesPerPrefabIdx) {
+                            var name = info.Key.ToString();
+
+                            GameObject prefab;
+                            if (NetworkPrefabLookup.instance.TryGetClientPrefabForIndex(info.Key, out prefab)) {
+                                name = prefab.name;
+                            }
+
+                            var infoItem = new SimpleTreeViewItem {
+                                id = nextIdx++,
+                                displayName = name,
+                                instances = info.Value.numInstances.ToString(),
+                                bytesPerInstance = (info.Value.totalBytes / (float)info.Value.numInstances).ToString(),
+                                bytesTotal = info.Value.totalBytes.ToString()
+                            };
+
+                            replicaViewItem.AddChild(infoItem);
                         }
-
-                        var infoItem = new SimpleTreeViewItem {
-                            id = nextIdx++,
-                            displayName = name,
-                            instances = info.Value.numInstances.ToString(),
-                            bytesPerInstance = (info.Value.totalBytes / (float)info.Value.numInstances).ToString(),
-                            bytesTotal = info.Value.totalBytes.ToString()
-                        };
-
-                        replicaViewItem.AddChild(infoItem);
                     }
                 }
-            }
 
-            SetupDepthsFromParentsAndChildren(root);
+                SetupDepthsFromParentsAndChildren(root);
+            }
+            else {
+                var serverItem = new SimpleTreeViewItem { id = nextIdx++, displayName = "Enter play mode" };
+                root.AddChild(serverItem);
+            }
 
             return root;
         }
@@ -103,7 +110,7 @@ namespace Cube.Replication {
     public class ReplicaDebugger : EditorWindow {
         SimpleTreeView _simpleTreeView;
         TreeViewState _treeViewState;
-        
+
         [MenuItem("Cube/Replica Debugger")]
         public static void ShowWindow() {
             var window = GetWindow(typeof(ReplicaDebugger));
@@ -111,62 +118,49 @@ namespace Cube.Replication {
         }
 
         void OnEnable() {
-            if (_treeViewState == null) {
+            if (_simpleTreeView == null) {
                 _treeViewState = new TreeViewState();
-            }
 
-            EditorApplication.pauseStateChanged += OnPause;
+                var columns = new MultiColumnHeaderState.Column[4];
+                columns[0] = new MultiColumnHeaderState.Column() {
+                    headerContent = new GUIContent("context"),
+                    width = 200
+                };
+                columns[1] = new MultiColumnHeaderState.Column() {
+                    headerContent = new GUIContent("instances"),
+                    width = 80,
+                    canSort = true
+                };
+                columns[2] = new MultiColumnHeaderState.Column() {
+                    headerContent = new GUIContent("bytes/instance"),
+                    width = 100,
+                    canSort = true
+                };
+                columns[3] = new MultiColumnHeaderState.Column() {
+                    headerContent = new GUIContent("bytes total"),
+                    width = 100,
+                    canSort = true
+                };
+
+                var header = new MultiColumnHeader(new MultiColumnHeaderState(columns));
+
+                _simpleTreeView = new SimpleTreeView(_treeViewState, header);
+            }
         }
 
         void OnGUI() {
-            if (!Application.isPlaying) {
-                EditorGUILayout.LabelField(new GUIContent("Enter play mode to use"));
-                return;
-            }
-
-            if (_simpleTreeView == null) {
-                EditorGUILayout.LabelField(new GUIContent("Pause game to use"));
-                return;
-            }
-
-            _simpleTreeView.OnGUI(new Rect(0, 0, position.width, position.height));
-        }
-
-        void OnPause(PauseState state) {
-            if (state != PauseState.Paused)
+            if (_simpleTreeView == null)
                 return;
 
             var statistics = new List<ServerReplicaManager.Statistic>();
-            
             foreach (var replicaManager in ServerReplicaManager.all) {
                 statistics.Add(replicaManager.statistic);
             }
 
-            var columns = new MultiColumnHeaderState.Column[4];
-            columns[0] = new MultiColumnHeaderState.Column() {
-                headerContent = new GUIContent("context"),
-                width = 300
-            };
-            columns[1] = new MultiColumnHeaderState.Column() {
-                headerContent = new GUIContent("instances"),
-                width = 80,
-                canSort = true
-            };
-            columns[2] = new MultiColumnHeaderState.Column() {
-                headerContent = new GUIContent("bytes/instance"),
-                width = 100,
-                canSort = true
-            };
-            columns[3] = new MultiColumnHeaderState.Column() {
-                headerContent = new GUIContent("bytes total"),
-                width = 100,
-                canSort = true
-            };
+            _simpleTreeView.data = statistics;
+            _simpleTreeView.Reload();
 
-            var header = new MultiColumnHeader(new MultiColumnHeaderState(columns));
-            _simpleTreeView = new SimpleTreeView(_treeViewState, header, statistics);
-
-            Repaint();
+            _simpleTreeView.OnGUI(new Rect(0, 0, position.width, position.height));
         }
     }
 #endif
