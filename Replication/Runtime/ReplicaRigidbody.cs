@@ -60,7 +60,6 @@ namespace Cube.Replication {
             if (euler.x < 0) euler.x += 360;
             if (euler.y < 0) euler.y += 360;
             if (euler.z < 0) euler.z += 360;
-
             bs.CompressFloat(euler.x, 0, 360, 0.1f);
             bs.CompressFloat(euler.y, 0, 360, 0.1f);
             bs.CompressFloat(euler.z, 0, 360, 0.1f);
@@ -68,7 +67,10 @@ namespace Cube.Replication {
             var sleeping = _rigidbody.IsSleeping();
             bs.Write(sleeping);
             if (!sleeping) {
-                bs.Write(_rigidbody.velocity);
+                var velocity = _rigidbody.velocity;
+                bs.CompressFloat(velocity.x, -10, 10);
+                bs.CompressFloat(velocity.y, -10, 10);
+                bs.CompressFloat(velocity.z, -10, 10);
 
                 bs.Write(_rigidbody.angularVelocity);
             }
@@ -88,7 +90,11 @@ namespace Cube.Replication {
 
             var sleeping = bs.ReadBool();
             if (!sleeping) {
-                _rigidbody.velocity = bs.ReadVector3();
+                var velocity = new Vector3();
+                velocity.x = bs.DecompressFloat(-10, 10);
+                velocity.y = bs.DecompressFloat(-10, 10);
+                velocity.z = bs.DecompressFloat(-10, 10);
+                _rigidbody.velocity = velocity;
 
                 _rigidbody.angularVelocity = bs.ReadVector3();
             }
