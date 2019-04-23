@@ -68,9 +68,9 @@ namespace Cube.Replication {
             bs.Write(sleeping);
             if (!sleeping) {
                 var velocity = _rigidbody.velocity;
-                bs.CompressFloat(velocity.x, -10, 10);
-                bs.CompressFloat(velocity.y, -10, 10);
-                bs.CompressFloat(velocity.z, -10, 10);
+                bs.CompressFloat(velocity.x, -20, 20);
+                bs.CompressFloat(velocity.y, -20, 20);
+                bs.CompressFloat(velocity.z, -20, 20);
 
                 bs.Write(_rigidbody.angularVelocity);
             }
@@ -90,10 +90,11 @@ namespace Cube.Replication {
 
             var sleeping = bs.ReadBool();
             if (!sleeping) {
-                var velocity = new Vector3();
-                velocity.x = bs.DecompressFloat(-10, 10);
-                velocity.y = bs.DecompressFloat(-10, 10);
-                velocity.z = bs.DecompressFloat(-10, 10);
+                var velocity = new Vector3 {
+                    x = bs.DecompressFloat(-20, 20),
+                    y = bs.DecompressFloat(-20, 20),
+                    z = bs.DecompressFloat(-20, 20)
+                };
                 _rigidbody.velocity = velocity;
 
                 _rigidbody.angularVelocity = bs.ReadVector3();
