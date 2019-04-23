@@ -6,7 +6,6 @@ using BitStream = Cube.Transport.BitStream;
 
 namespace Cube.Networking {
     [AddComponentMenu("Cube.Networking/UnityServer")]
-    [RequireComponent(typeof(IReplicaPriorityManager))]
     public class UnityServer : IUnityServer {
 #if SERVER
         public IServerNetworkInterface networkInterface {
@@ -29,14 +28,14 @@ namespace Cube.Networking {
             get { return _connections; }
         }
 
-        public UnityServer(ushort port, Transform serverTransform, IReplicaPriorityManager priorityManager, ServerReplicaManagerSettings replicaManagerSettings) {
+        public UnityServer(ushort port, Transform serverTransform, ServerReplicaManagerSettings replicaManagerSettings) {
             networkInterface = new LidgrenServerNetworkInterface(port);
 
             reactor = new ServerReactor(networkInterface);
             reactor.AddHandler((byte)MessageId.NewConnectionEstablished, OnNewConnectionEstablished);
             reactor.AddHandler((byte)MessageId.DisconnectNotification, OnDisconnectNotification);
             
-            replicaManager = new ServerReplicaManager(this, serverTransform, priorityManager, replicaManagerSettings);
+            replicaManager = new ServerReplicaManager(this, serverTransform, replicaManagerSettings);
     }
 
     public void Update() {

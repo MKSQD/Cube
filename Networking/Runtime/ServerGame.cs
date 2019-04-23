@@ -61,13 +61,8 @@ namespace Cube.Networking {
 
         void Awake() {
             DontDestroyOnLoad(gameObject);
-
-            var priorityManager = GetComponent<IReplicaPriorityManager>();
-            if (priorityManager == null) {
-                priorityManager = gameObject.AddComponent<DefaultReplicaPriorityManager>();
-            }
-
-            server = new UnityServer(port, transform, priorityManager, replicaManagerSettings);
+            
+            server = new UnityServer(port, transform, replicaManagerSettings);
 
             server.reactor.AddHandler((byte)MessageId.NewConnectionEstablished, OnNewIncomingConnection);
             server.reactor.AddHandler((byte)MessageId.DisconnectNotification, OnDisconnectionNotification);
@@ -119,6 +114,7 @@ namespace Cube.Networking {
             var replicaView = server.replicaManager.GetReplicaView(connection);
             if (replicaView != null) {
                 replicaView.isLoadingLevel = false;
+                server.replicaManager.ForceReplicaViewRefresh(replicaView);
             }
         }
 

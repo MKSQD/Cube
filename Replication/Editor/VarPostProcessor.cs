@@ -10,7 +10,6 @@ using UnityEngine;
 namespace Cube.Replication.Editor {
     class VarPostProcessor : PostProcessor {
         TypeDefinition _replicaBehaviourType;
-        TypeReference _replicaSerializationModeType;
         TypeReference _replicaViewType;
         TypeReference _replicaVarAttributeType;
         FieldReference _replicaDirtyFieldsMask;
@@ -29,16 +28,17 @@ namespace Cube.Replication.Editor {
 
             _replicaBehaviourType = GetTypeDefinitionByName(networkingReplicaAssembly.MainModule, "Cube.Replication.ReplicaBehaviour");
             _replicaDirtyFieldsMask = ImportField(GetFieldDefinitionByName(_replicaBehaviourType, "dirtyFieldsMask"));
-
-            _replicaSerializationModeType = ImportType(GetTypeDefinitionByName(networkingReplicaAssembly.MainModule, "Cube.Replication.ReplicaSerializationMode"));
+            
             _replicaVarAttributeType = ImportType(GetTypeDefinitionByName(networkingReplicaAssembly.MainModule, "Cube.Replication.ReplicaVarAttribute"));
 
             _bitStreamType = GetTypeDefinitionByName(networkingTransportAssembly.MainModule, "Cube.Transport.BitStream");
 
-            foreach (var writeMethod in ImportMethods(GetMethodDefinitionsByName(_bitStreamType, "Write")))
+            foreach (var writeMethod in ImportMethods(GetMethodDefinitionsByName(_bitStreamType, "Write"))) {
                 _bitStreamWrite[writeMethod.Parameters[0].ParameterType.Name] = writeMethod;
-            foreach (var readMethod in ImportMethods(GetMethodDefinitionsByName(_bitStreamType, "Read")))
+            }
+            foreach (var readMethod in ImportMethods(GetMethodDefinitionsByName(_bitStreamType, "Read"))) {
                 _bitStreamRead[readMethod.Parameters[0].ParameterType.Name] = readMethod;
+            }
 
             _bitStreamWriteBool = _bitStreamWrite[module.TypeSystem.Boolean.Name];
             _bitStreamReadBool = ImportMethod(GetMethodDefinitionByName(_bitStreamType, "ReadBool"));
@@ -156,7 +156,6 @@ namespace Cube.Replication.Editor {
 
             var serialize = new MethodDefinition(serializedMethodName, serializedMethodFlags, module.TypeSystem.Void);
             serialize.Parameters.Add(new ParameterDefinition("bs", ParameterAttributes.None, ImportType(_bitStreamType)));
-            serialize.Parameters.Add(new ParameterDefinition("mode", ParameterAttributes.None, _replicaSerializationModeType));
             serialize.Parameters.Add(new ParameterDefinition("view", ParameterAttributes.None, _replicaViewType));
             type.Methods.Add(serialize);
 
@@ -264,7 +263,6 @@ namespace Cube.Replication.Editor {
 
             var deserialize = new MethodDefinition(deserializedMethodName, deserializedMethodFlags, module.TypeSystem.Void);
             deserialize.Parameters.Add(new ParameterDefinition("bs", ParameterAttributes.None, ImportType(_bitStreamType)));
-            deserialize.Parameters.Add(new ParameterDefinition("mode", ParameterAttributes.None, _replicaSerializationModeType));
             type.Methods.Add(deserialize);
 
             if (userDefiniedDeserializeMethod != null) {

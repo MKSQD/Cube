@@ -1,25 +1,13 @@
 ﻿using UnityEngine;
 using System;
-using System.Collections.Generic;
 using Cube.Transport;
+using System.Collections.Generic;
 
-namespace Cube.Replication {    /// <remarks>Available in: Editor/Server</remarks>
+namespace Cube.Replication {
     [Serializable]
     [AddComponentMenu("Cube/ReplicaView")]
     public class ReplicaView : MonoBehaviour {
 #if SERVER
-        public struct UpdateInfo {
-            public float lastUpdateTime;
-            public float nextFullUpdateTime;
-        }
-
-#if UNITY_EDITOR
-        /// <summary>
-        /// The view currently being debugged.
-        /// </summary>
-        public static ReplicaView debug;
-#endif
-        
         [HideInInspector]
         public Connection connection;
         public bool ignoreReplicaPositionsForPriority = false;
@@ -29,7 +17,19 @@ namespace Cube.Replication {    /// <remarks>Available in: Editor/Server</remark
         /// </summary>
         public bool isLoadingLevel;
 
-        public Dictionary<Replica, UpdateInfo> replicaUpdateInfo = new Dictionary<Replica, UpdateInfo>();
+#if UNITY_EDITOR
+        /// <summary>
+        /// The view currently being debugged.
+        /// </summary>
+        public static ReplicaView debug;
+#endif
+
+        public List<Replica> relevantReplicas;
+        public List<float> relevantReplicaPriorityAccumulator;
+
+        void OnDrawGizmosSelected() {
+            debug = this;
+        }
 #endif
     }
 }

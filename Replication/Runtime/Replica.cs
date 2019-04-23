@@ -9,7 +9,7 @@ using BitStream = Cube.Transport.BitStream;
 namespace Cube.Replication {
     [AddComponentMenu("Cube/Replica")]
     [DisallowMultipleComponent]
-    public sealed class Replica : MonoBehaviour {
+    public class Replica : MonoBehaviour {
 #if SERVER
         public struct QueuedRpc {
             public RpcTarget target;
@@ -17,6 +17,7 @@ namespace Cube.Replication {
         }
 #endif
 
+        public static ReplicaSettings defaultReplicaSettings;
         public ReplicaSettings settings;
         public bool replicateOnlyToOwner;
 
@@ -31,7 +32,7 @@ namespace Cube.Replication {
         public bool isSceneReplica {
             get { return sceneIdx != 0; }
         }
-
+        
 #if SERVER
         public IUnityServer server;
 #endif
@@ -96,7 +97,7 @@ namespace Cube.Replication {
             owner = Connection.Invalid;
             isOwner = true;
         }
-        
+
         public bool IsRelevantFor(ReplicaView view) {
             if (!gameObject.activeInHierarchy)
                 return false;
@@ -105,6 +106,21 @@ namespace Cube.Replication {
                 return view.connection == owner;
 
             return true;
+        }
+
+        public virtual float GetPriorityFor(ReplicaView view) {
+            var distanceRelevance = 1f;
+            if ((settings.priorityFlags & ReplicaPriorityFlag.IgnorePosition) == 0 && !view.ignoreReplicaPositionsForPriority) {
+                var sqrMaxDist = Mathf.Pow(settings.maxViewDistance, 2);
+
+                var sqrDist = Mathf.Pow(transform.position.x - view.transform.position.x, 2)
+                    + Mathf.Pow(transform.position.z - view.transform.position.z, 2);
+                if (sqrDist > sqrMaxDist)
+                    return 0; // No costly calculations
+
+                distanceRelevance = 1f - sqrDist / sqrMaxDist;
+            }
+            return distanceRelevance;
         }
 #endif
 
@@ -130,6 +146,14 @@ namespace Cube.Replication {
         }
 
         void Awake() {
+            if (settings == null) {
+                if (defaultReplicaSettings == null) {
+                    defaultReplicaSettings = ScriptableObject.CreateInstance<ReplicaSettings>(); ;
+                }
+
+                settings = defaultReplicaSettings;
+            }
+
             RebuildReplicaBehaviourCache();
         }
 
@@ -207,7 +231,7 @@ namespace Cube.Replication {
                     Debug.LogError("Cannot find rpc method with id " + methodId + " in " + component + " on " + (component.isServer ? "server" : "client") + ".");
                     return;
                 }
-                
+
                 Debug.LogWarning("Got Replica rpc from non-owning client replica=" + gameObject + " method=" + methodInfo.Name);
                 return;
             }
@@ -222,7 +246,7 @@ namespace Cube.Replication {
 
         void CallRpc(Connection connection, BitStream bs, IReplicaManager replicaManager) {
             // #todo expose connection; maybe require first RPC arg to be ReplicaRpcContext?
-            
+
             var componentIdx = bs.ReadByte();
             var methodId = bs.ReadByte();
 
@@ -233,7 +257,7 @@ namespace Cube.Replication {
                 Debug.LogError("Cannot find rpc method with id " + methodId + " in " + component + " on " + (component.isServer ? "server" : "client") + ".");
                 return;
             }
-            
+
             var methodParameters = methodInfo.GetParameters();
             var args = new object[methodParameters.Length];
 
@@ -386,7 +410,7 @@ namespace Cube.Replication {
             }
             else if (type == typeof(Replica)) {
                 var id = bs.ReadReplicaId();
-                
+
                 value = replicaManager.GetReplicaById(id);
             }
             else if (type.IsSubclassOf(typeof(NetworkObject))) {

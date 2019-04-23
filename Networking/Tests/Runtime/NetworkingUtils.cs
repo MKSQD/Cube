@@ -13,8 +13,6 @@ namespace Cube.Networking.Tests {
         public ServerReactor reactor;
         public GameObject gameObject;
         public ServerReplicaManager replicaManager;
-
-        public IReplicaPriorityManager priorityManager;
     }
 
     public struct ClientObjects {
@@ -30,15 +28,11 @@ namespace Cube.Networking.Tests {
 
             objects.server = new LocalServerInterface();
             objects.reactor = new ServerReactor(objects.server);
-
-            //#TODO TestReplicaPriorityManager (maybe remove MonoBehaviour from DefaultReplicaPriorityManager)
-            var priorityManagerGO = new GameObject("priorityManager");
-            objects.priorityManager = priorityManagerGO.AddComponent<DefaultReplicaPriorityManager>();
-
+            
             var replicaManagerSettings = new ServerReplicaManagerSettings();
 
             objects.gameObject = new GameObject("Server");
-            objects.replicaManager = new ServerReplicaManager(null, objects.gameObject.transform, objects.priorityManager, replicaManagerSettings);
+            objects.replicaManager = new ServerReplicaManager(null, objects.gameObject.transform, replicaManagerSettings);
 
             return objects;
         }

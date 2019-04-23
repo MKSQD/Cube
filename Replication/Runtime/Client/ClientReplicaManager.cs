@@ -30,8 +30,7 @@ namespace Cube.Replication {
 
             _client = client;
 
-            _client.reactor.AddHandler((byte)MessageId.ReplicaFullUpdate, new ClientMessageHandler(OnReplicaFullUpdate));
-            _client.reactor.AddHandler((byte)MessageId.ReplicaPartialUpdate, new ClientMessageHandler(OnReplicaPartialUpdate));
+            _client.reactor.AddHandler((byte)MessageId.ReplicaUpdate, new ClientMessageHandler(OnReplicaUpdate));
             _client.reactor.AddHandler((byte)MessageId.ReplicaRpc, new ClientMessageHandler(OnReplicaRpc));
             _client.reactor.AddHandler((byte)MessageId.ReplicaDestroy, new ClientMessageHandler(OnReplicaDestroy));
 
@@ -93,7 +92,7 @@ namespace Cube.Replication {
             }
         }
 
-        void OnReplicaFullUpdate(BitStream bs) {
+        void OnReplicaUpdate(BitStream bs) {
             var isOwner = bs.ReadBool();
             var isSceneReplica = bs.ReadBool();
             ushort prefabIdx = ushort.MaxValue;
@@ -122,7 +121,7 @@ namespace Cube.Replication {
 #endif
 
             foreach (var component in replica.replicaBehaviours) {
-                component.Deserialize(bs, ReplicaSerializationMode.Full);
+                component.Deserialize(bs);
             }
 
             replica.lastUpdateTime = Time.time;
@@ -148,26 +147,6 @@ namespace Cube.Replication {
             return newReplica;
         }
         
-        void OnReplicaPartialUpdate(BitStream bs) {
-            var replicaId = bs.ReadReplicaId();
-            var replica = _networkScene.GetReplicaById(replicaId);
-
-            //This can happen if the Replica is not fully constructed
-            if (replica == null)
-                return;
-
-#if UNITY_EDITOR
-            if (replica.isSceneReplica)
-                return;
-#endif
-
-            foreach (var component in replica.replicaBehaviours) {
-                component.Deserialize(bs, ReplicaSerializationMode.Partial);
-            }
-
-            replica.lastUpdateTime = Time.time;
-        }
-
         void OnReplicaRpc(BitStream bs) {
             var replicaId = bs.ReadReplicaId();
 
@@ -191,8 +170,7 @@ namespace Cube.Replication {
                 var replica = _networkScene.GetReplicaById(replicaId);
                 if (replica == null)
                     continue;
-
-                replica.gameObject.SendMessage("OnReplicaDestroy", SendMessageOptions.DontRequireReceiver);
+                
                 Object.Destroy(replica.gameObject);
             }
         }

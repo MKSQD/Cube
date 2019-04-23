@@ -2,6 +2,7 @@
 using UnityEditor;
 using UnityEngine;
 using System.Collections.Generic;
+using System;
 
 namespace Cube.Replication.Editor {
     /// <summary>
@@ -10,36 +11,37 @@ namespace Cube.Replication.Editor {
     /// <remarks>Available in: Editor</remarks>
     [CustomEditor(typeof(ReplicaView))]
     class ReplicaViewInspector : UnityEditor.Editor {
-        public override void OnInspectorGUI() {
-            DrawDefaultInspector();
-
-            if (Application.isPlaying) {
-                var replicaView = (ReplicaView)target;
-                if (GUILayout.Button("Debug")) {
-                    ReplicaView.debug = replicaView != ReplicaView.debug ? replicaView : null;
-                }
-            }
-        }
-
         struct ReplicaDebugInfo {
             public float nextDebugTextUpdateTime;
             public string prorityDescription;
-            public PriorityResult priorityResult;
+            public float priority;
+            public float finalPriority;
         }
 
         static GUIStyle[] _debugTextStyles;
         static Dictionary<Replica, ReplicaDebugInfo> _debugPriorities;
+        static ReplicaSettings defaultReplicaSettings;
 
         [DrawGizmo(GizmoType.Active | GizmoType.Selected | GizmoType.NotInSelectionHierarchy | GizmoType.Pickable)]
         static void DrawGizmoForReplica(Replica replica, GizmoType gizmoType) {
-            if (ReplicaView.debug == null || !replica.isServer || replica.settings == null)
+            if (ReplicaView.debug == null || !replica.isServer)
                 return;
+
+            if (!Selection.Contains(ReplicaView.debug.gameObject)) {
+                ReplicaView.debug = null;
+                return;
+            }
+
+            if (defaultReplicaSettings == null) {
+                defaultReplicaSettings = CreateInstance<ReplicaSettings>();
+            }
 
             // Setup text stype
             if (_debugTextStyles == null) {
                 _debugTextStyles = new GUIStyle[10];
                 for (int i = 0; i < 10; ++i) {
                     var style = new GUIStyle();
+                    style.fontSize = 8;
                     style.normal.textColor = Color.Lerp(Color.green, Color.red, i * 0.1f);
                     _debugTextStyles[i] = style;
                 }
@@ -55,11 +57,20 @@ namespace Cube.Replication.Editor {
                 info = new ReplicaDebugInfo();
             }
 
-            if (Time.time >= info.nextDebugTextUpdateTime) {
-                info.nextDebugTextUpdateTime = Time.time + 0.2f;
+            var settings = replica.settings ?? defaultReplicaSettings;
 
-                info.priorityResult = replica.server.replicaManager.priorityManager.GetPriority(replica, ReplicaView.debug);
-                info.prorityDescription = string.Format("{0:0.00}/{1:0.00}/{2}", info.priorityResult.final, info.priorityResult.relevance, replica.settings.desiredUpdateRateMs);
+            if (Time.time >= info.nextDebugTextUpdateTime) {
+                info.nextDebugTextUpdateTime = Time.time + 0.1f;
+
+                info.priority = replica.GetPriorityFor(ReplicaView.debug);
+                
+                var idx = ReplicaView.debug.relevantReplicas.IndexOf(replica);
+                if (idx == -1)
+                    return; // Not relevant, exit
+
+                info.finalPriority = ReplicaView.debug.relevantReplicaPriorityAccumulator[idx];
+
+                info.prorityDescription = string.Format("{0:0.00}/{1:0.00}/{2}", info.finalPriority, info.priority, settings.desiredUpdateRateMs);
 
                 _debugPriorities[replica] = info;
             }
@@ -68,9 +79,11 @@ namespace Cube.Replication.Editor {
             var screenPoint = Camera.current.WorldToScreenPoint(replica.transform.position);
             var isVisible = screenPoint.x >= 0 && screenPoint.x < Camera.current.pixelWidth
                 && screenPoint.y >= 0 && screenPoint.y < Camera.current.pixelHeight
-                && screenPoint.z < replica.settings.maxViewDistance && screenPoint.z > 0;
+                && screenPoint.z < settings.maxViewDistance && screenPoint.z > 0;
             if (isVisible) {
-                var styleIdx = Mathf.Min(Mathf.CeilToInt(info.priorityResult.final * 10), 9);
+                var styleIdx = Mathf.CeilToInt(info.finalPriority * 0.1f * 10); // Expect priority to be in the range [0, 10]
+                styleIdx = Math.Max(Math.Min(styleIdx, 9), 0);
+                
                 Handles.Label(replica.transform.position, info.prorityDescription, _debugTextStyles[styleIdx]);
             }
         }

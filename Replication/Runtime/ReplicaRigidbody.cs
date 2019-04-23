@@ -53,38 +53,49 @@ namespace Cube.Replication {
 #endif
 
 #if SERVER
-        public override void Serialize(BitStream bs, ReplicaSerializationMode mode, ReplicaView view) {
+        public override void Serialize(BitStream bs, ReplicaView view) {
             bs.Write(transform.position);
 
             var euler = transform.rotation.eulerAngles;
             if (euler.x < 0) euler.x += 360;
             if (euler.y < 0) euler.y += 360;
             if (euler.z < 0) euler.z += 360;
-            bs.CompressFloat(euler.x, 0, 360, 0.1f);
-            bs.CompressFloat(euler.y, 0, 360, 0.1f);
-            bs.CompressFloat(euler.z, 0, 360, 0.1f);
+            bs.CompressFloat(euler.x, 0, 360);
+            bs.CompressFloat(euler.y, 0, 360);
+            bs.CompressFloat(euler.z, 0, 360);
 
             var sleeping = _rigidbody.IsSleeping();
             bs.Write(sleeping);
             if (!sleeping) {
                 var velocity = _rigidbody.velocity;
+                velocity.x = Mathf.Clamp(velocity.x, -20, 20);
+                velocity.y = Mathf.Clamp(velocity.y, -20, 20);
+                velocity.z = Mathf.Clamp(velocity.z, -20, 20);
+
                 bs.CompressFloat(velocity.x, -20, 20);
                 bs.CompressFloat(velocity.y, -20, 20);
                 bs.CompressFloat(velocity.z, -20, 20);
 
-                bs.Write(_rigidbody.angularVelocity);
+                var angularVelocity = _rigidbody.velocity;
+                angularVelocity.x = Mathf.Clamp(angularVelocity.x, -20, 20);
+                angularVelocity.y = Mathf.Clamp(angularVelocity.y, -20, 20);
+                angularVelocity.z = Mathf.Clamp(angularVelocity.z, -20, 20);
+
+                bs.CompressFloat(angularVelocity.x, -20, 20);
+                bs.CompressFloat(angularVelocity.y, -20, 20);
+                bs.CompressFloat(angularVelocity.z, -20, 20);
             }
         }
 #endif
 
 #if CLIENT
-        public override void Deserialize(BitStream bs, ReplicaSerializationMode mode) {
+        public override void Deserialize(BitStream bs) {
             transform.position = bs.ReadVector3();
 
             var euler = new Vector3 {
-                x = bs.DecompressFloat(0, 360, 0.1f),
-                y = bs.DecompressFloat(0, 360, 0.1f),
-                z = bs.DecompressFloat(0, 360, 0.1f)
+                x = bs.DecompressFloat(0, 360),
+                y = bs.DecompressFloat(0, 360),
+                z = bs.DecompressFloat(0, 360)
             };
             transform.rotation = Quaternion.Euler(euler);
 
@@ -97,7 +108,12 @@ namespace Cube.Replication {
                 };
                 _rigidbody.velocity = velocity;
 
-                _rigidbody.angularVelocity = bs.ReadVector3();
+                var angularVelocity = new Vector3 {
+                    x = bs.DecompressFloat(-20, 20),
+                    y = bs.DecompressFloat(-20, 20),
+                    z = bs.DecompressFloat(-20, 20)
+                };
+                _rigidbody.angularVelocity = angularVelocity;
             }
             else {
                 _rigidbody.Sleep();

@@ -4,11 +4,6 @@ using UnityEngine;
 using BitStream = Cube.Transport.BitStream;
 
 namespace Cube.Replication {
-    public enum ReplicaSerializationMode {
-        Partial = 0,
-        Full = 1
-    }
-
     /// <summary>
     /// 
     /// </summary>
@@ -51,10 +46,10 @@ namespace Cube.Replication {
         }
 
 #if SERVER
-        public virtual void Serialize(BitStream bs, ReplicaSerializationMode mode, ReplicaView view) { }
+        public virtual void Serialize(BitStream bs, ReplicaView view) { }
 #endif
 
-        public virtual void Deserialize(BitStream bs, ReplicaSerializationMode mode) { }
+        public virtual void Deserialize(BitStream bs) { }
         
         // Do not remove, the call sites will automatically be patched by the AssemblyPatcher
         protected bool HasReplicaVarChanged<T>(T field) {

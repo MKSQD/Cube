@@ -5,10 +5,6 @@ using UnityEngine;
 namespace Cube.Replication {
 #if SERVER
     public interface IServerReplicaManager : IReplicaManager {
-        IReplicaPriorityManager priorityManager {
-            get;
-        }
-
         List<ReplicaView> replicaViews {
             get;
         }
@@ -35,6 +31,7 @@ namespace Cube.Replication {
         ReplicaView GetReplicaView(Connection connection);
         void AddReplicaView(ReplicaView view);
         void RemoveReplicaView(Connection connection);
+        void ForceReplicaViewRefresh(ReplicaView view);
 
         ushort AllocateLocalReplicaId();
         void FreeLocalReplicaId(ushort localId);

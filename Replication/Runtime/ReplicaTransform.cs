@@ -42,14 +42,14 @@ namespace Cube.Replication {
 #endif
 
 #if SERVER
-        public override void Serialize(BitStream bs, ReplicaSerializationMode mode, ReplicaView view) {
+        public override void Serialize(BitStream bs, ReplicaView view) {
             bs.Write(transform.position);
             bs.Write(transform.rotation);
         }
 #endif
 
 #if CLIENT
-        public override void Deserialize(BitStream bs, ReplicaSerializationMode mode) {
+        public override void Deserialize(BitStream bs) {
             var position = bs.ReadVector3();
             var rotation = bs.ReadQuaternion();
 

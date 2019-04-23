@@ -15,8 +15,7 @@ namespace Cube.Transport {
 
         LoadScene,
 
-        ReplicaFullUpdate,
-        ReplicaPartialUpdate,
+        ReplicaUpdate,
         ReplicaRpc,
         ReplicaDestroy,
 
