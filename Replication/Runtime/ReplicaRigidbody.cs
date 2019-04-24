@@ -32,16 +32,10 @@ namespace Cube.Replication {
         }
 
 #if CLIENT
-        float _lastTime;
         void Update() {
             if (model == null || !isClient)
                 return;
-
-            if (Time.time - _lastTime > 0.1f) {
-                _lastTime = Time.time;
-                _history.Write(Time.time + interpolateDelayMs * 0.001f, transform.position, _rigidbody.velocity, transform.rotation);
-            }
-
+            
             var position = transform.position;
             var rotation = transform.rotation;
 
@@ -49,6 +43,13 @@ namespace Cube.Replication {
 
             model.position = position + _modelOffset;
             model.rotation = rotation * _modelRotationOffset;
+        }
+
+        void FixedUpdate() {
+            if (model == null || !isClient)
+                return;
+
+            _history.Write(Time.time + interpolateDelayMs * 0.001f, transform.position, _rigidbody.velocity, transform.rotation);
         }
 #endif
 
@@ -60,9 +61,9 @@ namespace Cube.Replication {
             if (euler.x < 0) euler.x += 360;
             if (euler.y < 0) euler.y += 360;
             if (euler.z < 0) euler.z += 360;
-            bs.CompressFloat(euler.x, 0, 360);
-            bs.CompressFloat(euler.y, 0, 360);
-            bs.CompressFloat(euler.z, 0, 360);
+            bs.WriteLossyFloat(euler.x, 0, 360);
+            bs.WriteLossyFloat(euler.y, 0, 360);
+            bs.WriteLossyFloat(euler.z, 0, 360);
 
             var sleeping = _rigidbody.IsSleeping();
             bs.Write(sleeping);
@@ -72,18 +73,18 @@ namespace Cube.Replication {
                 velocity.y = Mathf.Clamp(velocity.y, -20, 20);
                 velocity.z = Mathf.Clamp(velocity.z, -20, 20);
 
-                bs.CompressFloat(velocity.x, -20, 20);
-                bs.CompressFloat(velocity.y, -20, 20);
-                bs.CompressFloat(velocity.z, -20, 20);
+                bs.WriteLossyFloat(velocity.x, -20, 20);
+                bs.WriteLossyFloat(velocity.y, -20, 20);
+                bs.WriteLossyFloat(velocity.z, -20, 20);
 
                 var angularVelocity = _rigidbody.velocity;
                 angularVelocity.x = Mathf.Clamp(angularVelocity.x, -20, 20);
                 angularVelocity.y = Mathf.Clamp(angularVelocity.y, -20, 20);
                 angularVelocity.z = Mathf.Clamp(angularVelocity.z, -20, 20);
 
-                bs.CompressFloat(angularVelocity.x, -20, 20);
-                bs.CompressFloat(angularVelocity.y, -20, 20);
-                bs.CompressFloat(angularVelocity.z, -20, 20);
+                bs.WriteLossyFloat(angularVelocity.x, -20, 20);
+                bs.WriteLossyFloat(angularVelocity.y, -20, 20);
+                bs.WriteLossyFloat(angularVelocity.z, -20, 20);
             }
         }
 #endif
@@ -93,25 +94,25 @@ namespace Cube.Replication {
             transform.position = bs.ReadVector3();
 
             var euler = new Vector3 {
-                x = bs.DecompressFloat(0, 360),
-                y = bs.DecompressFloat(0, 360),
-                z = bs.DecompressFloat(0, 360)
+                x = bs.ReadLossyFloat(0, 360),
+                y = bs.ReadLossyFloat(0, 360),
+                z = bs.ReadLossyFloat(0, 360)
             };
             transform.rotation = Quaternion.Euler(euler);
 
             var sleeping = bs.ReadBool();
             if (!sleeping) {
                 var velocity = new Vector3 {
-                    x = bs.DecompressFloat(-20, 20),
-                    y = bs.DecompressFloat(-20, 20),
-                    z = bs.DecompressFloat(-20, 20)
+                    x = bs.ReadLossyFloat(-20, 20),
+                    y = bs.ReadLossyFloat(-20, 20),
+                    z = bs.ReadLossyFloat(-20, 20)
                 };
                 _rigidbody.velocity = velocity;
 
                 var angularVelocity = new Vector3 {
-                    x = bs.DecompressFloat(-20, 20),
-                    y = bs.DecompressFloat(-20, 20),
-                    z = bs.DecompressFloat(-20, 20)
+                    x = bs.ReadLossyFloat(-20, 20),
+                    y = bs.ReadLossyFloat(-20, 20),
+                    z = bs.ReadLossyFloat(-20, 20)
                 };
                 _rigidbody.angularVelocity = angularVelocity;
             }

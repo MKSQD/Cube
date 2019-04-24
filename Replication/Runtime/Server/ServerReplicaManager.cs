@@ -283,6 +283,8 @@ namespace Cube.Replication {
             int numRpcsSent = 0;
             foreach (var idx in sortedIndices) {
                 var replica = view.relevantReplicas[idx];
+                if (replica == null)
+                    continue;
 
                 var updateBs = _server.reactor.networkInterface.bitStreamPool.Create();
                 updateBs.Write((byte)MessageId.ReplicaUpdate);

@@ -11,7 +11,7 @@ namespace Cube.Transport {
         }
 
         int _numberOfBitsUsed = 0;
-        int _readOffset = 0;
+        int _readBitOffset = 0;
 
         public int LengthInBits {
             get { return _numberOfBitsUsed; }
@@ -28,12 +28,12 @@ namespace Cube.Transport {
         /// Current read position in bits.
         /// </summary>
         public int Position {
-            get { return _readOffset; }
+            get { return _readBitOffset; }
             set {
                 if (value > _numberOfBitsUsed)
                     throw new IndexOutOfRangeException();
 
-                _readOffset = value;
+                _readBitOffset = value;
             }
         }
 
@@ -54,7 +54,7 @@ namespace Cube.Transport {
         
         public void Reset() {
             _numberOfBitsUsed = 0;
-            _readOffset = 0;
+            _readBitOffset = 0;
         }
         
         public void ResetWithBuffer(byte[] data, int lengthInBits) {
@@ -67,7 +67,7 @@ namespace Cube.Transport {
             _numberOfBitsUsed = lengthInBits;
         }
 
-        #region Read
+#region Read
         public void Read(ref bool val) {
             val = ReadBool();
         }
@@ -108,9 +108,9 @@ namespace Cube.Transport {
             return val;
         }
 
-        public unsafe float DecompressFloat(float min, float max, float precision = 0.1f) {
+        public unsafe float ReadLossyFloat(float min, float max, float precision = 0.1f) {
             var inv = 1 / precision;
-            var val = DecompressInt((int)(min * inv), (int)(max * inv));
+            var val = ReadIntInRange((int)(min * inv), (int)(max * inv));
             return val * precision;
         }
 
@@ -124,7 +124,7 @@ namespace Cube.Transport {
             return Endian.SwapInt32(val);
         }
 
-        public unsafe int DecompressInt(int min, int max) {
+        public unsafe int ReadIntInRange(int min, int max) {
             var bits = ComputeRequiredIntBits(min, max);
 
             var val = new uint();
@@ -271,16 +271,16 @@ namespace Cube.Transport {
             if (count <= 0)
                 return -1;
 
-            if (_readOffset + count > _numberOfBitsUsed)
-                throw new IndexOutOfRangeException("Read over end: " + (_readOffset + count) + " > " + _numberOfBitsUsed);
+            if (_readBitOffset + count > _numberOfBitsUsed)
+                throw new IndexOutOfRangeException("Read over end: " + (_readBitOffset + count) + " > " + _numberOfBitsUsed);
 
-            int readOffsetMod8 = (int)(_readOffset & 7);
+            int readOffsetMod8 = (int)(_readBitOffset & 7);
 
-            if ((_readOffset & 7) == 0 && (count & 7) == 0) {
+            if ((_readBitOffset & 7) == 0 && (count & 7) == 0) {
                 fixed (byte* data = &_data[0]) {
-                    memcpy(buffer, data + (_readOffset >> 3), count >> 3);
+                    memcpy(buffer, data + (_readBitOffset >> 3), count >> 3);
                 }
-                _readOffset += count;
+                _readBitOffset += count;
                 return count;
             }
 
@@ -288,22 +288,22 @@ namespace Cube.Transport {
 
             int read = 0;
             while (count > 0) {
-                buffer[read >> 3] |= (byte)(_data[_readOffset >> 3] << readOffsetMod8);
+                buffer[read >> 3] |= (byte)(_data[_readBitOffset >> 3] << readOffsetMod8);
 
                 if (readOffsetMod8 > 0 && count > (8 - readOffsetMod8))
-                    buffer[read >> 3] |= (byte)(_data[(_readOffset >> 3) + 1] >> (8 - readOffsetMod8));
+                    buffer[read >> 3] |= (byte)(_data[(_readBitOffset >> 3) + 1] >> (8 - readOffsetMod8));
 
                 if (count >= 8) {
                     count -= 8;
-                    _readOffset += 8;
+                    _readBitOffset += 8;
                     read += 8;
                 } else {
                     int neg = count - 8;
                     if (neg < 0) {
                         buffer[read >> 3] >>= -neg;
-                        _readOffset += 8 + neg;
+                        _readBitOffset += 8 + neg;
                     } else {
-                        _readOffset += 8;
+                        _readBitOffset += 8;
                     }
                     read += count;
                     count = 0;
@@ -311,9 +311,9 @@ namespace Cube.Transport {
             }
             return read;
         }
-        #endregion
+#endregion
 
-        #region Write
+#region Write
         public unsafe void WriteByte(byte val) {
             Write(&val, 8);
         }
@@ -332,7 +332,7 @@ namespace Cube.Transport {
             Write((byte*)&val, 32);
         }
 
-        public unsafe void CompressInt(int val, int min, int max) {
+        public unsafe void WriteIntInRange(int val, int min, int max) {
             if (val < min || val > max) {
 #if UNITY_EDITOR
                 Debug.LogWarning("Clamped value " + val + " to (" + min + "," + max + ")");
@@ -356,7 +356,7 @@ namespace Cube.Transport {
             Write((byte*)&val, 32);
         }
 
-        public unsafe void CompressFloat(float val, float min, float max, float precision = 0.1f) {
+        public unsafe void WriteLossyFloat(float val, float min, float max, float precision = 0.1f) {
             if (val < min || val > max) {
 #if UNITY_EDITOR
                 Debug.LogWarning("Clamped value " + val + " to (" + min + "," + max + ")");
@@ -365,7 +365,7 @@ namespace Cube.Transport {
             }
 
             var inv = 1 / precision;
-            CompressInt((int)(val * inv), (int)(min * inv), (int)(max * inv));
+            WriteIntInRange((int)(val * inv), (int)(min * inv), (int)(max * inv));
         }
 
         public unsafe void Write(long val) {

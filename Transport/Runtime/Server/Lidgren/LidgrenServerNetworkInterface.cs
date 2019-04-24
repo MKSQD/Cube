@@ -28,8 +28,10 @@ namespace Cube.Transport {
         public LidgrenServerNetworkInterface(ushort port) {
             bitStreamPool = new BitStreamPool();
 
-            var config = new NetPeerConfiguration("Cube.Networking");
-            config.Port = port; //#TODO move host and port to Interface (maybe as IServerNetworkInterfaceConfiguration)
+            var config = new NetPeerConfiguration("Cube") {
+                Port = port, //#TODO move host and port to Interface (maybe as IServerNetworkInterfaceConfiguration)
+                AutoFlushSendQueue = false
+            };
 
 #if !NETWORKING_LOG_INFO
             config.DisableMessageType(NetIncomingMessageType.VerboseDebugMessage);
@@ -45,6 +47,7 @@ namespace Cube.Transport {
         }
         
         public void Update() {
+            _server.FlushSendQueue();
             bitStreamPool.FrameReset();
         }
 
@@ -122,12 +125,10 @@ namespace Cube.Transport {
                         msg.ReadString();
 
                         if (status == NetConnectionStatus.Connected) {
-                            //#TODO ugly
                             result = bitStreamPool.Create();
                             result.Write((byte)MessageId.NewConnectionEstablished);
                         }
                         if (status == NetConnectionStatus.Disconnected) {
-                            //#TODO ugly
                             result = bitStreamPool.Create();
                             result.Write((byte)MessageId.DisconnectNotification);
                         }
@@ -143,7 +144,6 @@ namespace Cube.Transport {
             }
 
             _server.Recycle(msg);
-            msg = null;
 
             return result;
         }
@@ -155,8 +155,8 @@ namespace Cube.Transport {
                 case PacketReliability.Reliable: return NetDeliveryMethod.ReliableUnordered;
                 case PacketReliability.ReliableOrdered: return NetDeliveryMethod.ReliableOrdered;
                 case PacketReliability.ReliableSequenced: return NetDeliveryMethod.ReliableSequenced;
+                default: return NetDeliveryMethod.Unknown;
             }
-            return NetDeliveryMethod.Unknown;
         }
     }
 }

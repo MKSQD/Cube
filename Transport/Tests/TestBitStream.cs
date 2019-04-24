@@ -8,12 +8,12 @@ namespace Cube.Transport.Tests {
             var bs = new BitStream();
 
             for (int i = -32; i < 32; ++i) {
-                bs.CompressFloat(i, -32, 32, 1);
-                Assert.AreEqual(i, bs.DecompressFloat(-32, 32, 1));
+                bs.WriteLossyFloat(i, -32, 32, 1);
+                Assert.AreEqual(i, bs.ReadLossyFloat(-32, 32, 1));
             }
 
-            bs.CompressFloat(1.5f, 0, 3, 0.5f);
-            Assert.AreEqual(1.5f, bs.DecompressFloat(0, 3, 0.5f));
+            bs.WriteLossyFloat(1.5f, 0, 3, 0.5f);
+            Assert.AreEqual(1.5f, bs.ReadLossyFloat(0, 3, 0.5f));
         }
 
         [Test]
@@ -21,18 +21,18 @@ namespace Cube.Transport.Tests {
             var bs = new BitStream();
 
             for (int i = -32; i < 32; ++i) {
-                bs.CompressInt(i, -32, 32);
-                Assert.AreEqual(i, bs.DecompressInt(-32, 32));
+                bs.WriteIntInRange(i, -32, 32);
+                Assert.AreEqual(i, bs.ReadIntInRange(-32, 32));
             }
 
-            bs.CompressInt(-33, -32, 32);
-            Assert.AreEqual(-32, bs.DecompressInt(-32, 32));
+            bs.WriteIntInRange(-33, -32, 32);
+            Assert.AreEqual(-32, bs.ReadIntInRange(-32, 32));
 
-            bs.CompressInt(33, -32, 32);
-            Assert.AreEqual(32, bs.DecompressInt(-32, 32));
+            bs.WriteIntInRange(33, -32, 32);
+            Assert.AreEqual(32, bs.ReadIntInRange(-32, 32));
 
-            bs.CompressInt(15, 0, 32);
-            Assert.AreEqual(15, bs.DecompressInt(0, 32));
+            bs.WriteIntInRange(15, 0, 32);
+            Assert.AreEqual(15, bs.ReadIntInRange(0, 32));
         }
 
         [Test]

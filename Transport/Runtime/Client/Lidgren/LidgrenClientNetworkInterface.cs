@@ -18,7 +18,7 @@ namespace Cube.Transport {
         public LidgrenClientNetworkInterface(ClientSimulatedLagSettings lagSettings) {
             bitStreamPool = new BitStreamPool();
 
-            var config = new NetPeerConfiguration("Cube.Networking") {
+            var config = new NetPeerConfiguration("Cube") {
                 AutoFlushSendQueue = false
             };
             
@@ -50,6 +50,7 @@ namespace Cube.Transport {
         }
 
         public void Update() {
+            _client.FlushSendQueue();
             bitStreamPool.FrameReset();
         }
 
@@ -67,7 +68,6 @@ namespace Cube.Transport {
             msg.LengthBits = bs.LengthInBits;
 
             _client.SendMessage(msg, InternalReliabilityToLidgren(reliablity));
-            _client.FlushSendQueue();
         }
 
         public unsafe BitStream Receive() {
