@@ -51,7 +51,10 @@ namespace Cube.Replication {
             sceneReplicas.Sort((r1, r2) => r1.sceneIdx - r2.sceneIdx);
 
             foreach (var replica in sceneReplicas) {
-                Assert.IsTrue(replica.sceneIdx != 0);
+                if (replica.sceneIdx == 0) {
+                    Debug.LogWarning("[Client] scene Replica had no valid sceneIdx. Edit and save the scene to generate valid ones .");
+                    continue;
+                }
 
                 replica.client = _client;
                 replica.id = ReplicaId.CreateFromExisting(replica.sceneIdx);
@@ -146,7 +149,7 @@ namespace Cube.Replication {
             newReplica.id = replicaId;
             return newReplica;
         }
-        
+
         void OnReplicaRpc(BitStream bs) {
             var replicaId = bs.ReadReplicaId();
 
@@ -170,7 +173,7 @@ namespace Cube.Replication {
                 var replica = _networkScene.GetReplicaById(replicaId);
                 if (replica == null)
                     continue;
-                
+
                 Object.Destroy(replica.gameObject);
             }
         }
