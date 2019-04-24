@@ -67,24 +67,16 @@ namespace Cube.Replication {
 
             for (int i = _entries.Count - 1; i >= 0; --i) {
                 if (whenSec >= _entries[i].time) {
-                    var j = Math.Min(i + 1, _entries.Count - 1);
+                    var lastEntry2 = _entries[Math.Max(i - 1, 0)];
+                    var lastEntry = _entries[i];
+                    var nextEntry = _entries[Math.Min(i + 1, _entries.Count - 1)];
+                    var nextEntry2 = _entries[Math.Min(i + 2, _entries.Count - 1)];
 
-                    var oldEntry = _entries[i];
-                    var newEntry = _entries[j];
-
-                    var r = newEntry.time - oldEntry.time;
-                    if (r > 0.001f && snapDistance > (oldEntry.position - newEntry.position).sqrMagnitude) {
-                        var a = (whenSec - oldEntry.time) / r;
-                        a = Mathf.Min(a, 1);
-
-                        currentPosition = Hermite(oldEntry.position, newEntry.position, oldEntry.velocity * r, newEntry.velocity * r, a);
-                        currentRotation = Quaternion.SlerpUnclamped(oldEntry.rotation, newEntry.rotation, a);
-                    }
-                    else {
-                        currentPosition = newEntry.position;
-                        currentRotation = newEntry.rotation;
-                    }
-
+                    var r = nextEntry.time - lastEntry.time;
+                    var t = r > 0.001f ? (whenSec - lastEntry.time) / r : 1;
+                    currentPosition = CubicHermite(lastEntry2.position, lastEntry.position, nextEntry.position, nextEntry2.position, t);
+                    currentRotation = Quaternion.Slerp(lastEntry.rotation, nextEntry.rotation, t);
+                    
                     //Debug.Log("Read " + whenSec + " [" + i + ":" + oldEntry.time + "  " + j + ":" + newEntry.time + "] a=" + a);
                     return ReadResult.Interpolated;
                 }
@@ -103,6 +95,15 @@ namespace Cube.Replication {
             var d = t2 * (t - 1);
 
             return a * p1 + b * p2 + c * v1 + d * v2;
+        }
+
+        static Vector3 CubicHermite(Vector3 A, Vector3 B, Vector3 C, Vector3 D, float t) {
+            var a = -A / 2.0f + (3.0f * B) / 2.0f - (3.0f * C) / 2.0f + D / 2.0f;
+            var b = A - (5.0f * B) / 2.0f + 2.0f * C - D / 2.0f;
+            var c = -A / 2.0f + C / 2.0f;
+            var d = B;
+
+            return a * t * t * t + b * t * t + c * t + d;
         }
     }
 }
