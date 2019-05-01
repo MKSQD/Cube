@@ -11,16 +11,20 @@ namespace Cube.Replication.Editor {
         public override void OnInspectorGUI() {
             DrawDefaultInspector();
 
-            if (targets.Length == 1 && EditorApplication.isPlaying) {
-                var replica = target as Replica;
-                
-                EditorGUILayout.LabelField("Replica Id", replica.id.data.ToString());
-                EditorGUILayout.LabelField("Scene Idx", replica.sceneIdx.ToString());
+            if (targets.Length != 1)
+                return;
 
-                if (PrefabUtility.GetPrefabAssetType(replica) == PrefabAssetType.NotAPrefab) {
-                    EditorGUILayout.LabelField("Prefab Id", replica.prefabIdx.ToString());
-                }
-                
+            var replica = target as Replica;
+
+            EditorGUILayout.LabelField("Scene Idx", replica.sceneIdx.ToString());
+
+            if (PrefabUtility.GetPrefabAssetType(replica) == PrefabAssetType.NotAPrefab) {
+                EditorGUILayout.LabelField("Prefab Id", replica.prefabIdx.ToString());
+            }
+
+            if (EditorApplication.isPlaying) {
+                EditorGUILayout.LabelField("Replica Id", replica.id.data.ToString());
+               
                 if (GUILayout.Button("Find corresponding Replica")) {
                     PingCorrespondingReplica();
                 }
