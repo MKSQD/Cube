@@ -232,7 +232,7 @@ namespace Cube.Replication {
                     return;
                 }
 
-                Debug.LogWarning("Got Replica rpc from non-owning client replica=" + gameObject + " method=" + methodInfo.Name);
+                Debug.LogWarning("Got Replica rpc from non-owning client replica=" + gameObject + " method=" + methodInfo.Name + " client=" + connection + " owner=" + owner);
                 return;
             }
 
@@ -263,7 +263,8 @@ namespace Cube.Replication {
 
             for (int i = 0; i < args.Length; i++) {
                 var paramType = methodParameters[i].ParameterType;
-                ReadParameterFromBitStream(paramType, bs, replicaManager, out args[i]);
+                if (!TryReadParameterFromBitStream(paramType, bs, replicaManager, out args[i]))
+                    return;
             }
 
             methodInfo.Invoke(component, args);
@@ -350,23 +351,28 @@ namespace Cube.Replication {
             }
         }
 
-        static void ReadParameterFromBitStream(Type type, BitStream bs, IReplicaManager replicaManager, out object value) {
+        static bool TryReadParameterFromBitStream(Type type, BitStream bs, IReplicaManager replicaManager, out object value) {
             // #TODO double, param object[]
 
-            if (type.IsEnum)
+            if (type.IsEnum) {
                 type = Enum.GetUnderlyingType(type);
+            }
 
             if (type.IsArray) {
                 var length = bs.ReadByte();
 
                 var newArray = (Array)Activator.CreateInstance(type, new object[] { (int)length });
                 for (byte i = 0; i < length; ++i) {
-                    object elementValue;
-                    ReadParameterFromBitStream(type.GetElementType(), bs, replicaManager, out elementValue);
+                    if (!TryReadParameterFromBitStream(type.GetElementType(), bs, replicaManager, out object elementValue)) {
+                        value = null;
+                        return false;
+                    }
+
                     newArray.SetValue(elementValue, i);
                 }
+
                 value = newArray;
-                return;
+                return true;
             }
 
             if (type == typeof(bool)) {
@@ -412,6 +418,10 @@ namespace Cube.Replication {
                 var id = bs.ReadReplicaId();
 
                 value = replicaManager.GetReplicaById(id);
+                if (value == null) {
+                    Debug.LogWarning("RPC was dropped because Replica argument was not found: " + id);
+                    return false;
+                }
             }
             else if (type.IsSubclassOf(typeof(NetworkObject))) {
                 value = bs.ReadNetworkObject<NetworkObject>();
@@ -427,6 +437,7 @@ namespace Cube.Replication {
                     Debug.LogError("Cannot deserialize rpc argument of type " + type);
                 }
             }
+            return true;
         }
     }
 }
