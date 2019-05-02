@@ -102,6 +102,9 @@ namespace Cube.Replication {
             var sceneReplicas = new List<Replica>();
             foreach (var go in scene.GetRootGameObjects()) {
                 foreach (var replica in go.GetComponentsInChildren<Replica>()) {
+                    if (replica.sceneIdx == 0)
+                        continue;
+
                     sceneReplicas.Add(replica);
                 }
             }
@@ -283,7 +286,7 @@ namespace Cube.Replication {
             int numRpcsSent = 0;
             foreach (var idx in sortedIndices) {
                 var replica = view.relevantReplicas[idx];
-                if (replica == null)
+                if (replica == null || replica.id == ReplicaId.Invalid)
                     continue;
 
                 var updateBs = _server.reactor.networkInterface.bitStreamPool.Create();
@@ -465,6 +468,8 @@ namespace Cube.Replication {
         public void FreeLocalReplicaId(ushort localId) {
             if (localId >= _nextLocalReplicaId)
                 return; // Tried to free id after Reset() was called
+
+            Debug.Log("[Server] FreeLocalReplicaId " + localId);
 
             _replicaIdRecycleQueue.Enqueue(localId);
         }
