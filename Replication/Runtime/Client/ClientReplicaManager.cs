@@ -174,6 +174,7 @@ namespace Cube.Replication {
                 if (replica == null)
                     continue;
 
+                replica.onDestroy.Invoke();
                 Object.Destroy(replica.gameObject);
             }
         }

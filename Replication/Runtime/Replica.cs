@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using UnityEngine;
 using UnityEngine.Assertions;
+using UnityEngine.Events;
 using BitStream = Cube.Transport.BitStream;
 
 namespace Cube.Replication {
@@ -39,6 +40,8 @@ namespace Cube.Replication {
 #if CLIENT
         public IUnityClient client;
 #endif
+
+        public UnityEvent onDestroy;
 
         public bool isServer {
             get {
