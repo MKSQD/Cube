@@ -48,14 +48,15 @@ namespace Cube.Transport {
                 var messageId = bs.ReadByte();
 
                 List<ServerMessageHandler> handlers;
-                if (_handlers.TryGetValue(messageId, out handlers)) {
-                    foreach (var handler in handlers) {
-                        var pos = bs.Position;
-                        handler(connection, bs);
-                        bs.Position = pos;
-                    }
-                } else {
+                if (!_handlers.TryGetValue(messageId, out handlers) || handlers.Count == 0) {
                     Debug.Log("Received unknown packet: " + messageId);
+                    return;
+                }
+
+                foreach (var handler in handlers) {
+                    var pos = bs.Position;
+                    handler(connection, bs);
+                    bs.Position = pos;
                 }
             }
         }

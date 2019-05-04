@@ -42,6 +42,8 @@ namespace Cube.Transport {
         }
 
         public void Connect(string address, ushort port) {
+            Debug.Log("[Client] Connecting to '" + address + "'");
+
             _connection = _client.Connect(address, port);
         }
 

@@ -9,6 +9,7 @@
         }
 
         void AddHandler(byte id, ClientMessageHandler handler);
+        void RemoveHandler(byte id, ClientMessageHandler handler);
 
         void Update();
     }

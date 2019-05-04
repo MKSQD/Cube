@@ -1,4 +1,3 @@
-using Cube.Replication;
 using Cube.Transport;
 using UnityEngine;
 using UnityEngine.Events;
@@ -24,12 +23,11 @@ namespace Cube.Networking {
 
             client = new UnityClient(transform, lagSettings);
 
-//#if UNITY_EDITOR
+#if UNITY_EDITOR
             if (connectInEditor) {
-                client.networkInterface.Connect("127.0.0.1", portInEditor); /*127.0.0.1 91.10.118.236*/
-                Debug.Log("Connecting to server...");
+                client.networkInterface.Connect("127.0.0.1", portInEditor);
             }
-//#endif
+#endif
 
             client.reactor.AddHandler((byte)MessageId.ConnectionRequestAccepted, OnConnectionRequestAccepted);
             client.reactor.AddHandler((byte)MessageId.ConnectionRequestFailed, OnConnectionRequestFailed);

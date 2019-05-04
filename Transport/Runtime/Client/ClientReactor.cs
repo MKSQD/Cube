@@ -31,6 +31,14 @@ namespace Cube.Transport {
             existingHandlers.Add(handler);
         }
 
+        public void RemoveHandler(byte id, ClientMessageHandler handler) {
+            List<ClientMessageHandler> existingHandlers;
+            if (!_handlers.TryGetValue(id, out existingHandlers))
+                return;
+
+            existingHandlers.Remove(handler);
+        }
+
         public void Update() {
             while (true) {
                 var bs = _networkInterface.Receive();
@@ -40,7 +48,7 @@ namespace Cube.Transport {
                 var messageId = bs.ReadByte();
 
                 List<ClientMessageHandler> handlers;
-                if (!_handlers.TryGetValue(messageId, out handlers)) {
+                if (!_handlers.TryGetValue(messageId, out handlers) || handlers.Count == 0) {
                     Debug.LogWarning("Received unknown packet " + messageId);
                     continue;
                 }
