@@ -17,12 +17,12 @@ namespace Cube.Replication {
                 return;
             }
 
-            if (_replicasById.ContainsKey(replica.id)) {
-                Debug.LogError("ReplicaId " + replica.id + " (" + replica.gameObject.name + ") already known on " + (replica.isServer ? "server" : "client"));
-                return;
+            if (!_replicasById.ContainsKey(replica.id)) {
+                _replicasById.Add(replica.id, replica);
             }
-
-            _replicasById.Add(replica.id, replica);
+            else {
+                _replicasById[replica.id] = replica;
+            }
             _replicas.Add(replica);
         }
 

@@ -407,7 +407,8 @@ namespace Cube.Replication {
         }
 
         static List<int> GetSortedRelevantReplicaIndices(ReplicaView view) {
-            Assert.IsNotNull(view);
+            if (view.relevantReplicas == null)
+                return new List<int>();
 
             var sortedIndices = Enumerable.Range(0, view.relevantReplicas.Count).ToList();
             sortedIndices.Sort((i1, i2) => (int)((view.relevantReplicaPriorityAccumulator[i2] - view.relevantReplicaPriorityAccumulator[i1]) * 100));
