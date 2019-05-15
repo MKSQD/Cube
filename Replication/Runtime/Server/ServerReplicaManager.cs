@@ -470,8 +470,6 @@ namespace Cube.Replication {
             if (localId >= _nextLocalReplicaId)
                 return; // Tried to free id after Reset() was called
 
-            Debug.Log("[Server] FreeLocalReplicaId " + localId);
-
             _replicaIdRecycleQueue.Enqueue(localId);
         }
 
