@@ -72,12 +72,13 @@ and create a new prefab variant *Client_TestReplica* (The name prefixes **Server
 Now you can for instance set a blue transparent material color on the server prefab.
 
 #### ReplicaBehaviour instead of MonoBehaviour
-ReplicaBehaviour dervices from MonoBehaviour and provides additional functionality:
+ReplicaBehaviour dervices from MonoBehaviour and are used to implement multiplayer related functionaly on a Replica.
+It provides additional functionality:
 - isServer/isClient and server/client
 - Ownership and isOwner
 - Rpcs
 
-Only run behaviour on server/client.
+Only run behaviour on server/client:
 ```C#
 using Cube.Replication;
 using UnityEngine;
