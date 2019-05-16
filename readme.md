@@ -21,7 +21,7 @@ Note that the instant connection in ClientGame is just enabled in the Unity edit
 
 Now that we've got a connection we can start looking at ...
 
-### Replication
+## Replication
 The hearth of Cube is a powerful replication system.
 
 
@@ -98,7 +98,7 @@ public class Test : ReplicaBehaviour {
 
 Each Replica has an owning (Replica.owner) connection. Assign ownership with **Replica.AssignOwnership** and take it away with **Replica.TakeOwnership**. Only the server can set and remove ownership. Ownership information is sent to the owning client. 
 
-#### ReplicaRpc
+### ReplicaRpc
 ReplicaBehaviours can send **unreliable** rpcs. Rpcs are prioritized aggressively, so never rely on these to transmit actual gameplay state. Instead, these should be used for additional, optional effects and cues. 
 
 Rpcs can only be private functions with an \[ReplicaRpc(...)] attribute and its name starting with Rpc.
