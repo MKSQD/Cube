@@ -30,7 +30,8 @@ The hearth of Cube is a powerful replication system.
 
 Create a new *GameObject* in the scene. Add the *Cube/Replica* component to mark it as an Replica.
 Add the *Cube/ReplicaTransform* component to keep their transforms synchronized.
-Then create a prefab *TestReplica* from it.
+
+Then create a prefab *TestReplica* from it by dragging the GameObject into the project explorer. Delete the original instance.
 
 Create a new script TestServerGame:
 ```C#
@@ -60,10 +61,8 @@ public class TestServerGame : ServerGame {
 ```
 Replace the *ServerGame* component on the ServerGame scene GameObject. Assign TestReplica to it's prefab field.
 
-
 > A **ReplicaView** observes Replicas for a connection.
-> Its position is used to priorize which Replicas to send.
-
+> Its position is used to scope and priorize which Replicas to send.
 
 Start the game now and you should see the Replica prefab being replicated. Try to move around the server-side instance in the editor.
 
@@ -71,15 +70,20 @@ For the client to instantiate a different prefab, rename your prefab to *Server_
 and create a new prefab variant *Client_TestReplica* (The name prefixes **Server_** and **Client_** are important).
 Now you can for instance set a blue transparent material color on the server prefab.
 
-#### ReplicaBehaviour
-Create a new script TestReplica:
+#### ReplicaBehaviour instead of MonoBehaviour
+ReplicaBehaviour dervices from MonoBehaviour and provides additional functionality:
+- isServer/isClient and server/client
+- Ownership and isOwner
+- Rpcs
+
+Only run behaviour on server/client.
 ```C#
 using Cube.Replication;
 using UnityEngine;
 
-public class TestReplica : ReplicaBehaviour {
+public class Test : ReplicaBehaviour {
     void Update() {
-        if (!isServer)
+        if (!isServer) // or isClient
             return;
 
         var pos = transform.position;
@@ -91,8 +95,13 @@ public class TestReplica : ReplicaBehaviour {
 }
 ```
 
+Each Replica has an owning (Replica.owner) connection. Assign ownership with **Replica.AssignOwnership** and take it away with **Replica.TakeOwnership**. Only the server can set and remove ownership. Ownership information is sent to the owning client. 
 
 #### ReplicaRpc
+ReplicaBehaviours can send **unreliable** rpcs. Rpcs are prioritized aggressively, so never rely on these to transmit actual gameplay state. Instead, these should be used for additional, optional effects and cues. 
+
+Rpcs can only be private functions with an \[ReplicaRpc(...)] attribute and its name starting with Rpc.
+
 ```C#
 using Cube.Replication;
 using UnityEngine;
