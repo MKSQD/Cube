@@ -6,6 +6,7 @@
 - Object-based replication
 - Full support for ScriptableObjects (as rpc arguments)
 - Automation (client/server prefabs and assets are discovered automatically)
+- Transport current based on [Lidgren](https://github.com/lidgren/lidgren-network-gen3)
 
 ## Getting Started
 Clone the git repository into your **Assets** folder.
