@@ -1,8 +1,6 @@
 # Cube
 Minimal UDP replication and networking library for [Unity3d](https://unity.com/).
 
-[![Total alerts](https://img.shields.io/lgtm/alerts/g/NoDogsInc/Cube.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/NoDogsInc/Cube/alerts/)
-
 ## Features
 - Support for multiple clients/servers in one process (no singletons, switch between Server + Client/Server/Client in editor)
 - Eventual consistency based network model (loosely based on [GDC Vault: I Shot You First! Gameplay Networking in Halo: Reach](http://www.gdcvault.com/play/1014345/I-Shot-You-First-Networking))
