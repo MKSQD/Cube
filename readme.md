@@ -1,5 +1,5 @@
 # Cube
-Minimal UDP replication and networking library for [Unity3d](https://unity.com/).
+Network replication library for [Unity3d](https://unity.com/). In development for over 4+ years.
 
 ## Features
 - Support for multiple clients/servers in one process (no singletons, switch between Server + Client/Server/Client in editor)
