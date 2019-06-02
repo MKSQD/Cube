@@ -9,6 +9,11 @@ Network replication library for [Unity3d](https://unity.com/). In development fo
 - Automation (client/server prefabs and assets are discovered automatically)
 - Transport current based on [Lidgren](https://github.com/lidgren/lidgren-network-gen3)
 
+## Todo
+- Redo the scene Replica system
+- Add validation/changed callbacks to ReplicaVars
+- Improve documentation
+
 ## Getting Started
 Clone the git repository into your **Assets** folder.
 
