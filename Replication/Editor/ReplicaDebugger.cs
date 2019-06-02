@@ -5,7 +5,6 @@ using System.Collections.Generic;
 using System;
 
 namespace Cube.Replication {
-#if SERVER
     public class ReplicaDebugger : EditorWindow {
         [Serializable]
         internal class SimpleTreeViewItem : TreeViewItem {
@@ -148,5 +147,4 @@ namespace Cube.Replication {
             _simpleTreeView.OnGUI(new Rect(0, 0, position.width, position.height));
         }
     }
-#endif
 }

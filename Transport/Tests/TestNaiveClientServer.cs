@@ -3,7 +3,6 @@ using UnityEngine.TestTools;
 using NUnit.Framework;
 
 namespace Cube.Transport.Tests {
-#if CLIENT && SERVER
     public class TestNaiveClientServer {
         [Test]
         public void StartAndShutdownServer() {
@@ -33,5 +32,4 @@ namespace Cube.Transport.Tests {
             yield return null;
         }
     }
-#endif
 }

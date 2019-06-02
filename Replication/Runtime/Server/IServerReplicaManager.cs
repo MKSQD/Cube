@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using UnityEngine;
 
 namespace Cube.Replication {
-#if SERVER
     public interface IServerReplicaManager : IReplicaManager {
         List<ReplicaView> replicaViews {
             get;
@@ -36,6 +35,5 @@ namespace Cube.Replication {
         ushort AllocateLocalReplicaId();
         void FreeLocalReplicaId(ushort localId);
     }
-#endif
 }
 

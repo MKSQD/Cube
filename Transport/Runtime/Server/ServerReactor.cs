@@ -2,7 +2,6 @@
 using UnityEngine;
 
 namespace Cube.Transport {
-#if SERVER
     /// <summary>
     /// 
     /// </summary>
@@ -61,6 +60,5 @@ namespace Cube.Transport {
             }
         }
     }
-#endif
 }
 

@@ -1,5 +1,4 @@
 ﻿namespace Cube.Transport {
-#if CLIENT
     public interface IClientNetworkInterface {
         BitStreamPool bitStreamPool {
             get;
@@ -20,6 +19,5 @@
         unsafe void Send(BitStream bs, PacketPriority priority, PacketReliability reliablity);
         unsafe BitStream Receive();
     }
-#endif
 }
 

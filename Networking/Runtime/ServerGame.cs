@@ -3,7 +3,6 @@ using Cube.Transport;
 using System;
 using UnityEngine;
 using UnityEngine.Events;
-using UnityEngine.SceneManagement;
 using BitStream = Cube.Transport.BitStream;
 
 namespace Cube.Networking {
@@ -23,7 +22,6 @@ namespace Cube.Networking {
         public ConnectionEvent onDisconnectionNotification;
         public UnityEvent onAllClientsLoadedScene;
 
-#if SERVER
         string _loadSceneName;
         byte _loadSceneGeneration;
         byte _loadScenePlayerAcks;
@@ -41,7 +39,7 @@ namespace Cube.Networking {
             bs.Write((byte)MessageId.LoadScene);
             bs.Write(sceneName); // #todo send scene idx instead
             bs.Write(_loadSceneGeneration);
-            
+
             server.networkInterface.Broadcast(bs, PacketPriority.High, PacketReliability.ReliableSequenced);
 
             // Disable Replicas during level load
@@ -61,7 +59,7 @@ namespace Cube.Networking {
 
         void Awake() {
             DontDestroyOnLoad(gameObject);
-            
+
             server = new UnityServer(port, transform, replicaManagerSettings);
 
             server.reactor.AddHandler((byte)MessageId.NewConnectionEstablished, OnNewIncomingConnection);
@@ -78,7 +76,7 @@ namespace Cube.Networking {
                 bs2.Write((byte)MessageId.LoadScene);
                 bs2.Write(_loadSceneName);
                 bs2.Write(_loadSceneGeneration);
-                
+
                 server.networkInterface.Send(bs2, PacketPriority.High, PacketReliability.ReliableSequenced, connection);
             }
 
@@ -90,10 +88,7 @@ namespace Cube.Networking {
 
             onDisconnectionNotification.Invoke(connection);
 
-            if (!_onAllClientsLoadedSceneTriggeredThisGeneration && _loadScenePlayerAcks >= server.connections.Count) {
-                _onAllClientsLoadedSceneTriggeredThisGeneration = true;
-                onAllClientsLoadedScene.Invoke();
-            }
+            OnNumReadyClientsChanged();
         }
 
         void OnLoadSceneDone(Connection connection, BitStream bs) {
@@ -105,16 +100,20 @@ namespace Cube.Networking {
 
             ++_loadScenePlayerAcks;
 
-            if (!_onAllClientsLoadedSceneTriggeredThisGeneration && _loadScenePlayerAcks >= server.connections.Count) {
-                _onAllClientsLoadedSceneTriggeredThisGeneration = true;
-                onAllClientsLoadedScene.Invoke();
-            }
+            OnNumReadyClientsChanged();
 
             //
             var replicaView = server.replicaManager.GetReplicaView(connection);
             if (replicaView != null) {
                 replicaView.isLoadingLevel = false;
                 server.replicaManager.ForceReplicaViewRefresh(replicaView);
+            }
+        }
+
+        void OnNumReadyClientsChanged() {
+            if (!_onAllClientsLoadedSceneTriggeredThisGeneration && _loadScenePlayerAcks >= server.connections.Count) {
+                _onAllClientsLoadedSceneTriggeredThisGeneration = true;
+                onAllClientsLoadedScene.Invoke();
             }
         }
 
@@ -125,6 +124,5 @@ namespace Cube.Networking {
         void OnApplicationQuit() {
             server.Shutdown();
         }
-#endif
-        }
+    }
 }

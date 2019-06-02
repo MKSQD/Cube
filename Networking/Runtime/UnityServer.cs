@@ -7,7 +7,6 @@ using BitStream = Cube.Transport.BitStream;
 namespace Cube.Networking {
     [AddComponentMenu("Cube.Networking/UnityServer")]
     public class UnityServer : IUnityServer {
-#if SERVER
         public IServerNetworkInterface networkInterface {
             get;
             internal set;
@@ -55,6 +54,5 @@ namespace Cube.Networking {
         void OnDisconnectNotification(Connection connection, BitStream bs) {
             _connections.Remove(connection);
         }
-#endif
     }
 }

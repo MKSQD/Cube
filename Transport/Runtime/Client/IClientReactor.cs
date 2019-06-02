@@ -1,5 +1,4 @@
 ﻿namespace Cube.Transport {
-#if CLIENT
     public delegate void ClientMessageHandler(BitStream bs);
 
     public interface IClientReactor
@@ -13,6 +12,5 @@
 
         void Update();
     }
-#endif
 }
 

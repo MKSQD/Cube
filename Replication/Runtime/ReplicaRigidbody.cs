@@ -31,7 +31,6 @@ namespace Cube.Replication {
             _rigidbody = GetComponent<Rigidbody>();
         }
 
-#if CLIENT
         void Update() {
             if (model == null || !isClient)
                 return;
@@ -51,9 +50,7 @@ namespace Cube.Replication {
 
             _history.Write(Time.time + interpolateDelayMs * 0.001f, transform.position, _rigidbody.velocity, transform.rotation);
         }
-#endif
 
-#if SERVER
         public override void Serialize(BitStream bs, ReplicaView view) {
             bs.Write(enabled);
             if (!enabled)
@@ -91,9 +88,7 @@ namespace Cube.Replication {
                 bs.WriteLossyFloat(angularVelocity.z, -20, 20);
             }
         }
-#endif
 
-#if CLIENT
         public override void Deserialize(BitStream bs) {
             var isEnabled = bs.ReadBool();
             enabled = isEnabled;
@@ -129,6 +124,5 @@ namespace Cube.Replication {
                 _rigidbody.Sleep();
             }
         }
-#endif
     }
 }

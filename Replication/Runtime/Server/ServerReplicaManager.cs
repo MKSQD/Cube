@@ -17,7 +17,6 @@ namespace Cube.Replication {
         public float replicaUpdateRateMS = 33; // 30 times per second
     }
 
-#if SERVER
     public sealed class ServerReplicaManager : IServerReplicaManager {
 #if UNITY_EDITOR
         public static List<ServerReplicaManager> all = new List<ServerReplicaManager>();
@@ -487,5 +486,4 @@ namespace Cube.Replication {
             replica.CallRpcServer(connection, bs, this);
         }
     }
-#endif
 }

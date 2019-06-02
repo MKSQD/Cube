@@ -16,11 +16,9 @@ namespace Cube.Replication {
             _data = id;
         }
 
-#if SERVER
         internal static ReplicaId Create(ServerReplicaManager replicaManager) {
             return new ReplicaId(replicaManager.AllocateLocalReplicaId());
         }
-#endif
 
         public static ReplicaId CreateFromExisting(ushort id) {
             return new ReplicaId(id);

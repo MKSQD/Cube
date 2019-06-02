@@ -6,7 +6,6 @@ using NUnit.Framework;
 using Cube.Replication;
 
 namespace Cube.Networking.Tests {
-#if CLIENT && SERVER
     public class TestReplicaManager {
 
         [UnityTest]
@@ -58,5 +57,4 @@ namespace Cube.Networking.Tests {
         }
 
     }
-#endif
 }

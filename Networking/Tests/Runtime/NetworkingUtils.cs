@@ -7,7 +7,6 @@ using Cube.Transport.Tests;
 using Cube.Replication;
 
 namespace Cube.Networking.Tests {
-#if SERVER && CLIENT
     public struct ServerObjects {
         public LocalServerInterface server;
         public ServerReactor reactor;
@@ -92,5 +91,4 @@ namespace Cube.Networking.Tests {
             }
         }
     }
-#endif
 }

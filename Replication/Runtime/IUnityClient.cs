@@ -2,7 +2,6 @@
 
 namespace Cube.Replication {
     public interface IUnityClient {
-#if CLIENT
         IClientReplicaManager replicaManager {
             get;
         }
@@ -14,6 +13,5 @@ namespace Cube.Replication {
         IClientNetworkInterface networkInterface {
             get;
         }
-#endif
     }
 }

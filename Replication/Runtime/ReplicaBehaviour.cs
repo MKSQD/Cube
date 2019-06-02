@@ -22,16 +22,13 @@ namespace Cube.Replication {
         [HideInInspector]
         public Replica replica;
 
-#if SERVER
         public IUnityServer server {
             get { return replica.server; }
         }
-#endif
-#if CLIENT
+
         public IUnityClient client {
             get { return replica.client; }
         }
-#endif
 
         public bool isServer {
             get { return replica.isServer; }
@@ -45,10 +42,7 @@ namespace Cube.Replication {
             get { return replica.isOwner; }
         }
 
-#if SERVER
         public virtual void Serialize(BitStream bs, ReplicaView view) { }
-#endif
-
         public virtual void Deserialize(BitStream bs) { }
         
         // Do not remove, the call sites will automatically be patched by the AssemblyPatcher

@@ -13,7 +13,7 @@ namespace Cube.Replication {
             Interpolate
         }
         
-#if CLIENT || UNITY_EDITOR
+#if UNITY_EDITOR
         public Interpolation interpolation = Interpolation.Interpolate;
 
 
@@ -21,7 +21,6 @@ namespace Cube.Replication {
         public int interpolateDelayMs;
 #endif
 
-#if CLIENT
         TransformHistory _history;
 
         void Awake() {
@@ -39,16 +38,12 @@ namespace Cube.Replication {
                 transform.rotation = rotation;
             }
         }
-#endif
 
-#if SERVER
         public override void Serialize(BitStream bs, ReplicaView view) {
             bs.Write(transform.position);
             bs.Write(transform.rotation);
         }
-#endif
 
-#if CLIENT
         public override void Deserialize(BitStream bs) {
             var position = bs.ReadVector3();
             var rotation = bs.ReadQuaternion();
@@ -61,6 +56,5 @@ namespace Cube.Replication {
                 _history.Write(Time.time + interpolateDelayMs * 0.001f, position, Vector3.zero, rotation);
             }
         }
-#endif
     }
 }

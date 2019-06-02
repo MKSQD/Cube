@@ -4,7 +4,6 @@ using UnityEngine;
 
 namespace Cube.Networking {
     public class UnityClient : IUnityClient {
-#if CLIENT
         public bool interpolate = true;
 
         public IClientNetworkInterface networkInterface {
@@ -37,6 +36,5 @@ namespace Cube.Networking {
         public void Shutdown() {
             networkInterface.Shutdown(0);
         }
-#endif
     }
 }

@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using UnityEngine;
 
 namespace Cube.Transport {
-#if CLIENT
     /// <summary>
     /// 
     /// </summary>
@@ -68,5 +67,4 @@ namespace Cube.Transport {
             }
         }
     }
-#endif
 }

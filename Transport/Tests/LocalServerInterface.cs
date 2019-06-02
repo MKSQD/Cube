@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 
 namespace Cube.Transport.Tests {
-#if CLIENT && SERVER
     public class LocalServerInterface : IServerNetworkInterface {
         class Message {
             public Connection connection;
@@ -96,5 +95,4 @@ namespace Cube.Transport.Tests {
 #endregion
 
     }
-#endif
 }

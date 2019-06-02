@@ -17,7 +17,6 @@ namespace Cube.Networking {
         public UnityEvent onConnectionRequestAccepted;
         public UnityEvent onConnectionRequestFailed;
 
-#if CLIENT
         void Awake() {
             DontDestroyOnLoad(gameObject);
 
@@ -74,6 +73,5 @@ namespace Cube.Networking {
                 client.networkInterface.Send(bs2, PacketPriority.High, PacketReliability.Reliable);
             };
         }
-#endif
     }
 }

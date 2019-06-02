@@ -6,7 +6,6 @@ using UnityEngine.SceneManagement;
 using BitStream = Cube.Transport.BitStream;
 
 namespace Cube.Replication {
-#if CLIENT
     public sealed class ClientReplicaManager : IClientReplicaManager {
         IUnityClient _client;
 
@@ -52,7 +51,7 @@ namespace Cube.Replication {
 
             foreach (var replica in sceneReplicas) {
                 if (replica.sceneIdx == 0) {
-                    Debug.LogWarning("[Client] scene Replica had no valid sceneIdx. Edit and save the scene to generate valid ones .");
+                    Debug.LogWarning("[Client] scene Replica had no valid sceneIdx; edit and save the scene to generate valid ones", replica.gameObject);
                     continue;
                 }
 
@@ -179,5 +178,4 @@ namespace Cube.Replication {
             }
         }
     }
-#endif
 }

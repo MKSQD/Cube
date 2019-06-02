@@ -7,7 +7,6 @@ namespace Cube.Replication {
     [Serializable]
     [AddComponentMenu("Cube/ReplicaView")]
     public class ReplicaView : MonoBehaviour {
-#if SERVER
         [HideInInspector]
         public Connection connection;
         public bool ignoreReplicaPositionsForPriority = false;
@@ -30,6 +29,5 @@ namespace Cube.Replication {
         void OnDrawGizmosSelected() {
             debug = this;
         }
-#endif
     }
 }

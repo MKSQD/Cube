@@ -1,5 +1,3 @@
-#if SERVER
-
 using UnityEngine;
 using Lidgren.Network;
 using UnityEngine.Assertions;
@@ -160,5 +158,3 @@ namespace Cube.Transport {
         }
     }
 }
-
-#endif

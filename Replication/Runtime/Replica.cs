@@ -11,12 +11,10 @@ namespace Cube.Replication {
     [AddComponentMenu("Cube/Replica")]
     [DisallowMultipleComponent]
     public class Replica : MonoBehaviour {
-#if SERVER
         public struct QueuedRpc {
             public RpcTarget target;
             public BitStream bs;
         }
-#endif
 
         public static ReplicaSettings defaultReplicaSettings;
         public ReplicaSettings settings;
@@ -34,41 +32,27 @@ namespace Cube.Replication {
             get { return sceneIdx != 0; }
         }
         
-#if SERVER
         public IUnityServer server;
-#endif
-#if CLIENT
         public IUnityClient client;
-#endif
 
         public UnityEvent onDestroy;
 
         public bool isServer {
             get {
-#if SERVER
                 return server != null;
-#else
-                return false;
-#endif
             }
         }
 
         public bool isClient {
             get {
-#if CLIENT
                 return client != null;
-#else
-                return false;
-#endif
             }
         }
-
-#if SERVER
+        
         public Connection owner {
             get;
             internal set;
         }
-#endif
 
         public bool isOwner = false;
 
@@ -77,19 +61,15 @@ namespace Cube.Replication {
             internal set;
         }
 
-#if CLIENT
         [HideInInspector]
         public float lastUpdateTime;
-#endif
 
-#if SERVER
         public List<QueuedRpc> queuedRpcs = new List<QueuedRpc>();
-#endif
 
         static bool _applicationQuitting;
 
-#if SERVER
         public void AssignOwnership(Connection owner) {
+            Assert.IsTrue(isServer);
             Assert.IsTrue(owner != Connection.Invalid);
 
             this.owner = owner;
@@ -97,11 +77,15 @@ namespace Cube.Replication {
         }
 
         public void TakeOwnership() {
+            Assert.IsTrue(isServer);
+
             owner = Connection.Invalid;
             isOwner = true;
         }
 
         public bool IsRelevantFor(ReplicaView view) {
+            Assert.IsTrue(isServer);
+
             if (!gameObject.activeInHierarchy)
                 return false;
 
@@ -112,6 +96,8 @@ namespace Cube.Replication {
         }
 
         public virtual float GetPriorityFor(ReplicaView view) {
+            Assert.IsTrue(isServer);
+
             var distanceRelevance = 1f;
             if ((settings.priorityFlags & ReplicaPriorityFlag.IgnorePosition) == 0 && !view.ignoreReplicaPositionsForPriority) {
                 var sqrMaxDist = Mathf.Pow(settings.maxViewDistance, 2);
@@ -125,7 +111,6 @@ namespace Cube.Replication {
             }
             return distanceRelevance;
         }
-#endif
 
         /// <summary>
         /// Removes the Replica instantly from the ReplicaManager, destroys the GameObject and sends a destroy message to the clients on the next update.
@@ -134,9 +119,8 @@ namespace Cube.Replication {
         /// <param name="replica">The Replica to remove</param>
         public void Destroy() {
             Assert.IsTrue(isServer);
-#if SERVER
+
             server.replicaManager.DestroyReplica(this);
-#endif
         }
 
         public void RebuildReplicaBehaviourCache() {
@@ -170,14 +154,12 @@ namespace Cube.Replication {
 #endif
             if (_applicationQuitting)
                 return;
-#if SERVER
+
             if (isServer)
                 server.replicaManager.RemoveReplica(this);
-#endif
-#if CLIENT
+
             if (isClient)
                 client.replicaManager.RemoveReplica(this);
-#endif
         }
 
         void OnApplicationQuit() {
@@ -185,7 +167,7 @@ namespace Cube.Replication {
         }
 
         public void SendRpc(byte methodId, byte replicaComponentIdx, RpcTarget target, params object[] args) {
-#if CLIENT
+
             if (isClient) {
                 var bs = client.networkInterface.bitStreamPool.Create();
                 bs.Write((byte)MessageId.ReplicaRpc);
@@ -199,8 +181,7 @@ namespace Cube.Replication {
 
                 client.networkInterface.Send(bs, PacketPriority.Immediate, PacketReliability.Unreliable);
             }
-#endif
-#if SERVER
+
             if (isServer) {
                 var bs = new BitStream(); // #todo need to pool these instances, but lifetime could be over one frame
                 bs.Write((byte)MessageId.ReplicaRpc);
@@ -218,10 +199,8 @@ namespace Cube.Replication {
                 };
                 queuedRpcs.Add(qrpc);
             }
-#endif
         }
 
-#if SERVER
         public void CallRpcServer(Connection connection, BitStream bs, IReplicaManager replicaManager) {
             if (owner != connection) {
                 var componentIdx = bs.ReadByte();
@@ -241,7 +220,6 @@ namespace Cube.Replication {
 
             CallRpc(connection, bs, replicaManager);
         }
-#endif
 
         public void CallRpcClient(BitStream bs, IReplicaManager replicaManager) {
             CallRpc(Connection.Invalid, bs, replicaManager);

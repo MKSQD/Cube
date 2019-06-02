@@ -1,12 +1,7 @@
-﻿using System;
-using System.Collections;
-using UnityEngine;
-using UnityEngine.TestTools;
-using NUnit.Framework;
+﻿using NUnit.Framework;
 
 namespace Cube.Transport.Tests {
     public class TestReactor {
-#if CLIENT && SERVER
         [Test]
         public void TestClientReactor() {
             var client = new LocalClientInterface();
@@ -44,6 +39,5 @@ namespace Cube.Transport.Tests {
 
             Assert.IsTrue(messageHandlerCalled);
         }
-#endif
     }
 }

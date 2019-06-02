@@ -2,7 +2,6 @@
 using UnityEngine;
 
 namespace Cube.Transport {
-#if CLIENT
     /// <summary>
     /// Client implementation with Lidgren.
     /// </summary>
@@ -14,18 +13,18 @@ namespace Cube.Transport {
 
         NetClient _client;
         NetConnection _connection;
-        
+
         public LidgrenClientNetworkInterface(ClientSimulatedLagSettings lagSettings) {
             bitStreamPool = new BitStreamPool();
 
             var config = new NetPeerConfiguration("Cube") {
                 AutoFlushSendQueue = false
             };
-            
+
 #if UNITY_EDITOR
             if (lagSettings.enabled) {
                 Debug.Log("Lag simulation enabled");
-                
+
                 config.SimulatedLoss = lagSettings.simulatedLoss;
                 config.SimulatedDuplicatesChance = lagSettings.duplicatesChance;
                 config.SimulatedMinimumLatency = lagSettings.minimumLatencySec;
@@ -36,7 +35,7 @@ namespace Cube.Transport {
             _client = new NetClient(config);
             _client.Start();
         }
-        
+
         public float GetRemoteTime(float time) {
             return (float)_connection.GetRemoteTime(time);
         }
@@ -125,11 +124,10 @@ namespace Cube.Transport {
                 case PacketReliability.Unreliable: return NetDeliveryMethod.Unreliable;
                 case PacketReliability.UnreliableSequenced: return NetDeliveryMethod.UnreliableSequenced;
                 case PacketReliability.Reliable: return NetDeliveryMethod.ReliableUnordered;
-                case PacketReliability.ReliableOrdered:  return NetDeliveryMethod.ReliableOrdered;
+                case PacketReliability.ReliableOrdered: return NetDeliveryMethod.ReliableOrdered;
                 case PacketReliability.ReliableSequenced: return NetDeliveryMethod.ReliableSequenced;
             }
             return NetDeliveryMethod.Unknown;
         }
     }
-#endif
-            }
+}

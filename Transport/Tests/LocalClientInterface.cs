@@ -5,7 +5,6 @@ using UnityEngine.TestTools;
 using NUnit.Framework;
 
 namespace Cube.Transport.Tests {
-#if CLIENT && SERVER
     public class LocalClientInterface : IClientNetworkInterface {
         BitStreamPool _bitStreamPool = new BitStreamPool();
         public BitStreamPool bitStreamPool {
@@ -76,5 +75,4 @@ namespace Cube.Transport.Tests {
 #endregion
 
     }
-#endif
 }
