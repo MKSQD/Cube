@@ -3,6 +3,7 @@ using Cube.Transport;
 using System;
 using UnityEngine;
 using UnityEngine.Events;
+using UnityEngine.SceneManagement;
 using BitStream = Cube.Transport.BitStream;
 
 namespace Cube.Networking {

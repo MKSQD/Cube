@@ -15,19 +15,19 @@ namespace Cube.Replication {
         /// If true this ReplicaView is ignored. Will be set automatically.
         /// </summary>
         public bool isLoadingLevel;
+        
+        public List<Replica> relevantReplicas;
+        public List<float> relevantReplicaPriorityAccumulator;
 
 #if UNITY_EDITOR
         /// <summary>
         /// The view currently being debugged.
         /// </summary>
         public static ReplicaView debug;
-#endif
-
-        public List<Replica> relevantReplicas;
-        public List<float> relevantReplicaPriorityAccumulator;
 
         void OnDrawGizmosSelected() {
             debug = this;
         }
+#endif
     }
 }

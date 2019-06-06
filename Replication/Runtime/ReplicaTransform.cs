@@ -13,13 +13,10 @@ namespace Cube.Replication {
             Interpolate
         }
         
-#if UNITY_EDITOR
         public Interpolation interpolation = Interpolation.Interpolate;
-
-
+        
         [Range(0, 800)]
         public int interpolateDelayMs;
-#endif
 
         TransformHistory _history;
 
