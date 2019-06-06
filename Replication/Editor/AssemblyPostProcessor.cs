@@ -26,7 +26,9 @@ namespace Cube.Replication.Editor {
         /// <param name="assemblyPath"></param>
         /// <param name="assemblySearchPaths"></param>
         /// <param name="withSymbols"></param>
-        public static void Start(ApplicationType appType, string assemblyPath, string[] assemblySearchPaths, bool withSymbols) {
+        public static void Start(string assemblyPath, string[] assemblySearchPaths, bool withSymbols) {
+            var appType = ApplicationType.Client | ApplicationType.Server;
+
             using (var locker = new ReloadAssembiesLocker()) {
                 var watch = new System.Diagnostics.Stopwatch();
                 watch.Start();

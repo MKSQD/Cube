@@ -12,27 +12,10 @@ namespace Cube.Networking.Editor {
     /// </summary>
     [CreateAssetMenu(menuName = "Cube/BuildSystem/NetworkingBuildConfiguration")]
     public class NetworkingBuildConfiguration : BuildConfiguration {
-        public ApplicationType applicationType;
 
-#region temp vars
-        ScriptDefinitions.Snapshot _snapshot;
-#endregion
-
-        override public void OnPreProcessBuild() {
-            var definitions = new ScriptDefinitions(targetGroup);
-            _snapshot = definitions.TakeSnapshot();
-
-            definitions.Set("CLIENT", (applicationType & ApplicationType.Client) != 0);
-            definitions.Set("SERVER", (applicationType & ApplicationType.Server) != 0);
-
-            definitions.Write();
-        }
+        override public void OnPreProcessBuild() {}
 
         override public void OnPostProcessBuild(BuildReport report) {
-            var definitions = new ScriptDefinitions(targetGroup);
-            definitions.SetSnapshot(_snapshot);
-            definitions.Write();
-            
             if (report.summary.result != BuildResult.Succeeded)
                 return;
 
@@ -50,7 +33,7 @@ namespace Cube.Networking.Editor {
                 var assemblyPath = GetAssembliesDirectory() + "/" + assembly.name + ".dll";  //#TODO check targetLocation path
                 var withSymbols = (report.summary.options & BuildOptions.Development) != 0;
 
-                AssemblyPostProcessor.Start(applicationType, assemblyPath, searchPathList.ToArray(), withSymbols);
+                AssemblyPostProcessor.Start(assemblyPath, searchPathList.ToArray(), withSymbols);
             }
         }        
     }
