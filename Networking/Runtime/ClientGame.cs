@@ -16,6 +16,7 @@ namespace Cube.Networking {
 
         public UnityEvent onConnectionRequestAccepted;
         public UnityEvent onConnectionRequestFailed;
+        public UnityEvent onSceneLoadStart;
 
         void Awake() {
             DontDestroyOnLoad(gameObject);
@@ -61,12 +62,14 @@ namespace Cube.Networking {
 
             client.replicaManager.Reset();
 
+            onSceneLoadStart.Invoke();
+
             var op = SceneManager.LoadSceneAsync(sceneName);
             if (op == null)
                 return; // See log for errors
 
             op.completed += _ => {
-            var bs2 = new BitStream();
+                var bs2 = new BitStream();
                 bs2.Write((byte)MessageId.LoadSceneDone);
                 bs2.Write(generation);
 
