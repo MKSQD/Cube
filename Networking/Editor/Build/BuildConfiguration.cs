@@ -26,6 +26,9 @@ namespace Cube.Networking {
         /// <see cref="UnityEditor.BuildOptions.Development"/>
         public bool development;
 
+        /// <see cref="UnityEditor.BuildOptions.AutoRunPlayer"/>
+        public bool autoRunPlayer;
+
         /// <summary>
         /// The scenes to be included in the build. If empty, the currently open scene will
         //  be built. Paths are relative to the project folder (Assets/MyLevels/MyScene.unity).
@@ -63,6 +66,7 @@ namespace Cube.Networking {
 
             if (acceptExternalModificationsToPlayer) options |= BuildOptions.AcceptExternalModificationsToPlayer;
             if (development) options |= BuildOptions.Development;
+            if (autoRunPlayer) options |= BuildOptions.AutoRunPlayer;
 
             return options;
         }
