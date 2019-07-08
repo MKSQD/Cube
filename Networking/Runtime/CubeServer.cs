@@ -5,39 +5,40 @@ using UnityEngine;
 using BitStream = Cube.Transport.BitStream;
 
 namespace Cube.Networking {
-    [AddComponentMenu("Cube.Networking/UnityServer")]
-    public class UnityServer : IUnityServer {
+    public class CubeServer : ICubeServer {
         public IServerNetworkInterface networkInterface {
             get;
             internal set;
         }
-        
+
         public IServerReactor reactor {
             get;
             internal set;
         }
-        
+
         public IServerReplicaManager replicaManager {
             get;
             internal set;
         }
 
-        List<Connection> _connections = new List<Connection>();
         public List<Connection> connections {
-            get { return _connections; }
+            get;
+            internal set;
         }
 
-        public UnityServer(ushort port, Transform serverTransform, ServerReplicaManagerSettings replicaManagerSettings) {
+        public CubeServer(ushort port, Transform serverTransform, ServerReplicaManagerSettings replicaManagerSettings) {
+            connections = new List<Connection>();
+
             networkInterface = new LidgrenServerNetworkInterface(port);
 
             reactor = new ServerReactor(networkInterface);
-            reactor.AddHandler((byte)MessageId.NewConnectionEstablished, OnNewConnectionEstablished);
-            reactor.AddHandler((byte)MessageId.DisconnectNotification, OnDisconnectNotification);
-            
-            replicaManager = new ServerReplicaManager(this, serverTransform, replicaManagerSettings);
-    }
+            reactor.AddMessageHandler((byte)MessageId.NewConnectionEstablished, OnNewConnectionEstablished);
+            reactor.AddMessageHandler((byte)MessageId.DisconnectNotification, OnDisconnectNotification);
 
-    public void Update() {
+            replicaManager = new ServerReplicaManager(this, serverTransform, replicaManagerSettings);
+        }
+
+        public void Update() {
             reactor.Update();
             replicaManager.Update();
             networkInterface.Update();
@@ -48,11 +49,11 @@ namespace Cube.Networking {
         }
 
         void OnNewConnectionEstablished(Connection connection, BitStream bs) {
-            _connections.Add(connection);
+            connections.Add(connection);
         }
 
         void OnDisconnectNotification(Connection connection, BitStream bs) {
-            _connections.Remove(connection);
+            connections.Remove(connection);
         }
     }
 }

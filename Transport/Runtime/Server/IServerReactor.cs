@@ -2,12 +2,8 @@
     public delegate void ServerMessageHandler(Connection connection, BitStream bs);
 
     public interface IServerReactor {
-        IServerNetworkInterface networkInterface {
-            get;
-        }
-
-        void AddHandler(byte id, ServerMessageHandler handler);
-        void RemoveHandler(byte id, ServerMessageHandler handler);
+        void AddMessageHandler(byte id, ServerMessageHandler handler);
+        void RemoveMessageHandler(byte id, ServerMessageHandler handler);
 
         void Update();
     }

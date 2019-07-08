@@ -40,7 +40,7 @@ namespace Cube.Replication {
             public List<ReplicaViewInfoPair> viewInfos = new List<ReplicaViewInfoPair>();
         }
 
-        IUnityServer _server;
+        ICubeServer _server;
 
         NetworkScene _networkScene;
 
@@ -76,7 +76,7 @@ namespace Cube.Replication {
         }
 #endif
 
-        public ServerReplicaManager(IUnityServer server, Transform serverTransform, ServerReplicaManagerSettings settings) {
+        public ServerReplicaManager(ICubeServer server, Transform serverTransform, ServerReplicaManagerSettings settings) {
             Assert.IsNotNull(server);
             Assert.IsNotNull(serverTransform);
             Assert.IsNotNull(settings);
@@ -86,7 +86,7 @@ namespace Cube.Replication {
             _networkScene = new NetworkScene();
 
             _server = server;
-            server.reactor.AddHandler((byte)MessageId.ReplicaRpc, OnReplicaRpc);
+            server.reactor.AddMessageHandler((byte)MessageId.ReplicaRpc, OnReplicaRpc);
 
             _settings = settings;
 
@@ -288,7 +288,7 @@ namespace Cube.Replication {
                 if (replica == null || replica.id == ReplicaId.Invalid)
                     continue;
 
-                var updateBs = _server.reactor.networkInterface.bitStreamPool.Create();
+                var updateBs = _server.networkInterface.bitStreamPool.Create();
                 updateBs.Write((byte)MessageId.ReplicaUpdate);
 
                 bool isOwner = view.connection == replica.owner;
@@ -305,7 +305,7 @@ namespace Cube.Replication {
                     component.Serialize(updateBs, view);
                 }
 
-                _server.reactor.networkInterface.Send(updateBs, PacketPriority.Medium, PacketReliability.Unreliable, view.connection);
+                _server.networkInterface.SendBitStream(updateBs, PacketPriority.Medium, PacketReliability.Unreliable, view.connection);
 
 
                 ++numUpdatesSent;
@@ -329,10 +329,10 @@ namespace Cube.Replication {
                 // rpcs
                 foreach (var queuedRpc in replica.queuedRpcs) {
                     if (queuedRpc.target == RpcTarget.Owner && replica.owner == view.connection) {
-                        _server.reactor.networkInterface.Send(queuedRpc.bs, PacketPriority.Low, PacketReliability.Unreliable, replica.owner);
+                        _server.networkInterface.SendBitStream(queuedRpc.bs, PacketPriority.Low, PacketReliability.Unreliable, replica.owner);
                     }
                     else if (queuedRpc.target == RpcTarget.All) {
-                        _server.reactor.networkInterface.Broadcast(queuedRpc.bs, PacketPriority.Low, PacketReliability.Unreliable);
+                        _server.networkInterface.BroadcastBitStream(queuedRpc.bs, PacketPriority.Low, PacketReliability.Unreliable);
                     }
 
                     ++numRpcsSent;
@@ -419,7 +419,7 @@ namespace Cube.Replication {
             if (_destroyedReplicas.Count == 0)
                 return;
 
-            var destroyBs = _server.reactor.networkInterface.bitStreamPool.Create();
+            var destroyBs = _server.networkInterface.bitStreamPool.Create();
             destroyBs.Write((byte)MessageId.ReplicaDestroy);
             destroyBs.Write((byte)_destroyedReplicas.Count);
 
@@ -427,7 +427,7 @@ namespace Cube.Replication {
                 destroyBs.Write(id);
             }
 
-            _server.reactor.networkInterface.Send(destroyBs, PacketPriority.Medium, PacketReliability.Unreliable, view.connection);
+            _server.networkInterface.SendBitStream(destroyBs, PacketPriority.Medium, PacketReliability.Unreliable, view.connection);
         }
 
         public ReplicaView GetReplicaView(Connection connection) {

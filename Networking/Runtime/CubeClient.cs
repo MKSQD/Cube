@@ -3,7 +3,7 @@ using Cube.Transport;
 using UnityEngine;
 
 namespace Cube.Networking {
-    public class UnityClient : IUnityClient {
+    public class CubeClient : ICubeClient {
         public bool interpolate = true;
 
         public IClientNetworkInterface networkInterface {
@@ -21,7 +21,7 @@ namespace Cube.Networking {
             internal set;
         }
 
-        public UnityClient(Transform clientTransform, ClientSimulatedLagSettings lagSettings) {
+        public CubeClient(Transform clientTransform, ClientSimulatedLagSettings lagSettings) {
             networkInterface = new LidgrenClientNetworkInterface(lagSettings);
             reactor = new ClientReactor(networkInterface);
             replicaManager = new ClientReplicaManager(this, NetworkPrefabLookup.instance, clientTransform);

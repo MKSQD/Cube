@@ -1,7 +1,7 @@
 ﻿using Cube.Transport;
 
 namespace Cube.Replication {
-    public interface IUnityClient {
+    public interface ICubeClient {
         IClientReplicaManager replicaManager {
             get;
         }

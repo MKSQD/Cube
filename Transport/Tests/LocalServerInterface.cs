@@ -46,7 +46,7 @@ namespace Cube.Transport.Tests {
             return msg.bs;
         }
 
-        public void Send(BitStream bs, PacketPriority priority, PacketReliability reliablity, Connection connection, int sequenceChannel) {
+        public void SendBitStream(BitStream bs, PacketPriority priority, PacketReliability reliablity, Connection connection, int sequenceChannel) {
             LocalClientInterface targetClient = null;
 
             foreach (var client in clients) {
@@ -62,7 +62,7 @@ namespace Cube.Transport.Tests {
             targetClient.EnqueueMessage(bs);
         }
 
-        public void Broadcast(BitStream bs, PacketPriority priority, PacketReliability reliablity, int sequenceChannel) {
+        public void BroadcastBitStream(BitStream bs, PacketPriority priority, PacketReliability reliablity, int sequenceChannel) {
             foreach (var client in clients) {
                 client.EnqueueMessage(bs);
             }

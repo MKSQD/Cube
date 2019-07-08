@@ -7,7 +7,7 @@ using BitStream = Cube.Transport.BitStream;
 
 namespace Cube.Replication {
     public sealed class ClientReplicaManager : IClientReplicaManager {
-        IUnityClient _client;
+        ICubeClient _client;
 
         NetworkScene _networkScene;
 
@@ -21,7 +21,7 @@ namespace Cube.Replication {
 
         float _nextUpdateTime;
 
-        public ClientReplicaManager(IUnityClient client, NetworkPrefabLookup networkPrefabLookup, Transform clientTransform) {
+        public ClientReplicaManager(ICubeClient client, NetworkPrefabLookup networkPrefabLookup, Transform clientTransform) {
             Assert.IsNotNull(networkPrefabLookup);
 
             _clientTransform = clientTransform;

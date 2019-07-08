@@ -22,11 +22,11 @@ namespace Cube.Replication {
         [HideInInspector]
         public Replica replica;
 
-        public IUnityServer server {
+        public ICubeServer server {
             get { return replica.server; }
         }
 
-        public IUnityClient client {
+        public ICubeClient client {
             get { return replica.client; }
         }
 

@@ -19,7 +19,7 @@ namespace Cube.Transport {
             _handlers = new Dictionary<byte, List<ServerMessageHandler>>();
         }
 
-        public void AddHandler(byte id, ServerMessageHandler handler) {
+        public void AddMessageHandler(byte id, ServerMessageHandler handler) {
             List<ServerMessageHandler> existingHandlers;
             if (!_handlers.TryGetValue(id, out existingHandlers)) {
                 existingHandlers = new List<ServerMessageHandler>();
@@ -28,7 +28,7 @@ namespace Cube.Transport {
             existingHandlers.Add(handler);
         }
 
-        public void RemoveHandler(byte id, ServerMessageHandler handler) {
+        public void RemoveMessageHandler(byte id, ServerMessageHandler handler) {
             List<ServerMessageHandler> existingHandlers;
             if (!_handlers.TryGetValue(id, out existingHandlers))
                 return;

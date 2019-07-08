@@ -32,8 +32,8 @@ namespace Cube.Replication {
             get { return sceneIdx != 0; }
         }
         
-        public IUnityServer server;
-        public IUnityClient client;
+        public ICubeServer server;
+        public ICubeClient client;
 
         public UnityEvent onDestroy;
 
@@ -96,6 +96,7 @@ namespace Cube.Replication {
         }
 
         public virtual float GetPriorityFor(ReplicaView view) {
+            Assert.IsNotNull(view);
             Assert.IsTrue(isServer);
 
             var distanceRelevance = 1f;

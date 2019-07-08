@@ -58,7 +58,7 @@ namespace Cube.Transport {
             return connections;
         }
 
-        public void Send(BitStream bs, PacketPriority priority, PacketReliability reliablity, Connection connection, int sequenceChannel) {
+        public void SendBitStream(BitStream bs, PacketPriority priority, PacketReliability reliablity, Connection connection, int sequenceChannel) {
             Assert.IsTrue(connection != Connection.Invalid);
 
             var msg = _server.CreateMessage(bs.Length);
@@ -69,7 +69,7 @@ namespace Cube.Transport {
             _server.SendMessage(msg, netConnection, LidgrenToInternalReliability(reliablity), sequenceChannel);
         }
 
-        public void Broadcast(BitStream bs, PacketPriority priority, PacketReliability reliablity, int sequenceChannel) {
+        public void BroadcastBitStream(BitStream bs, PacketPriority priority, PacketReliability reliablity, int sequenceChannel) {
             if (_server.Connections.Count == 0)
                 return;
 

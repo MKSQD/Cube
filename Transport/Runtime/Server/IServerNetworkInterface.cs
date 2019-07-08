@@ -12,8 +12,8 @@ namespace Cube.Transport {
         
         Connection[] GetConnections();
         
-        void Send(BitStream bs, PacketPriority priority, PacketReliability reliablity, Connection connection, int sequenceChannel = 0);
-        void Broadcast(BitStream bs, PacketPriority priority, PacketReliability reliablity, int sequenceChannel = 0);
+        void SendBitStream(BitStream bs, PacketPriority priority, PacketReliability reliablity, Connection connection, int sequenceChannel = 0);
+        void BroadcastBitStream(BitStream bs, PacketPriority priority, PacketReliability reliablity, int sequenceChannel = 0);
         BitStream Receive(out Connection connection);
 
         void Update();
