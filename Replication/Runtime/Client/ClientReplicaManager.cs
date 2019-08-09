@@ -84,7 +84,7 @@ namespace Cube.Replication {
             var replicas = _networkScene.replicas;
             for (int i = 0; i < replicas.Count; ++i) {
                 var replica = replicas[i];
-                if (replica.isSceneReplica)
+                if (replica == null || replica.isSceneReplica)
                     continue;
 
                 if (replica.lastUpdateTime <= removeTime) {
@@ -115,7 +115,7 @@ namespace Cube.Replication {
                 _networkScene.AddReplica(replica);
             }
 
-            replica.isOwner = isOwner;
+            replica.ClientUpdateOwnership(isOwner);
 
 #if UNITY_EDITOR
             if (isSceneReplica)

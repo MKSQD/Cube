@@ -11,6 +11,8 @@ namespace Cube.Replication {
             public string instances;
             public string bytesPerInstance;
             public string bytesTotal;
+            public string numRpcs;
+            public string rpcBytes;
         }
 
         class SimpleTreeView : TreeView {
@@ -40,7 +42,7 @@ namespace Cube.Replication {
                             var replicaViewItem = new SimpleTreeViewItem { id = nextIdx++, displayName = viewInfoPair.view.name };
                             serverItem.AddChild(replicaViewItem);
 
-                            foreach (var info in viewInfoPair.info.bytesPerPrefabIdx) {
+                            foreach (var info in viewInfoPair.info.replicaTypeInfos) {
                                 var name = info.Key.ToString();
 
                                 GameObject prefab;
@@ -48,12 +50,15 @@ namespace Cube.Replication {
                                     name = prefab.name;
                                 }
 
+                                var replicaTypeInfo = info.Value;
                                 var infoItem = new SimpleTreeViewItem {
                                     id = nextIdx++,
                                     displayName = name,
-                                    instances = info.Value.numInstances.ToString(),
-                                    bytesPerInstance = (info.Value.totalBytes / (float)info.Value.numInstances).ToString(),
-                                    bytesTotal = info.Value.totalBytes.ToString()
+                                    instances = replicaTypeInfo.numInstances.ToString(),
+                                    bytesPerInstance = (replicaTypeInfo.totalBytes / (float)replicaTypeInfo.numInstances).ToString(),
+                                    bytesTotal = replicaTypeInfo.totalBytes.ToString(),
+                                    numRpcs = replicaTypeInfo.numRpcs.ToString(),
+                                    rpcBytes = replicaTypeInfo.rpcBytes.ToString()
                                 };
 
                                 replicaViewItem.AddChild(infoItem);
@@ -87,6 +92,8 @@ namespace Cube.Replication {
                     case 1: GUI.Label(cellRect, item.instances); break;
                     case 2: GUI.Label(cellRect, item.bytesPerInstance); break;
                     case 3: GUI.Label(cellRect, item.bytesTotal); break;
+                    case 4: GUI.Label(cellRect, item.numRpcs); break;
+                    case 5: GUI.Label(cellRect, item.rpcBytes); break;
                 }
             }
         }
@@ -104,7 +111,7 @@ namespace Cube.Replication {
             if (_simpleTreeView == null) {
                 _treeViewState = new TreeViewState();
 
-                var columns = new MultiColumnHeaderState.Column[4] {
+                var columns = new MultiColumnHeaderState.Column[6] {
                     new MultiColumnHeaderState.Column() {
                         headerContent = new GUIContent("context"),
                         width = 200
@@ -123,11 +130,20 @@ namespace Cube.Replication {
                         headerContent = new GUIContent("bytes total"),
                         width = 100,
                         canSort = true
+                    },
+                    new MultiColumnHeaderState.Column() {
+                        headerContent = new GUIContent("rpcs"),
+                        width = 100,
+                        canSort = true
+                    },
+                    new MultiColumnHeaderState.Column() {
+                        headerContent = new GUIContent("rpc bytes"),
+                        width = 100,
+                        canSort = true
                     }
                 };
 
                 var header = new MultiColumnHeader(new MultiColumnHeaderState(columns));
-
                 _simpleTreeView = new SimpleTreeView(_treeViewState, header);
             }
         }

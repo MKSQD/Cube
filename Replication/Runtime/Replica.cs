@@ -31,10 +31,11 @@ namespace Cube.Replication {
         public bool isSceneReplica {
             get { return sceneIdx != 0; }
         }
-        
+
         public ICubeServer server;
         public ICubeClient client;
 
+        public UnityEvent onOwnership;
         public UnityEvent onDestroy;
 
         public bool isServer {
@@ -48,13 +49,16 @@ namespace Cube.Replication {
                 return client != null;
             }
         }
-        
+
         public Connection owner {
             get;
             internal set;
         }
 
-        public bool isOwner = false;
+        public bool isOwner {
+            get;
+            internal set;
+        }
 
         public ReplicaBehaviour[] replicaBehaviours {
             get;
@@ -69,7 +73,9 @@ namespace Cube.Replication {
         static bool _applicationQuitting;
 
         public void AssignOwnership(Connection owner) {
-            Assert.IsTrue(isServer);
+            if (!isServer)
+                return;
+
             Assert.IsTrue(owner != Connection.Invalid);
 
             this.owner = owner;
@@ -81,6 +87,16 @@ namespace Cube.Replication {
 
             owner = Connection.Invalid;
             isOwner = true;
+        }
+
+        public void ClientUpdateOwnership(bool owned) {
+            if (owned == isOwner)
+                return;
+
+            isOwner = owned;
+            if (owned) {
+                onOwnership.Invoke();
+            }
         }
 
         public bool IsRelevantFor(ReplicaView view) {
@@ -287,6 +303,9 @@ namespace Cube.Replication {
             else if (type == typeof(int)) {
                 bs.Write((int)value);
             }
+            else if (type == typeof(uint)) {
+                bs.Write((uint)value);
+            }
             else if (type == typeof(long)) {
                 bs.Write((long)value);
             }
@@ -368,6 +387,9 @@ namespace Cube.Replication {
             }
             else if (type == typeof(int)) {
                 value = bs.ReadInt();
+            }
+            else if (type == typeof(uint)) {
+                value = bs.ReadUInt();
             }
             else if (type == typeof(long)) {
                 value = bs.ReadLong();

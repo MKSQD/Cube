@@ -23,18 +23,20 @@ namespace Cube.Replication {
 #endif
 
         public class Statistic {
-            public struct PerReplicaTypeInfo {
+            public struct ReplicaTypeInfo {
                 public int numInstances;
                 public int totalBytes;
+                public int numRpcs;
+                public int rpcBytes;
             }
 
-            public class PerReplicaViewInfo {
-                public Dictionary<int, PerReplicaTypeInfo> bytesPerPrefabIdx = new Dictionary<int, PerReplicaTypeInfo>();
+            public class ReplicaViewInfo {
+                public Dictionary<int, ReplicaTypeInfo> replicaTypeInfos = new Dictionary<int, ReplicaTypeInfo>();
             }
 
             public struct ReplicaViewInfoPair {
                 public ReplicaView view;
-                public PerReplicaViewInfo info;
+                public ReplicaViewInfo info;
             }
 
             public List<ReplicaViewInfoPair> viewInfos = new List<ReplicaViewInfoPair>();
@@ -138,7 +140,8 @@ namespace Cube.Replication {
         }
 
         public GameObject InstantiateReplica(GameObject prefab, Vector3 position, Quaternion rotation) {
-            Assert.IsNotNull(prefab);
+            if (prefab == null)
+                throw new ArgumentNullException("prefab");
 
             var replica = InstantiateReplicaImpl(prefab, position, rotation);
             return replica != null ? replica.gameObject : null;
@@ -273,7 +276,7 @@ namespace Cube.Replication {
             UpdateRelevantReplicaPriorities(view);
 
 #if UNITY_EDITOR
-            var perReplicaViewInfo = new Statistic.PerReplicaViewInfo();
+            var perReplicaViewInfo = new Statistic.ReplicaViewInfo();
             _statistic.viewInfos.Add(new Statistic.ReplicaViewInfoPair { view = view, info = perReplicaViewInfo });
 #endif
 
@@ -315,18 +318,20 @@ namespace Cube.Replication {
                 view.relevantReplicaPriorityAccumulator[idx] = 0;
 
 #if UNITY_EDITOR
-                Statistic.PerReplicaTypeInfo replicaTypeInfo;
-                perReplicaViewInfo.bytesPerPrefabIdx.TryGetValue(replica.prefabIdx, out replicaTypeInfo);
+                // Add some profiling info
+                perReplicaViewInfo.replicaTypeInfos.TryGetValue(replica.prefabIdx, out Statistic.ReplicaTypeInfo replicaTypeInfo);
                 ++replicaTypeInfo.numInstances;
                 replicaTypeInfo.totalBytes += updateBs.Length;
+                replicaTypeInfo.numRpcs += replica.queuedRpcs.Count;
+                replicaTypeInfo.rpcBytes += replica.queuedRpcs.Sum(rpc => rpc.bs.Length);
 
-                perReplicaViewInfo.bytesPerPrefabIdx[replica.prefabIdx] = replicaTypeInfo;
+                perReplicaViewInfo.replicaTypeInfos[replica.prefabIdx] = replicaTypeInfo;
 #endif
 
                 if (bytesSent >= _settings.maxBytesPerConnectionPerUpdate)
-                    return;
+                    return; // Packet size exhausted
 
-                // rpcs
+                // Rpcs
                 foreach (var queuedRpc in replica.queuedRpcs) {
                     if (queuedRpc.target == RpcTarget.Owner && replica.owner == view.connection) {
                         _server.networkInterface.SendBitStream(queuedRpc.bs, PacketPriority.Low, PacketReliability.Unreliable, replica.owner);

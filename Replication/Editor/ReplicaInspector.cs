@@ -16,15 +16,18 @@ namespace Cube.Replication.Editor {
 
             var replica = target as Replica;
 
-            EditorGUILayout.LabelField("Scene Idx", replica.sceneIdx.ToString());
-
             if (PrefabUtility.GetPrefabAssetType(replica) == PrefabAssetType.NotAPrefab) {
                 EditorGUILayout.LabelField("Prefab Id", replica.prefabIdx.ToString());
             }
 
             if (EditorApplication.isPlaying) {
                 EditorGUILayout.LabelField("Replica Id", replica.id.data.ToString());
-               
+            }
+
+            var idxStr = replica.sceneIdx != 0 ? replica.sceneIdx.ToString() : "-";
+            EditorGUILayout.LabelField("Scene Idx", idxStr);
+
+            if (EditorApplication.isPlaying) {
                 if (GUILayout.Button("Find corresponding Replica")) {
                     PingCorrespondingReplica();
                 }
