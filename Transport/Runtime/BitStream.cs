@@ -114,6 +114,13 @@ namespace Cube.Transport {
             return val * precision;
         }
 
+        public float ReadNormalisedFloat() {
+            var val = ReadUShort();
+            var result = (val / 32767.5f) - 1f;
+            result = Mathf.Clamp(result, 0, 1);
+            return result;
+        }
+        
         public void Read(ref int val) {
             val = ReadInt();
         }
@@ -199,7 +206,15 @@ namespace Cube.Transport {
             };
             return val;
         }
-        
+
+        public Vector3 ReadNormalisedVector3() {
+            var result = Vector3.zero;
+            result.x = ReadNormalisedFloat();
+            result.y = ReadNormalisedFloat();
+            result.z = ReadNormalisedFloat();
+            return result;
+        }
+
         public void Read(ref Quaternion val) {
             val = ReadQuaternion();
         }
@@ -368,6 +383,12 @@ namespace Cube.Transport {
             WriteIntInRange((int)(val * inv), (int)(min * inv), (int)(max * inv));
         }
 
+        public static float NormaliseFloat(float val, float precision = 0.1f) {
+            var inv = 1 / precision;
+            var temp = (int)(val * inv);
+            return temp * precision;
+        }
+
         public unsafe void Write(long val) {
             val = Endian.SwapInt64(val);
             Write((byte*)&val, 64);
@@ -470,7 +491,7 @@ namespace Cube.Transport {
         public void Write(Connection connection) {
             Write(connection.id);
         }
-        
+
         /// <summary>
         /// Write float in the range [0,1].
         /// </summary>
@@ -479,6 +500,12 @@ namespace Cube.Transport {
 
             val = Mathf.Clamp(val, -1f, 1f);
             Write((ushort)((val + 1f) * 32767.5f));
+        }
+
+        public void WriteNormalised(Vector3 val) {
+            WriteNormalised(val.x);
+            WriteNormalised(val.y);
+            WriteNormalised(val.z);
         }
 
         public void Write(ISerializable obj) {

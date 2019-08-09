@@ -68,5 +68,19 @@ namespace Cube.Transport.Tests {
             bs.Write(pos);
             Assert.AreEqual(pos, bs.ReadVector3());
         }
+
+        [Test]
+        public void Test_WriteRead_NormalisedFloat() {
+            var bs = new BitStream();
+
+            bs.WriteNormalised(0);
+            Assert.AreEqual(0, bs.ReadNormalisedFloat());
+
+            bs.WriteNormalised(0.5f);
+            Assert.AreEqual(0.5f, bs.ReadNormalisedFloat());
+
+            bs.WriteNormalised(1);
+            Assert.AreEqual(1, bs.ReadNormalisedFloat());
+        }
     }
 }
