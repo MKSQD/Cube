@@ -36,6 +36,7 @@ namespace Cube.Replication {
         public ICubeClient client;
 
         public UnityEvent onOwnership;
+        public UnityEvent onOwnershipRemoved;
         public UnityEvent onDestroy;
 
         public bool isServer {
@@ -83,7 +84,8 @@ namespace Cube.Replication {
         }
 
         public void TakeOwnership() {
-            Assert.IsTrue(isServer);
+            if (!isServer)
+                return;
 
             owner = Connection.Invalid;
             isOwner = true;
@@ -96,6 +98,9 @@ namespace Cube.Replication {
             isOwner = owned;
             if (owned) {
                 onOwnership.Invoke();
+            }
+            else {
+                onOwnershipRemoved.Invoke();
             }
         }
 
@@ -227,11 +232,11 @@ namespace Cube.Replication {
 
                 MethodInfo methodInfo;
                 if (!component.rpcMethods.TryGetValue(methodId, out methodInfo)) {
-                    Debug.LogError("Cannot find rpc method with id " + methodId + " in " + component + " on " + (component.isServer ? "server" : "client") + ".");
+                    Debug.LogError("Cannot find RPC method with id " + methodId + " in " + component + " on " + (component.isServer ? "server" : "client") + ".");
                     return;
                 }
 
-                Debug.LogWarning("Got Replica rpc from non-owning client replica=" + gameObject + " method=" + methodInfo.Name + " client=" + connection + " owner=" + owner);
+                Debug.LogWarning("Got Replica RPC from non-owning client. Replica=" + gameObject.name + " Method=" + methodInfo.Name + " Client=" + connection + " Owner=" + owner, gameObject);
                 return;
             }
 
@@ -423,7 +428,7 @@ namespace Cube.Replication {
 
                 value = replicaManager.GetReplicaById(id);
                 if (value == null) {
-                    Debug.LogWarning("RPC was dropped because Replica argument was not found: " + id);
+                    Debug.LogWarning("RPC was dropped because Replica (used as argument) was not found: " + id);
                     return false;
                 }
             }
