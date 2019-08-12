@@ -160,7 +160,7 @@ namespace Cube.Replication {
             newReplica.id = ReplicaId.Create(this);
 
             //Delay sending to client because we should wait for one frame until Start is called.
-            _constructingReplicas.Add(newReplica.id, newReplica);
+            _constructingReplicas[newReplica.id] = newReplica;
 
             return newReplica;
         }
@@ -384,6 +384,9 @@ namespace Cube.Replication {
             var result = new List<Replica>(32);
             for (int i = 0; i < replicas.Count; ++i) {
                 var replica = replicas[i];
+                if (replica == null)
+                    continue;
+
                 if (!replica.IsRelevantFor(view))
                     continue;
 
