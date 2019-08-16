@@ -15,6 +15,6 @@ namespace Cube.Replication {
         public int desiredUpdateRateMs = 200;
         public ReplicaPriorityFlag priorityFlags = ReplicaPriorityFlag.None;
         [Range(1, 1000)]
-        public float maxViewDistance = 100;
+        public float maxViewDistance = 300;
     }
 }
