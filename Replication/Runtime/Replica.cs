@@ -4,13 +4,14 @@ using System.Collections.Generic;
 using System.Reflection;
 using UnityEngine;
 using UnityEngine.Assertions;
-using UnityEngine.Events;
 using BitStream = Cube.Transport.BitStream;
 
 namespace Cube.Replication {
     [AddComponentMenu("Cube/Replica")]
     [DisallowMultipleComponent]
     public class Replica : MonoBehaviour {
+        public delegate void ReplicaEvent(Replica replica);
+
         public struct QueuedRpc {
             public RpcTarget target;
             public BitStream bs;
@@ -35,9 +36,8 @@ namespace Cube.Replication {
         public ICubeServer server;
         public ICubeClient client;
 
-        public UnityEvent onOwnership;
-        public UnityEvent onOwnershipRemoved;
-        public UnityEvent onDestroy;
+        public event ReplicaEvent onOwnership;
+        public event ReplicaEvent onOwnershipRemoved;
 
         public bool isServer {
             get {
@@ -97,10 +97,10 @@ namespace Cube.Replication {
 
             isOwner = owned;
             if (owned) {
-                onOwnership.Invoke();
+                onOwnership.Invoke(this);
             }
             else {
-                onOwnershipRemoved.Invoke();
+                onOwnershipRemoved.Invoke(this);
             }
         }
 
