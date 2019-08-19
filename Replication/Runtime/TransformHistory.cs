@@ -8,35 +8,33 @@ namespace Cube.Replication {
             public Quaternion rotation;
 
             public static Entry Lerp(Entry from, Entry to, float time) {
-                if (from.time == to.time) {
+                if (from.time == to.time)
                     return from;
-                }
-                float fraction = (float)(((double)(time - from.time)) / ((double)(to.time - from.time)));
+
+                var t = (float)((time - from.time) / (double)(to.time - from.time));
                 return new Entry() {
                     time = time,
-                    position = Vector3.Lerp(from.position, to.position, fraction),
-                    rotation = Quaternion.Slerp(from.rotation, to.rotation, fraction)
+                    position = Vector3.Lerp(from.position, to.position, t),
+                    rotation = Quaternion.Slerp(from.rotation, to.rotation, t)
                 };
             }
 
             public static Entry GetTransformAtTime(RingBuffer<Entry> history, float desiredTime) {
-                for (int i = history.Count - 1; i > 0; i--) {
-                    if (history.Get(i).time >= desiredTime && history.Get(i - 1).time < desiredTime) {
-                        return Lerp(history.Get(i - 1), history.Get(i), desiredTime);
-                    }
+                for (var i = history.Count - 1; i > 0; i--) {
+                    var entry1 = history.Get(i);
+                    var entry2 = history.Get(i - 1);
+                    if (entry1.time >= desiredTime && entry2.time < desiredTime)
+                        return Lerp(entry2, entry1, desiredTime);
                 }
 
-                if (history.Count > 0) {
+                if (history.Count > 0)
                     return history.GetLatest();
-                }
-                else {
-                    // No history data available.
-                    return new Entry() {
-                        time = desiredTime,
-                        position = Vector3.zero,
-                        rotation = Quaternion.identity
-                    };
-                }
+
+                return new Entry() {
+                    time = desiredTime,
+                    position = Vector3.zero,
+                    rotation = Quaternion.identity
+                };
             }
         }
 
