@@ -15,22 +15,18 @@ namespace Cube.Replication {
         
         public Interpolation interpolation = Interpolation.Interpolate;
         
-        [Range(0, 800)]
-        public int interpolateDelayMs;
+        [Range(0, 500)]
+        public int interpolationDelayMs;
 
         TransformHistory _history;
 
         void Awake() {
-            _history = new TransformHistory(interpolateDelayMs * 0.001f * 2);
+            _history = new TransformHistory();
         }
 
         void Update() {
             if (isClient && interpolation != Interpolation.Raw) {
-                var position = transform.position;
-                var rotation = transform.rotation;
-
-                _history.Read(Time.time, ref position, ref rotation);
-
+                _history.Sample(Time.time, out Vector3 position, out Quaternion rotation);
                 transform.position = position;
                 transform.rotation = rotation;
             }
@@ -50,7 +46,7 @@ namespace Cube.Replication {
                 transform.rotation = rotation;
             }
             else if (interpolation == Interpolation.Interpolate) {
-                _history.Write(Time.time + interpolateDelayMs * 0.001f, position, Vector3.zero, rotation);
+                _history.Add(new Pose(position, rotation), Time.time + interpolationDelayMs * 0.001f);
             }
         }
     }

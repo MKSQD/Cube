@@ -11,22 +11,15 @@ namespace Cube.Replication {
     public class ReplicaRigidbody : ReplicaBehaviour {
         public Transform model;
 
-        [Range(0, 800)]
-        public int interpolateDelayMs;
+        [Range(0, 500)]
+        public int interpolationDelayMs;
 
         TransformHistory _history;
 
         Rigidbody _rigidbody;
-        Vector3 _modelOffset;
-        Quaternion _modelRotationOffset;
 
         void Awake() {
-            _history = new TransformHistory(interpolateDelayMs * 0.001f * 2);
-
-            if (model != null) {
-                _modelOffset = model.localPosition;
-                _modelRotationOffset = model.localRotation;
-            }
+            _history = new TransformHistory();
 
             _rigidbody = GetComponent<Rigidbody>();
         }
@@ -35,20 +28,16 @@ namespace Cube.Replication {
             if (model == null || !isClient)
                 return;
             
-            var position = transform.position;
-            var rotation = transform.rotation;
-
-            _history.Read(Time.time, ref position, ref rotation);
-
-            model.position = position + _modelOffset;
-            model.rotation = rotation * _modelRotationOffset;
+            _history.Sample(Time.time, out Vector3 position, out Quaternion rotation);
+            model.position = position;
+            model.rotation = rotation;
         }
 
         void FixedUpdate() {
             if (model == null || !isClient)
                 return;
 
-            _history.Write(Time.time + interpolateDelayMs * 0.001f, transform.position, _rigidbody.velocity, transform.rotation);
+            _history.Add(new Pose(transform.position, transform.rotation), Time.time + interpolationDelayMs * 0.001f);
         }
 
         public override void Serialize(BitStream bs, ReplicaView view) {
@@ -73,19 +62,17 @@ namespace Cube.Replication {
                 velocity.x = Mathf.Clamp(velocity.x, -20, 20);
                 velocity.y = Mathf.Clamp(velocity.y, -20, 20);
                 velocity.z = Mathf.Clamp(velocity.z, -20, 20);
-
                 bs.WriteLossyFloat(velocity.x, -20, 20);
                 bs.WriteLossyFloat(velocity.y, -20, 20);
                 bs.WriteLossyFloat(velocity.z, -20, 20);
 
-                var angularVelocity = _rigidbody.velocity;
+                var angularVelocity = _rigidbody.angularVelocity;
                 angularVelocity.x = Mathf.Clamp(angularVelocity.x, -20, 20);
                 angularVelocity.y = Mathf.Clamp(angularVelocity.y, -20, 20);
                 angularVelocity.z = Mathf.Clamp(angularVelocity.z, -20, 20);
-
-                bs.WriteLossyFloat(angularVelocity.x, -20, 20);
-                bs.WriteLossyFloat(angularVelocity.y, -20, 20);
-                bs.WriteLossyFloat(angularVelocity.z, -20, 20);
+                bs.WriteLossyFloat(angularVelocity.x, -10, 10);
+                bs.WriteLossyFloat(angularVelocity.y, -10, 10);
+                bs.WriteLossyFloat(angularVelocity.z, -10, 10);
             }
         }
 
@@ -114,9 +101,9 @@ namespace Cube.Replication {
                 _rigidbody.velocity = velocity;
 
                 var angularVelocity = new Vector3 {
-                    x = bs.ReadLossyFloat(-20, 20),
-                    y = bs.ReadLossyFloat(-20, 20),
-                    z = bs.ReadLossyFloat(-20, 20)
+                    x = bs.ReadLossyFloat(-10, 10),
+                    y = bs.ReadLossyFloat(-10, 10),
+                    z = bs.ReadLossyFloat(-10, 10)
                 };
                 _rigidbody.angularVelocity = angularVelocity;
             }
