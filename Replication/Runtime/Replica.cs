@@ -135,12 +135,13 @@ namespace Cube.Replication {
         }
 
         /// <summary>
-        /// Removes the Replica instantly from the ReplicaManager, destroys the GameObject and sends a destroy message to the clients on the next update.
+        /// SERVER only. Removes the Replica instantly from the ReplicaManager, destroys the GameObject and sends a destroy message to the clients on the next update.
         /// @see ServerReplicaManager.DestroyReplica
         /// </summary>
         /// <param name="replica">The Replica to remove</param>
         public void Destroy() {
-            Assert.IsTrue(isServer);
+            if (!isServer)
+                return;
 
             server.replicaManager.DestroyReplica(this);
         }
