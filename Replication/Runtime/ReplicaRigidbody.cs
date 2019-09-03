@@ -11,33 +11,30 @@ namespace Cube.Replication {
     public class ReplicaRigidbody : ReplicaBehaviour {
         public Transform model;
 
-        [Range(0, 500)]
-        public int interpolationDelayMs;
-
-        TransformHistory _history;
-
         Rigidbody _rigidbody;
 
         void Awake() {
-            _history = new TransformHistory();
-
             _rigidbody = GetComponent<Rigidbody>();
         }
 
+        Vector3 modelLastPos;
+        Quaternion modelLastRot;
         void Update() {
             if (model == null || !isClient)
                 return;
-            
-            _history.Sample(Time.time, out Vector3 position, out Quaternion rotation);
-            model.position = position;
-            model.rotation = rotation;
-        }
 
-        void FixedUpdate() {
-            if (model == null || !isClient)
-                return;
-
-            _history.Add(new Pose(transform.position, transform.rotation), Time.time + interpolationDelayMs * 0.001f);
+            var dist = (modelLastPos - transform.position).sqrMagnitude;
+            if(dist < 10) {
+                model.position = Vector3.Lerp(modelLastPos, transform.position, Time.deltaTime * 14);
+                model.rotation = Quaternion.Lerp(modelLastRot, transform.rotation, Time.deltaTime * 14);
+            }
+            else {
+                model.position = transform.position;
+                model.rotation = transform.rotation;
+              
+            }
+            modelLastPos = model.position;
+            modelLastRot = model.rotation;
         }
 
         public override void Serialize(BitStream bs, ReplicaView view) {
