@@ -31,7 +31,7 @@ namespace Cube.Transport {
                 AutoFlushSendQueue = false
             };
 
-#if !NETWORKING_LOG_INFO
+#if !CUBE_DEBUG_TRA
             config.DisableMessageType(NetIncomingMessageType.VerboseDebugMessage);
             config.DisableMessageType(NetIncomingMessageType.DebugMessage);
 #endif
@@ -105,7 +105,7 @@ namespace Cube.Transport {
             switch (msg.MessageType) {
                 case NetIncomingMessageType.VerboseDebugMessage:
                 case NetIncomingMessageType.DebugMessage:
-#if NETWORKING_LOG_INFO
+#if CUBE_DEBUG_TRA
                     Debug.Log(msg.ReadString());
 #endif
                     break;

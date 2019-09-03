@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using Mono.Cecil;
 using UnityEditor;
+using UnityEngine;
 
 #if UNITY_EDITOR
 namespace Cube.Replication.Editor {
@@ -83,7 +84,7 @@ namespace Cube.Replication.Editor {
                 }
 
                 watch.Stop();
-#if NETWORKING_LOG_INFO
+#if CUBE_DEBUG_REP
                 Debug.Log("RPC Patcher finished after " + watch.Elapsed + " (assemblyPaths = " + assemblyPath + ", appType = " + appType.ToString() + ")");
 #endif
             }

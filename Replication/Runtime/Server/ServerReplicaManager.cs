@@ -485,7 +485,7 @@ namespace Cube.Replication {
 
             var replica = _networkScene.GetReplicaById(replicaId);
             if (replica == null) {
-#if CUBE_DEBUG
+#if CUBE_DEBUG_REP
                 Debug.LogError("Replica with id " + replicaId + " missing on server");
 #endif
                 return;

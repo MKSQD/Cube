@@ -79,7 +79,7 @@ namespace Cube.Transport {
             switch (msg.MessageType) {
                 case NetIncomingMessageType.VerboseDebugMessage:
                 case NetIncomingMessageType.DebugMessage:
-#if NETWORKING_LOG_INFO
+#if CUBE_DEBUG_TRA
                     Debug.Log(msg.ReadString());
 #endif
                     break;

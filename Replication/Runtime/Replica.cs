@@ -237,7 +237,9 @@ namespace Cube.Replication {
                     return;
                 }
 
+#if CUBE_DEBUG_REP
                 Debug.LogWarning("Got Replica RPC from non-owning client. Replica=" + gameObject.name + " Method=" + methodInfo.Name + " Client=" + connection + " Owner=" + owner, gameObject);
+#endif
                 return;
             }
 
