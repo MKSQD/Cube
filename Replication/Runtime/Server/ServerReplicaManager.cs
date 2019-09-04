@@ -144,6 +144,8 @@ namespace Cube.Replication {
                 throw new ArgumentNullException("prefab");
 
             var replica = InstantiateReplicaImpl(prefab, position, rotation);
+            replica.TakeOwnership();
+
             return replica != null ? replica.gameObject : null;
         }
 

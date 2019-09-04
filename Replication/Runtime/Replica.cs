@@ -74,9 +74,7 @@ namespace Cube.Replication {
         static bool _applicationQuitting;
 
         public void AssignOwnership(Connection owner) {
-            if (!isServer)
-                return;
-
+            Assert.IsTrue(isServer);
             Assert.IsTrue(owner != Connection.Invalid);
 
             this.owner = owner;
@@ -84,8 +82,7 @@ namespace Cube.Replication {
         }
 
         public void TakeOwnership() {
-            if (!isServer)
-                return;
+            Assert.IsTrue(isServer);
 
             owner = Connection.Invalid;
             isOwner = true;
@@ -158,7 +155,7 @@ namespace Cube.Replication {
         void Awake() {
             if (settings == null) {
                 if (defaultReplicaSettings == null) {
-                    defaultReplicaSettings = ScriptableObject.CreateInstance<ReplicaSettings>(); ;
+                    defaultReplicaSettings = ScriptableObject.CreateInstance<ReplicaSettings>();
                 }
 
                 settings = defaultReplicaSettings;
