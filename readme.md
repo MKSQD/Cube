@@ -2,6 +2,8 @@
 Network replication library for [Unity3d](https://unity.com/). In development for over 4+ years.
 
 ## Features
+- Only 1 included dependency (Lidgren)
+- Integration with [Unreal-style gameplay framework](https://github.com/NoDogsInc/GameFramework)
 - Support for multiple clients/servers in one process (no singletons, switch between Server + Client/Server/Client in editor)
 - Eventual consistency based network model (loosely based on [GDC Vault: I Shot You First! Gameplay Networking in Halo: Reach](http://www.gdcvault.com/play/1014345/I-Shot-You-First-Networking))
 - Object-based replication
@@ -18,8 +20,8 @@ Network replication library for [Unity3d](https://unity.com/). In development fo
 Clone the git repository into your **Assets** folder.
 
 ### Connecting server and client in editor
-Create new GameObject *ClientGame* in the scene and add the *Core/ClientGame* component.
-Create another new GameObject *ServerGame* and add the *Core/ServerGame* component. 
+Create new GameObject *ClientGame* in the scene and add the *Cube/ClientGame* component.
+Create another new GameObject *ServerGame* and add the *Cube/ServerGame* component. 
 When you start the game now you should see log output of the client connecting to the server.
 
 Note that the instant connection in ClientGame is just enabled in the Unity editor.
