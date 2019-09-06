@@ -12,10 +12,21 @@ namespace Cube.Replication {
                     return from;
 
                 var t = (float)((time - from.time) / (double)(to.time - from.time));
+                Vector3 pos;
+                Quaternion rot;
+                var aboveTeleportThreshold = (from.position - to.position).sqrMagnitude > 3;
+                if (!aboveTeleportThreshold) {
+                    pos = Vector3.Lerp(from.position, to.position, t);
+                    rot = Quaternion.Slerp(from.rotation, to.rotation, t);
+                }
+                else {
+                    pos = to.position;
+                    rot = to.rotation;
+                }
                 return new Entry() {
                     time = time,
-                    position = Vector3.Lerp(from.position, to.position, t),
-                    rotation = Quaternion.Slerp(from.rotation, to.rotation, t)
+                    position = pos,
+                    rotation = rot
                 };
             }
 
@@ -46,10 +57,10 @@ namespace Cube.Replication {
 
         public void Add(Pose curPose, float timestamp) {
             var currentTransform = new Entry() {
-                  time = timestamp,
-                  position = curPose.position,
-                  rotation = curPose.rotation,
-              };
+                time = timestamp,
+                position = curPose.position,
+                rotation = curPose.rotation,
+            };
 
             _history.Add(currentTransform);
         }
