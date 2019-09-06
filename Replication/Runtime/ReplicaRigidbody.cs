@@ -12,26 +12,26 @@ namespace Cube.Replication {
         public Transform model;
 
         Rigidbody _rigidbody;
+        Vector3 modelLastPos;
+        Quaternion modelLastRot;
 
         void Awake() {
             _rigidbody = GetComponent<Rigidbody>();
         }
 
-        Vector3 modelLastPos;
-        Quaternion modelLastRot;
         void Update() {
             if (model == null || !isClient)
                 return;
 
             var dist = (modelLastPos - transform.position).sqrMagnitude;
-            if(dist < 10) {
+            if (dist < 10) {
                 model.position = Vector3.Lerp(modelLastPos, transform.position, Time.deltaTime * 14);
                 model.rotation = Quaternion.Lerp(modelLastRot, transform.rotation, Time.deltaTime * 14);
             }
             else {
                 model.position = transform.position;
                 model.rotation = transform.rotation;
-              
+
             }
             modelLastPos = model.position;
             modelLastRot = model.rotation;
@@ -41,7 +41,7 @@ namespace Cube.Replication {
             bs.Write(enabled);
             if (!enabled)
                 return;
-            
+
             bs.Write(transform.position);
 
             var euler = transform.rotation.eulerAngles;
