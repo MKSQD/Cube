@@ -37,13 +37,18 @@ namespace Cube.Transport {
 #endif
 
             _server = new NetServer(config);
-            _server.Start();
+            try {
+                _server.Start();
+            }
+            catch (Exception e) {
+                Debug.LogError(e);
+            }
         }
-        
+
         public void Shutdown() {
             _server.Shutdown("bye bye"); //#TODO message ???
         }
-        
+
         public void Update() {
             _server.FlushSendQueue();
             bitStreamPool.FrameReset();
@@ -64,7 +69,7 @@ namespace Cube.Transport {
             var msg = _server.CreateMessage(bs.Length);
             msg.Write(bs.data, 0, bs.Length);
             msg.LengthBits = bs.LengthInBits;
-            
+
             var netConnection = GetNetConnection(connection);
             _server.SendMessage(msg, netConnection, LidgrenToInternalReliability(reliablity), sequenceChannel);
         }
@@ -76,7 +81,7 @@ namespace Cube.Transport {
             var msg = _server.CreateMessage(bs.Length);
             msg.Write(bs.data, 0, bs.Length);
             msg.LengthBits = bs.LengthInBits;
-            
+
             _server.SendMessage(msg, _server.Connections, LidgrenToInternalReliability(reliablity), sequenceChannel);
         }
 

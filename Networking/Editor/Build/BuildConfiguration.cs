@@ -46,15 +46,15 @@ namespace Cube.Networking {
         abstract public void OnPostProcessBuild(BuildReport report);
 
         public virtual BuildPlayerOptions GetBuildPlayerOptions() {
-            var options = new BuildPlayerOptions();
+            var options = new BuildPlayerOptions {
+                target = buildTarget,
+                targetGroup = targetGroup,
+                options = GetBuildOptions(),
+                locationPathName = targetLocation + "/" + targetName + ".exe",   //#TODO check + validate path
 
-            options.target = buildTarget;
-            options.targetGroup = targetGroup;
-            options.options = GetBuildOptions();
-            options.locationPathName = targetLocation + "/" + targetName + ".exe";   //#TODO check + validate path
-
-            //BuildPlayer expects paths relative to the project folder.
-            options.scenes = SceneReference.ToStringArray(scenes);
+                //BuildPlayer expects paths relative to the project folder.
+                scenes = SceneReference.ToStringArray(scenes)
+            };
             for (int i = 0; i < options.scenes.Length; i++)
                 options.scenes[i] = "Assets/" + options.scenes[i] + ".unity";
 
