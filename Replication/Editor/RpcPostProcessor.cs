@@ -89,10 +89,20 @@ namespace Cube.Replication.Editor {
 
         public override bool Process() {
             foreach (var type in module.Types) {
-                ProcessType(type);
+                try {
+                    ProcessType(type);
+                }
+                catch (Exception e) {
+                    Debug.LogException(e);
+                }
 
                 foreach (var nestedType in type.NestedTypes) {
-                    ProcessType(nestedType);
+                    try {
+                        ProcessType(nestedType);
+                    }
+                    catch (Exception e) {
+                        Debug.LogException(e);
+                    }
                 }
             }
             return true;
@@ -257,9 +267,9 @@ namespace Cube.Replication.Editor {
 
         void InjectValidSendRpcInstructions(int methodId, MethodDefinition method, MethodDefinition implMethod) {
             var il = method.Body.GetILProcessor();
-            
+
             var rpcTarget = (int)GetAttributeByName("Cube.Replication.ReplicaRpcAttribute", method.CustomAttributes).ConstructorArguments[0].Value;
-            
+
             // target validation
             string error;
             MethodDefinition meth;
@@ -293,9 +303,9 @@ namespace Cube.Replication.Editor {
 
             il.Append(il.Create(OpCodes.Ldarg_0));
             il.Append(il.Create(OpCodes.Ldfld, _replicaComponentIdxProperty));
-            
+
             il.Append(il.Create(OpCodes.Ldc_I4, rpcTarget));
-            
+
             il.Append(il.Create(OpCodes.Ldc_I4_S, (sbyte)method.Parameters.Count));
             il.Append(il.Create(OpCodes.Newarr, _objectTypeReference));
 
