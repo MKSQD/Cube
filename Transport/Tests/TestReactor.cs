@@ -13,7 +13,7 @@ namespace Cube.Transport.Tests {
             });
 
             var message = new BitStream();
-            message.WriteByte(1);
+            message.Write((byte)1);
             client.EnqueueMessage(message);
 
             reactor.Update();
@@ -32,7 +32,7 @@ namespace Cube.Transport.Tests {
             });
 
             var message = new BitStream();
-            message.WriteByte(1);
+            message.Write((byte)1);
             server.EnqueueMessage(Connection.Invalid, message);
 
             reactor.Update();

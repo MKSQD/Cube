@@ -33,7 +33,7 @@ namespace Cube.Replication {
         void ForceReplicaViewRefresh(ReplicaView view);
 
         ushort AllocateLocalReplicaId();
-        void FreeLocalReplicaId(ushort localId);
+        void FreeLocalReplicaId(ReplicaId id);
     }
 }
 

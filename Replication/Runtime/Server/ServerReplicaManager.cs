@@ -69,7 +69,7 @@ namespace Cube.Replication {
         Queue<ushort> _replicaIdRecycleQueue = new Queue<ushort>();
 
         Dictionary<ReplicaId, Replica> _constructingReplicas = new Dictionary<ReplicaId, Replica>();
-        List<ReplicaId> _destroyedReplicas = new List<ReplicaId>();
+        List<Replica> _destroyingReplicas = new List<Replica>();
 
 #if UNITY_EDITOR
         Statistic _statistic;
@@ -173,15 +173,14 @@ namespace Cube.Replication {
         /// <param name="replica">The Replica to remove</param>
         /// <remarks>Won't do anything if this replica was removed already</remarks>
         public void RemoveReplica(Replica replica) {
-            //Replica already removed
             if (replica.id == ReplicaId.Invalid)
-                return;
+                return; // Replica already removed
 
             _constructingReplicas.Remove(replica.id);
             _networkScene.RemoveReplica(replica);
 
             if (replica.id != ReplicaId.Invalid) {
-                FreeLocalReplicaId(replica.id.data);
+                FreeLocalReplicaId(replica.id);
             }
 
             replica.id = ReplicaId.Invalid;
@@ -193,16 +192,18 @@ namespace Cube.Replication {
         /// <param name="replica">The Replica to remove</param>
         public void DestroyReplica(Replica replica) {
             if (replica.id == ReplicaId.Invalid)
-                return; //Replica already destroyed
+                return; // Replica already destroyed
 
-            //we dont need to send a destroy message if the replica is not yet fully constructed on the server
+            // We don't need to send a destroy message if the replica is not yet fully constructed on the server
             bool alreadyConstructed = !_constructingReplicas.Remove(replica.id);
-            if (alreadyConstructed) {
-                _destroyedReplicas.Add(replica.id);
+            if (!alreadyConstructed) {
+                _networkScene.RemoveReplica(replica);
+                replica.id = ReplicaId.Invalid;
+                UnityEngine.Object.Destroy(replica.gameObject);
+                return;
             }
-            _networkScene.RemoveReplica(replica);
-            replica.id = ReplicaId.Invalid;
-            UnityEngine.Object.Destroy(replica.gameObject);
+
+            _destroyingReplicas.Add(replica);
         }
 
         public Replica GetReplicaById(ReplicaId id) {
@@ -255,15 +256,36 @@ namespace Cube.Replication {
                     replica.queuedRpcs.Clear();
                 }
 
-                foreach (var replicaId in _destroyedReplicas) {
-                    FreeLocalReplicaId(replicaId.data);
-                }
-                _destroyedReplicas.Clear();
+
 
                 foreach (var entry in _constructingReplicas) {
                     _networkScene.AddReplica(entry.Value);
                 }
                 _constructingReplicas.Clear();
+            }
+
+            // Actually destroy queued Replicas
+            if (_destroyingReplicas.Count > 0) {
+                try {
+                    for (int i = 0; i < _replicaViews.Count; ++i) {
+                        var replicaView = _replicaViews[i];
+                        if (replicaView.isLoadingLevel)
+                            continue;
+
+                        SendDestroyedReplicasToReplicaView(replicaView);
+                    }
+
+                    foreach (var replica in _destroyingReplicas) {
+                        FreeLocalReplicaId(replica.id);
+
+                        _networkScene.RemoveReplica(replica);
+                        replica.id = ReplicaId.Invalid;
+                        UnityEngine.Object.Destroy(replica.gameObject);
+                    }
+                }
+                finally {
+                    _destroyingReplicas.Clear();
+                }
             }
         }
 
@@ -274,7 +296,6 @@ namespace Cube.Replication {
         }
 
         void UpdateReplicaView(ReplicaView view) {
-            SendDestroyedReplicasToReplicaView(view);
             UpdateRelevantReplicaPriorities(view);
 
 #if UNITY_EDITOR
@@ -426,15 +447,28 @@ namespace Cube.Replication {
         }
 
         void SendDestroyedReplicasToReplicaView(ReplicaView view) {
-            if (_destroyedReplicas.Count == 0)
-                return;
+            Assert.IsTrue(_destroyingReplicas.Count > 0);
 
             var destroyBs = _server.networkInterface.bitStreamPool.Create();
             destroyBs.Write((byte)MessageId.ReplicaDestroy);
-            destroyBs.Write((byte)_destroyedReplicas.Count);
 
-            foreach (var id in _destroyedReplicas) {
-                destroyBs.Write(id);
+            foreach (var replica in _destroyingReplicas) {
+                var wasInterestedInReplica = view.relevantReplicas.Contains(replica);
+                if (!wasInterestedInReplica)
+                    continue;
+
+                destroyBs.Write(replica.id);
+
+                // Serialize custom destruction data
+                var replicaDestructionBs = _server.networkInterface.bitStreamPool.Create();
+                foreach (var component in replica.replicaBehaviours) {
+                    component.SerializeDestruction(replicaDestructionBs, view);
+                }
+
+                var absOffset = (ushort)(destroyBs.LengthInBits + 16 + replicaDestructionBs.LengthInBits);
+                destroyBs.Write(absOffset);
+                destroyBs.Write(replicaDestructionBs);
+                destroyBs.AlignWriteToByteBoundary();
             }
 
             _server.networkInterface.SendBitStream(destroyBs, PacketPriority.Medium, PacketReliability.Unreliable, view.connection);
@@ -475,11 +509,11 @@ namespace Cube.Replication {
             return _nextLocalReplicaId++;
         }
 
-        public void FreeLocalReplicaId(ushort localId) {
-            if (localId >= _nextLocalReplicaId)
+        public void FreeLocalReplicaId(ReplicaId id) {
+            if (id.data >= _nextLocalReplicaId)
                 return; // Tried to free id after Reset() was called
 
-            _replicaIdRecycleQueue.Enqueue(localId);
+            _replicaIdRecycleQueue.Enqueue(id.data);
         }
 
         void OnReplicaRpc(Connection connection, BitStream bs) {

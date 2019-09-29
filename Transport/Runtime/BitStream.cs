@@ -16,8 +16,18 @@ namespace Cube.Transport {
         public int LengthInBits {
             get { return _numberOfBitsUsed; }
         }
+
         public int Length {
             get { return BitsToBytes(_numberOfBitsUsed); }
+        }
+
+        /// <summary>
+        /// Have we read all of its content?
+        /// </summary>
+        public bool IsExhausted {
+            get {
+                return _readBitOffset >= _numberOfBitsUsed;
+            }
         }
 
         int Capacity {
@@ -65,6 +75,14 @@ namespace Cube.Transport {
 
             Array.Copy(data, 0, _data, 0, lengthInBytes);
             _numberOfBitsUsed = lengthInBits;
+        }
+
+        public void AlignWriteToByteBoundary() {
+            _numberOfBitsUsed += 8 - (((_numberOfBitsUsed - 1) & 7) + 1);
+        }
+
+        public void AlignReadToByteBoundary() {
+            _readBitOffset += 8 - (((_readBitOffset - 1) & 7) + 1);
         }
 
 #region Read
@@ -329,10 +347,6 @@ namespace Cube.Transport {
 #endregion
 
 #region Write
-        public unsafe void WriteByte(byte val) {
-            Write(&val, 8);
-        }
-
         public unsafe void Write(byte val) {
             Write(&val, 8);
         }
@@ -512,44 +526,56 @@ namespace Cube.Transport {
             obj.Serialize(this);
         }
 
-        public unsafe void Write(BitStream bs) {
-            Resize(bs.LengthInBits);
+        public void Write(BitStream other) {
+            Write(other, other.LengthInBits - other.Position);
+        }
 
-            int readBitPos = 0;
+        public unsafe void Write(BitStream other, int numBits) {
+            Assert.IsTrue(other != this);
 
-            if ((_numberOfBitsUsed & 7) == 0) {
-                int bytes = (int)(bs.LengthInBits >> 3);
+            if (numBits == 0)
+                return;
+
+            Resize(numBits);
+
+            if ((other.Position & 7) == 0 && (_numberOfBitsUsed & 7) == 0) {
+                int readOffsetBytes = other.Position / 8;
+                int numBytes = numBits / 8;
+
                 fixed (byte* data = &_data[0]) {
-                    fixed (byte* otherData = &bs._data[0]) {
-                        memcpy(data + (_numberOfBitsUsed >> 3), otherData, bytes);
+                    fixed (byte* otherData = &other._data[0]) {
+                        memcpy(data + (_numberOfBitsUsed >> 3), otherData + readOffsetBytes, numBytes);
                     }
                 }
-                _numberOfBitsUsed += bytes << 3;
-                readBitPos += bytes << 3;
+
+                numBits -= BytesToBits(numBytes);
+                other.Position = BytesToBits(numBytes + readOffsetBytes);
+                _numberOfBitsUsed += BytesToBits(numBytes);
             }
 
             int numberOfBitsUsedMod8 = 0;
-            while (readBitPos < bs.LengthInBits) {
-                numberOfBitsUsedMod8 = (int)(_numberOfBitsUsed & 7);
-
-                int bytePos = (int)(readBitPos & 7);
-
+            while (numBits-- > 0 && other.Position + 1 <= other.LengthInBits) {
+                numberOfBitsUsedMod8 = _numberOfBitsUsed & 7;
                 if (numberOfBitsUsedMod8 == 0) {
                     // New byte
-                    if ((bs._data[readBitPos >> 3] & (0x80 >> bytePos)) != 0)
+                    if ((other._data[other.Position >> 3] & (0x80 >> (other.Position & 7))) != 0) {
+                        // Write 1
                         data[_numberOfBitsUsed >> 3] = 0x80;
-                    //else 
-                    //    data[_numberOfBitsUsed >> 3] = 0;
+                    }
+                    else {
+                        // Write 0
+                        data[_numberOfBitsUsed >> 3] = 0;
+                    }
                 } else {
                     // Existing byte
-                    if ((bs._data[readBitPos >> 3] & (0x80 >> bytePos)) != 0)
+                    if ((other._data[other.Position >> 3] & (0x80 >> (other.Position & 7))) != 0) {
+                        // Set bit to 1
                         data[_numberOfBitsUsed >> 3] |= (byte)(0x80 >> (numberOfBitsUsedMod8));
-                    //else
-                    //    data[_numberOfBitsUsed >> 3] = 0;
+                    }
                 }
 
+                other.Position++;
                 _numberOfBitsUsed++;
-                readBitPos++;
             }
         }
 

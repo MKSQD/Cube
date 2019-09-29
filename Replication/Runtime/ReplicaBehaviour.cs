@@ -44,7 +44,10 @@ namespace Cube.Replication {
 
         public virtual void Serialize(BitStream bs, ReplicaView view) { }
         public virtual void Deserialize(BitStream bs) { }
-        
+
+        public virtual void SerializeDestruction(BitStream bs, ReplicaView view) { }
+        public virtual void DeserializeDestruction(BitStream bs) { }
+
         // Do not remove, the call sites will automatically be patched by the AssemblyPatcher
         protected bool HasReplicaVarChanged<T>(T field) {
             return false;

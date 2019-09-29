@@ -29,9 +29,9 @@ namespace Cube.Replication {
 
             _client = client;
 
-            _client.reactor.AddHandler((byte)MessageId.ReplicaUpdate, new ClientMessageHandler(OnReplicaUpdate));
-            _client.reactor.AddHandler((byte)MessageId.ReplicaRpc, new ClientMessageHandler(OnReplicaRpc));
-            _client.reactor.AddHandler((byte)MessageId.ReplicaDestroy, new ClientMessageHandler(OnReplicaDestroy));
+            _client.reactor.AddHandler((byte)MessageId.ReplicaUpdate, OnReplicaUpdate);
+            _client.reactor.AddHandler((byte)MessageId.ReplicaRpc, OnReplicaRpc);
+            _client.reactor.AddHandler((byte)MessageId.ReplicaDestroy, OnReplicaDestroy);
 
             _networkScene = new NetworkScene();
             _sceneReplicaLookup = new Dictionary<byte, SceneReplicaWrapper>();
@@ -164,16 +164,24 @@ namespace Cube.Replication {
         }
 
         void OnReplicaDestroy(BitStream bs) {
-            var count = bs.ReadByte();
+            while (!bs.IsExhausted) {
+                var absOffset = int.MaxValue;
 
-            for (int i = 0; i < count; ++i) {
                 var replicaId = bs.ReadReplicaId();
+                absOffset = bs.ReadUShort();
 
                 var replica = _networkScene.GetReplicaById(replicaId);
-                if (replica == null)
-                    continue;
+                if (replica != null) {
+                    for (int i = 0; i < replica.replicaBehaviours.Length; ++i) {
+                        var replicaBehaviour = replica.replicaBehaviours[i];
+                        replicaBehaviour.DeserializeDestruction(bs);
+                    }
 
-                Object.Destroy(replica.gameObject);
+                    Object.Destroy(replica.gameObject);
+                }
+
+                bs.Position = absOffset;
+                bs.AlignReadToByteBoundary();
             }
         }
     }
