@@ -7,13 +7,9 @@ namespace Cube.Transport {
         /// <summary>Sent on the server for clients disconnecting</summary>
         DisconnectNotification,
 
-        LoadSceneDone,
-
         // To Client
         ConnectionRequestAccepted,
         ConnectionRequestFailed,
-
-        LoadScene,
 
         ReplicaUpdate,
         ReplicaRpc,

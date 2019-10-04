@@ -20,7 +20,6 @@ namespace Cube.Replication {
         }
 
         public static void Write(this BitStream bs, ReplicaId id) {
-            // #Optimize 2^32 impossible, reduce
             bs.Write(id.data);
         }
                 

@@ -94,10 +94,10 @@ namespace Cube.Replication {
 
             isOwner = owned;
             if (owned) {
-                onOwnership.Invoke(this);
+                onOwnership?.Invoke(this);
             }
             else {
-                onOwnershipRemoved.Invoke(this);
+                onOwnershipRemoved?.Invoke(this);
             }
         }
 
