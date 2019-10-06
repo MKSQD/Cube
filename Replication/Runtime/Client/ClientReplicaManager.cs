@@ -14,17 +14,11 @@ namespace Cube.Replication {
         NetworkPrefabLookup _networkPrefabLookup;
         Dictionary<byte, SceneReplicaWrapper> _sceneReplicaLookup;
 
-        Transform _clientTransform;
-        public Transform instantiateTransform {
-            get { return _clientTransform; }
-        }
-
         float _nextUpdateTime;
 
-        public ClientReplicaManager(ICubeClient client, NetworkPrefabLookup networkPrefabLookup, Transform clientTransform) {
+        public ClientReplicaManager(ICubeClient client, NetworkPrefabLookup networkPrefabLookup) {
             Assert.IsNotNull(networkPrefabLookup);
 
-            _clientTransform = clientTransform;
             _networkPrefabLookup = networkPrefabLookup;
 
             _client = client;
@@ -136,7 +130,7 @@ namespace Cube.Replication {
                 return null;
             }
 
-            var newInstance = Object.Instantiate(prefab, _clientTransform);
+            var newInstance = Object.Instantiate(prefab, _client.world.transform);
 
             var newReplica = newInstance.GetComponent<Replica>();
             if (newReplica == null) {

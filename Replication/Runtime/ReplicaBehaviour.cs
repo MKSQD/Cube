@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using Cube.Transport;
+using System.Collections.Generic;
 using System.Reflection;
 using UnityEngine;
 using BitStream = Cube.Transport.BitStream;
@@ -21,6 +22,8 @@ namespace Cube.Replication {
         
         [HideInInspector]
         public Replica replica;
+
+        public static Connection rpcConnection = Connection.Invalid;
 
         public ICubeServer server {
             get { return replica.server; }

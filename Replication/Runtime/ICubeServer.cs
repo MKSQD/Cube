@@ -13,5 +13,9 @@ namespace Cube.Replication {
         IServerNetworkInterface networkInterface {
             get;
         }
+
+        IWorld world {
+            get;
+        }
     }
 }

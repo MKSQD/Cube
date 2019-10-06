@@ -1,6 +1,5 @@
 using Cube.Replication;
 using Cube.Transport;
-using UnityEngine;
 
 namespace Cube.Networking {
     public class CubeClient : ICubeClient {
@@ -21,10 +20,16 @@ namespace Cube.Networking {
             internal set;
         }
 
-        public CubeClient(Transform clientTransform, ClientSimulatedLagSettings lagSettings) {
+        public IWorld world {
+            get;
+            internal set;
+        }
+
+        public CubeClient(IWorld world, ClientSimulatedLagSettings lagSettings) {
+            this.world = world;
             networkInterface = new LidgrenClientNetworkInterface(lagSettings);
             reactor = new ClientReactor(networkInterface);
-            replicaManager = new ClientReplicaManager(this, NetworkPrefabLookup.instance, clientTransform);
+            replicaManager = new ClientReplicaManager(this, NetworkPrefabLookup.instance);
         }
         
         public void Update() {

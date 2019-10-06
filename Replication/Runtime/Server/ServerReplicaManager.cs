@@ -46,11 +46,6 @@ namespace Cube.Replication {
 
         NetworkScene _networkScene;
 
-        Transform _serverTransform;
-        public Transform instantiateTransform {
-            get { return _serverTransform; }
-        }
-
         [SerializeField]
         List<ReplicaView> _replicaViews = new List<ReplicaView>();
         public List<ReplicaView> replicaViews {
@@ -78,12 +73,9 @@ namespace Cube.Replication {
         }
 #endif
 
-        public ServerReplicaManager(ICubeServer server, Transform serverTransform, ServerReplicaManagerSettings settings) {
+        public ServerReplicaManager(ICubeServer server, ServerReplicaManagerSettings settings) {
             Assert.IsNotNull(server);
-            Assert.IsNotNull(serverTransform);
             Assert.IsNotNull(settings);
-
-            _serverTransform = serverTransform;
 
             _networkScene = new NetworkScene();
 
@@ -150,18 +142,18 @@ namespace Cube.Replication {
         }
 
         Replica InstantiateReplicaImpl(GameObject prefab, Vector3 position, Quaternion rotation) {
-            var newInstance = UnityEngine.Object.Instantiate(prefab, position, rotation, _serverTransform);
+            var newInstance = UnityEngine.Object.Instantiate(prefab, position, rotation, _server.world.transform);
 
             var newReplica = newInstance.GetComponent<Replica>();
             if (newReplica == null) {
-                Debug.LogError("prefab is missing Replica Component: " + prefab, prefab);
+                Debug.LogError("Prefab <i>" + prefab + "</i> is missing Replica Component ", prefab);
                 return null;
             }
 
             newReplica.server = _server;
             newReplica.id = ReplicaId.Create(this);
 
-            //Delay sending to client because we should wait for one frame until Start is called.
+            // Delay sending to client because we should wait for one frame until Start is called
             _constructingReplicas[newReplica.id] = newReplica;
 
             return newReplica;

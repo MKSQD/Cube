@@ -1,7 +1,6 @@
 using Cube.Replication;
 using Cube.Transport;
 using System.Collections.Generic;
-using UnityEngine;
 using BitStream = Cube.Transport.BitStream;
 
 namespace Cube.Networking {
@@ -21,13 +20,19 @@ namespace Cube.Networking {
             internal set;
         }
 
+        public IWorld world {
+            get;
+            internal set;
+        }
+
         public List<Connection> connections {
             get;
             internal set;
         }
 
-        public CubeServer(ushort port, Transform serverTransform, ServerReplicaManagerSettings replicaManagerSettings) {
+        public CubeServer(ushort port, IWorld world, ServerReplicaManagerSettings replicaManagerSettings) {
             connections = new List<Connection>();
+            this.world = world;
 
             networkInterface = new LidgrenServerNetworkInterface(port);
 
@@ -35,7 +40,7 @@ namespace Cube.Networking {
             reactor.AddMessageHandler((byte)MessageId.NewConnectionEstablished, OnNewConnectionEstablished);
             reactor.AddMessageHandler((byte)MessageId.DisconnectNotification, OnDisconnectNotification);
 
-            replicaManager = new ServerReplicaManager(this, serverTransform, replicaManagerSettings);
+            replicaManager = new ServerReplicaManager(this, replicaManagerSettings);
         }
 
         public void Update() {

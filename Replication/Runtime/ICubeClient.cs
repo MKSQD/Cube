@@ -2,16 +2,9 @@
 
 namespace Cube.Replication {
     public interface ICubeClient {
-        IClientReplicaManager replicaManager {
-            get;
-        }
-
-        IClientReactor reactor {
-            get;
-        }
-
-        IClientNetworkInterface networkInterface {
-            get;
-        }
+        IClientReplicaManager replicaManager { get; }
+        IClientReactor reactor { get; }
+        IClientNetworkInterface networkInterface { get; }
+        IWorld world { get; }
     }
 }

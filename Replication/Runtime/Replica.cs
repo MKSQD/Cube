@@ -66,6 +66,9 @@ namespace Cube.Replication {
             internal set;
         }
 
+        /// <summary>
+        /// Used on the client to remove Replicas which received no updates for a long time.
+        /// </summary>
         [HideInInspector]
         public float lastUpdateTime;
 
@@ -233,7 +236,8 @@ namespace Cube.Replication {
         }
 
         public void CallRpcServer(Connection connection, BitStream bs, IReplicaManager replicaManager) {
-            if (owner != connection) {
+            var replicaOwnedByCaller = owner == connection;
+            if (!replicaOwnedByCaller) {
                 var componentIdx = bs.ReadByte();
                 var methodId = bs.ReadByte();
 
@@ -251,14 +255,20 @@ namespace Cube.Replication {
                 return;
             }
 
-            CallRpc(connection, bs, replicaManager);
+            ReplicaBehaviour.rpcConnection = connection;
+            try {
+                CallRpcImpl(connection, bs, replicaManager);
+            }
+            finally {
+                ReplicaBehaviour.rpcConnection = Connection.Invalid;
+            }
         }
 
         public void CallRpcClient(BitStream bs, IReplicaManager replicaManager) {
-            CallRpc(Connection.Invalid, bs, replicaManager);
+            CallRpcImpl(Connection.Invalid, bs, replicaManager);
         }
 
-        void CallRpc(Connection connection, BitStream bs, IReplicaManager replicaManager) {
+        void CallRpcImpl(Connection connection, BitStream bs, IReplicaManager replicaManager) {
             // #todo expose connection; maybe require first RPC arg to be ReplicaRpcContext?
 
             var componentIdx = bs.ReadByte();
