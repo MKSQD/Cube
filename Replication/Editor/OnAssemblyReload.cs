@@ -17,24 +17,24 @@ namespace Cube.Replication.Editor {
             if (BuildPipeline.isBuildingPlayer)
                 return;
 
-            string unityAssemblyPath = Path.GetDirectoryName(EditorApplication.applicationPath);
-
+            var unityAssemblyPath = Path.GetDirectoryName(EditorApplication.applicationPath);
             if (unityAssemblyPath.Length == 0 || !Directory.Exists(unityAssemblyPath)) {
                 Debug.LogError("Unity3d assembly path not found (" + unityAssemblyPath + ")");
                 return;
             }
 
-            var searchPathList = new List<string>();
-            searchPathList.Add(unityAssemblyPath + "/Data/Managed");
-            searchPathList.Add(unityAssemblyPath + "/Data/Managed/UnityEngine");
-            searchPathList.Add(unityAssemblyPath + "/Data/NetStandard/ref/2.0.0");
-            searchPathList.Add(unityAssemblyPath + "/Data/PlaybackEngines/windowsstandalonesupport/Managed");
-            searchPathList.Add(unityAssemblyPath + "/Data/UnityExtensions/Unity/Timeline/Editor");
-            searchPathList.Add(unityAssemblyPath + "/Data/UnityExtensions/Unity/Timeline/RuntimeEditor");
-            searchPathList.Add(unityAssemblyPath + "/Data/UnityExtensions/Unity/Timeline/Runtime");
-            searchPathList.Add(Application.dataPath + "/../Library/ScriptAssemblies");
+            var searchPathList = new List<string> {
+                unityAssemblyPath + "/Data/Managed",
+                unityAssemblyPath + "/Data/Managed/UnityEngine",
+                unityAssemblyPath + "/Data/NetStandard/ref/2.0.0",
+                unityAssemblyPath + "/Data/PlaybackEngines/windowsstandalonesupport/Managed",
+                unityAssemblyPath + "/Data/UnityExtensions/Unity/Timeline/Editor",
+                unityAssemblyPath + "/Data/UnityExtensions/Unity/Timeline/RuntimeEditor",
+                unityAssemblyPath + "/Data/UnityExtensions/Unity/Timeline/Runtime",
+                Application.dataPath + "/../Library/ScriptAssemblies"
+            };
 
-            AssemblyPostProcessor.Start(assemblyPath, searchPathList.ToArray(), true);
+            AssemblyPostProcessor.Start(assemblyPath, searchPathList.ToArray());
         }
     }
 }

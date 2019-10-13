@@ -135,7 +135,7 @@ namespace Cube.Replication {
             return type.BaseType.FullName == "System.MulticastDelegate";
         }
 
-        protected bool InheritsTypeFrom(TypeDefinition type, string className) {
+        protected bool TypeInheritsFrom(TypeDefinition type, string className) {
             if (type == null)
                 return false;
             if (type.BaseType.FullName.StartsWith("System."))
@@ -175,10 +175,10 @@ namespace Cube.Replication {
             if (to.Body.Instructions.Count > 0) {
                 ClearMethodBody(to);
             }
-            to.Body.InitLocals = from.Body.InitLocals;
 
-            foreach (VariableDefinition var in from.Body.Variables) {
-                to.Body.Variables.Add(var);
+            to.Body.InitLocals = from.Body.InitLocals;
+            foreach (var variable in from.Body.Variables) {
+                to.Body.Variables.Add(variable);
             }
             var il = to.Body.GetILProcessor();
             foreach (var instruction in from.Body.Instructions) {

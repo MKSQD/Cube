@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor.Compilation;
 using UnityEditor.Build.Reporting;
-using Cube.Replication;
 using UnityEditor;
 using Cube.Replication.Editor;
 
@@ -30,10 +29,16 @@ namespace Cube.Networking.Editor {
                 if (assembly.name == "Cube.Networking.Transport.RuntimeTests" || assembly.name == "Cube.Networking.RuntimeTests")
                     continue;
 
-                var assemblyPath = GetAssembliesDirectory() + "/" + assembly.name + ".dll";  //#TODO check targetLocation path
-                var withSymbols = (report.summary.options & BuildOptions.Development) != 0;
+                var assemblyPath = GetAssembliesDirectory() + "/" + assembly.name + ".dll";
 
-                AssemblyPostProcessor.Start(assemblyPath, searchPathList.ToArray(), withSymbols);
+                var options = AssemblyPostProcessor.PatcherOptions.None;
+
+                var skipSymbols = (report.summary.options & BuildOptions.Development) == 0;
+                if(skipSymbols) {
+                    options |= AssemblyPostProcessor.PatcherOptions.SkipSymbols;
+                }
+
+                AssemblyPostProcessor.Start(assemblyPath, searchPathList.ToArray(), options);
             }
         }        
     }

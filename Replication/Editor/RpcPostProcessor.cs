@@ -116,33 +116,29 @@ namespace Cube.Replication.Editor {
                 return;
 
             byte nextRpcMethodId = 0;
-            var remoteMethods = new List<MethodDefinition>();
+            if (TypeInheritsFrom(type, "Cube.Replication.ReplicaBehaviour")) {
+                var baseType = ResolveTypeReference(type.BaseType);
 
-            TypeDefinition baseType = null;
-            if (InheritsTypeFrom(type, "Cube.Replication.ReplicaBehaviour")) {
-                var tmp = ResolveTypeReference(type.BaseType);
-
-                //#TODO classes from other modules (filter "tmp.Module.path" in "Application.dataPath" ?)
-                if (tmp.FullName != "Cube.Replication.ReplicaBehaviour" && tmp.Module.Name == module.Name) {
-                    baseType = tmp;
+                // #TODO classes from other modules (filter "tmp.Module.path" in "Application.dataPath" ?)
+                if (baseType.FullName != "Cube.Replication.ReplicaBehaviour" && baseType.Module.Name == module.Name) {
                     ProcessType(baseType);
                     nextRpcMethodId = _processedTypes[baseType.FullName];
                 }
             }
 
+            var remoteMethods = new List<MethodDefinition>();
             var rpcMethods = new Dictionary<byte, MethodDefinition>();
-
             foreach (var method in type.Methods) {
-                if (nextRpcMethodId == byte.MaxValue) {
-                    Debug.LogError("Reached max RPC method count (" + nextRpcMethodId + ") for type: " + type.FullName + "!");
-                    break;
-                }
-
                 if (method.IsConstructor || !method.HasBody)
                     continue;
 
                 if (!HasAttribute("Cube.Replication.ReplicaRpcAttribute", method))
                     continue;
+
+                if (nextRpcMethodId == byte.MaxValue) {
+                    Debug.LogError("Reached max RPC method count (" + nextRpcMethodId + ") for type: " + type.FullName + "!");
+                    break;
+                }
 
                 var implMethod = CreateRpcRemoteMethod(method);
                 remoteMethods.Add(implMethod);
@@ -172,10 +168,10 @@ namespace Cube.Replication.Editor {
 
                     InjectMethodCallAtEnd(method, addRpcsToMapMethod);
                 }
-            }
 
-            foreach (var method in remoteMethods) {
-                type.Methods.Add(method);
+                foreach (var method in remoteMethods) {
+                    type.Methods.Add(method);
+                }
             }
 
             _processedTypes.Add(type.FullName, nextRpcMethodId);
@@ -261,7 +257,6 @@ namespace Cube.Replication.Editor {
                 Debug.LogError("RPC method error \"" + method.FullName + "\": " + error);
                 return false;
             }
-
             return true;
         }
 
@@ -274,11 +269,11 @@ namespace Cube.Replication.Editor {
             string error;
             MethodDefinition meth;
             if (rpcTarget == _rpcTargetServerValue) {
-                error = "Cannot call rpc method \"" + method.FullName + "\" on server";
+                error = "Cannot call RPC method \"" + method.FullName + "\" on server";
                 meth = _isClientProperty.GetMethod;
             }
             else {
-                error = "Cannot call rpc method \"" + method.FullName + "\" on client";
+                error = "Cannot call RPC method \"" + method.FullName + "\" on client";
                 meth = _isServerProperty.GetMethod;
             }
 
@@ -359,7 +354,7 @@ namespace Cube.Replication.Editor {
                 error = "Rpc method cannot be static";
                 return false;
             }
-            if (!InheritsTypeFrom(method.DeclaringType, "Cube.Replication.ReplicaBehaviour")) {
+            if (!TypeInheritsFrom(method.DeclaringType, "Cube.Replication.ReplicaBehaviour")) {
                 error = "Rpc methods are only supported in \"ReplicaBehaviour\"";
                 return false;
             }

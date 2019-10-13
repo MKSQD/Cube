@@ -73,7 +73,7 @@ namespace Cube.Replication.Editor {
 
             PatchReplicaVars(fields, type);
 
-            if (!InheritsTypeFrom(type, "Cube.Replication.ReplicaBehaviour")) {
+            if (!TypeInheritsFrom(type, "Cube.Replication.ReplicaBehaviour")) {
                 Debug.LogError("VAR Patcher: ReplicaVar on type '" + type.FullName + "' which is not derived from Cube.Networking.Replicas.ReplicaBehaviour");
                 return;
             }

@@ -7,6 +7,10 @@ using BitStream = Cube.Transport.BitStream;
 
 namespace Cube.Replication {
     public sealed class ClientReplicaManager : IClientReplicaManager {
+#if UNITY_EDITOR
+        public static List<ClientReplicaManager> all = new List<ClientReplicaManager>();
+#endif
+
         ICubeClient _client;
 
         NetworkScene _networkScene;
@@ -31,6 +35,10 @@ namespace Cube.Replication {
             _sceneReplicaLookup = new Dictionary<byte, SceneReplicaWrapper>();
 
             SceneManager.sceneLoaded += OnSceneLoaded;
+
+#if UNITY_EDITOR
+            all.Add(this);
+#endif
         }
 
         void OnSceneLoaded(Scene scene, LoadSceneMode mode) {
@@ -89,38 +97,64 @@ namespace Cube.Replication {
         }
 
         void OnReplicaUpdate(BitStream bs) {
-            var isOwner = bs.ReadBool();
+            var prefabIdx = ushort.MaxValue;
+
             var isSceneReplica = bs.ReadBool();
-            ushort prefabIdx = ushort.MaxValue;
             if (!isSceneReplica) {
                 prefabIdx = bs.ReadUShort();
             }
-            var replicaId = bs.ReadReplicaId();
 
-            var replica = _networkScene.GetReplicaById(replicaId);
-            if (replica == null) {
-                if (isSceneReplica)
-                    return;
+            Replica mainReplica = null;
+            Replica[] anyReplicas = null;
+            var anyReplicasIdx = 1;
+            while (!bs.IsExhausted) {
+                var replicaId = bs.ReadReplicaId();
 
-                replica = ConstructReplica(prefabIdx, replicaId);
-                if (replica == null)
-                    return;
+                Replica replica = null;
+                if (mainReplica == null) {
+                    replica = _networkScene.GetReplicaById(replicaId);
+                    if (replica == null) {
+                        if (isSceneReplica)
+                            return; // Don't construct scene Replicas
 
-                _networkScene.AddReplica(replica);
-            }
+                        replica = ConstructReplica(prefabIdx, replicaId);
+                        if (replica == null)
+                            return; // Construction failed
 
-            replica.ClientUpdateOwnership(isOwner);
+                        _networkScene.AddReplica(replica);
+                    }
+                    mainReplica = replica;
+                    anyReplicas = replica.GetComponentsInChildren<Replica>();
+                }
+                else {
+                    replica = _networkScene.GetReplicaById(replicaId);
+                    if (replica == null) {
+                        replica = anyReplicas[anyReplicasIdx];
+                        replica.client = _client;
+                        replica.id = replicaId;
+                        replica.SetParent(mainReplica);
+                        _networkScene.AddReplica(replica);
 
+                        ++anyReplicasIdx;
+                    }
+                }
+
+                var isOwner = bs.ReadBool();
+                replica.ClientUpdateOwnership(isOwner);
+
+                // Hack: 
+                // In the editor client and service scene Replica is the same instance. So we don't do
+                // any ReplicaBehaviour replication
 #if UNITY_EDITOR
-            if (isSceneReplica)
-                return;
+                if (isSceneReplica)
+                    return; // #todo THIS BREAKS SCENE REPLICA SUBREPLICAS
 #endif
+                foreach (var component in replica.replicaBehaviours) {
+                    component.Deserialize(bs);
+                }
 
-            foreach (var component in replica.replicaBehaviours) {
-                component.Deserialize(bs);
+                replica.lastUpdateTime = Time.time;
             }
-
-            replica.lastUpdateTime = Time.time;
         }
 
         Replica ConstructReplica(ushort prefabIdx, ReplicaId replicaId) {
@@ -140,6 +174,12 @@ namespace Cube.Replication {
 
             newReplica.client = _client;
             newReplica.id = replicaId;
+
+            foreach (var anyReplica in newInstance.GetComponentsInChildren<Replica>()) {
+                if (anyReplica != newReplica) {
+                    anyReplica.SetParent(newReplica);
+                }
+            }
             return newReplica;
         }
 
@@ -159,14 +199,12 @@ namespace Cube.Replication {
 
         void OnReplicaDestroy(BitStream bs) {
             while (!bs.IsExhausted) {
-                var absOffset = int.MaxValue;
-
                 var replicaId = bs.ReadReplicaId();
-                absOffset = bs.ReadUShort();
+                var absOffset = bs.ReadUShort();
 
                 var replica = _networkScene.GetReplicaById(replicaId);
                 if (replica != null) {
-                    for (int i = 0; i < replica.replicaBehaviours.Length; ++i) {
+                    for (int i = 0; i < replica.replicaBehaviours.Count; ++i) {
                         var replicaBehaviour = replica.replicaBehaviours[i];
                         replicaBehaviour.DeserializeDestruction(bs);
                     }

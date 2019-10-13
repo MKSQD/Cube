@@ -10,8 +10,6 @@ namespace Cube.Replication {
     [AddComponentMenu("Cube/Replica")]
     [DisallowMultipleComponent]
     public class Replica : MonoBehaviour {
-        public delegate void ReplicaEvent(Replica replica);
-
         public struct QueuedRpc {
             public RpcTarget target;
             public BitStream bs;
@@ -36,8 +34,10 @@ namespace Cube.Replication {
         public ICubeServer server;
         public ICubeClient client;
 
-        public event ReplicaEvent onOwnership;
-        public event ReplicaEvent onOwnershipRemoved;
+        public Replica parent {
+            get;
+            internal set;
+        }
 
         public bool isServer {
             get {
@@ -61,7 +61,7 @@ namespace Cube.Replication {
             internal set;
         }
 
-        public ReplicaBehaviour[] replicaBehaviours {
+        public List<ReplicaBehaviour> replicaBehaviours {
             get;
             internal set;
         }
@@ -96,12 +96,10 @@ namespace Cube.Replication {
                 return;
 
             isOwner = owned;
-            if (owned) {
-                onOwnership?.Invoke(this);
-            }
-            else {
-                onOwnershipRemoved?.Invoke(this);
-            }
+        }
+
+        public void SetParent(Replica parent) {
+            this.parent = parent;
         }
 
         public bool IsRelevantFor(ReplicaView view) {
@@ -158,11 +156,29 @@ namespace Cube.Replication {
         }
 
         public void RebuildReplicaBehaviourCache() {
-            replicaBehaviours = GetComponentsInChildren<ReplicaBehaviour>();
-            for (byte i = 0; i < replicaBehaviours.Length; ++i) {
-                var behaviour = replicaBehaviours[i];
-                behaviour.replica = this;
-                behaviour.replicaComponentIdx = i;
+            replicaBehaviours = new List<ReplicaBehaviour>();
+
+            var todo = new List<Transform> {
+                transform
+            };
+
+            byte componentIdx = 0;
+            while (todo.Count > 0) {
+                var t = todo[todo.Count - 1];
+                todo.RemoveAt(todo.Count - 1);
+
+                if(t != transform) {
+                    var subReplica = t.GetComponent<Replica>();
+                    if (subReplica != null)
+                        continue; // Ignore Sub-ReplicaBehaviours
+                }
+
+                var behaviours = t.GetComponentsInChildren<ReplicaBehaviour>();
+                foreach(var b in behaviours) {
+                    b.replica = this;
+                    b.replicaComponentIdx = componentIdx++;
+                    replicaBehaviours.Add(b);
+                }
             }
         }
 
@@ -250,7 +266,8 @@ namespace Cube.Replication {
                 }
 
 #if CUBE_DEBUG_REP
-                Debug.LogWarning("Got Replica RPC from non-owning client. Replica=" + gameObject.name + " Method=" + methodInfo.Name + " Client=" + connection + " Owner=" + owner, gameObject);
+                var ownerStr = owner != Connection.Invalid ? owner.ToString() : "Server";
+                Debug.LogWarning("Got Replica RPC from non-owning client. Replica=" + gameObject.name + " Method=" + methodInfo.Name + " Client=" + connection + " Owner=" + ownerStr, gameObject);
 #endif
                 return;
             }

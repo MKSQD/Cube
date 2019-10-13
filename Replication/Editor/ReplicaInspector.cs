@@ -29,16 +29,12 @@ namespace Cube.Replication.Editor {
 
             if (EditorApplication.isPlaying) {
                 if (GUILayout.Button("Find corresponding Replica")) {
-                    PingCorrespondingReplica();
+                    PingCorrespondingReplica(replica);
                 }
             }
         }
 
-        void PingCorrespondingReplica() {
-            var replica = target as Replica;
-            if (replica == null)
-                return;
-
+        void PingCorrespondingReplica(Replica replica) {
             Action<GameObject> pingMatching = (go) => {
                 var correspondingReplicas = go.GetComponentsInChildren<Replica>();
                 foreach (var correspondingReplica in correspondingReplicas) {
@@ -49,18 +45,27 @@ namespace Cube.Replication.Editor {
                 }
             };
 
-            throw new Exception("Fixme");
-//             if (replica.isClient) {
-//                 foreach (var server in UnityServer.all) {
-//                     pingMatching(server.gameObject);
-//                 }
-//             }
-// 
-//             if (replica.isServer) {
-//                 foreach (var client in UnityClient.all) {
-//                     pingMatching(client.gameObject);
-//                 }
-//             }
+            if (replica.isClient) {
+                foreach (var replicaManager in ServerReplicaManager.all) {
+                    var otherReplica = replicaManager.GetReplicaById(replica.id);
+                    if (otherReplica == null)
+                        continue;
+
+                    pingMatching(otherReplica.gameObject);
+                    break;
+                }
+            }
+
+            if (replica.isServer) {
+                foreach (var replicaManager in ClientReplicaManager.all) {
+                    var otherReplica = replicaManager.GetReplicaById(replica.id);
+                    if (otherReplica == null)
+                        continue;
+
+                    pingMatching(otherReplica.gameObject);
+                    break;
+                }
+            }
         }
     }
 }
