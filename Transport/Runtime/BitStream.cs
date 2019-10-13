@@ -307,8 +307,7 @@ namespace Cube.Transport {
             if (_readBitOffset + count > _numberOfBitsUsed)
                 throw new IndexOutOfRangeException("Read over end: " + (_readBitOffset + count) + " > " + _numberOfBitsUsed);
 
-            int readOffsetMod8 = (int)(_readBitOffset & 7);
-
+            var readOffsetMod8 = _readBitOffset & 7;
             if ((_readBitOffset & 7) == 0 && (count & 7) == 0) {
                 fixed (byte* data = &_data[0]) {
                     memcpy(buffer, data + (_readBitOffset >> 3), count >> 3);
