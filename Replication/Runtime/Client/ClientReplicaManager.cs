@@ -138,6 +138,7 @@ namespace Cube.Replication {
                         ++anyReplicasIdx;
                     }
                 }
+                Assert.IsTrue(replica.isClient);
 
                 var isOwner = bs.ReadBool();
                 replica.ClientUpdateOwnership(isOwner);
@@ -149,6 +150,7 @@ namespace Cube.Replication {
                 if (isSceneReplica)
                     return; // #todo THIS BREAKS SCENE REPLICA SUBREPLICAS
 #endif
+                
                 foreach (var component in replica.replicaBehaviours) {
                     component.Deserialize(bs);
                 }

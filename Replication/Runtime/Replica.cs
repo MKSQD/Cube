@@ -155,6 +155,7 @@ namespace Cube.Replication {
             server.replicaManager.RemoveReplica(this);
         }
 
+        // This implementation is horrible ...
         public void RebuildReplicaBehaviourCache() {
             replicaBehaviours = new List<ReplicaBehaviour>();
 
@@ -167,17 +168,21 @@ namespace Cube.Replication {
                 var t = todo[todo.Count - 1];
                 todo.RemoveAt(todo.Count - 1);
 
-                if(t != transform) {
+                if (t != transform) {
                     var subReplica = t.GetComponent<Replica>();
                     if (subReplica != null)
                         continue; // Ignore Sub-ReplicaBehaviours
                 }
 
-                var behaviours = t.GetComponentsInChildren<ReplicaBehaviour>();
-                foreach(var b in behaviours) {
+                var behaviours = t.GetComponents<ReplicaBehaviour>();
+                foreach (var b in behaviours) {
                     b.replica = this;
                     b.replicaComponentIdx = componentIdx++;
                     replicaBehaviours.Add(b);
+                }
+
+                for (int i = 0; i < t.childCount; ++i) {
+                    todo.Add(t.GetChild(i));
                 }
             }
         }
