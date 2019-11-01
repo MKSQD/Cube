@@ -1,6 +1,7 @@
 ﻿using Cube.Transport;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using UnityEngine;
 using UnityEngine.Assertions;
@@ -62,6 +63,14 @@ namespace Cube.Replication {
         }
 
         public List<ReplicaBehaviour> replicaBehaviours {
+            get;
+            internal set;
+        }
+
+        /// <summary>
+        /// This Replica and all sub Replicas (only valid on the top-most Replica.
+        /// </summary>
+        public List<Replica> withSubReplicas {
             get;
             internal set;
         }
@@ -155,34 +164,34 @@ namespace Cube.Replication {
             server.replicaManager.RemoveReplica(this);
         }
 
-        // This implementation is horrible ...
-        public void RebuildReplicaBehaviourCache() {
+        public void RebuildCaches() {
             replicaBehaviours = new List<ReplicaBehaviour>();
+            withSubReplicas = GetComponentsInChildren<Replica>().ToList();
 
-            var todo = new List<Transform> {
+            var todoTransforms = new List<Transform> {
                 transform
             };
 
             byte componentIdx = 0;
-            while (todo.Count > 0) {
-                var t = todo[todo.Count - 1];
-                todo.RemoveAt(todo.Count - 1);
+            while (todoTransforms.Count > 0) {
+                var childTransform = todoTransforms[todoTransforms.Count - 1];
+                todoTransforms.RemoveAt(todoTransforms.Count - 1);
 
-                if (t != transform) {
-                    var subReplica = t.GetComponent<Replica>();
+                if (childTransform != transform) {
+                    var subReplica = childTransform.GetComponent<Replica>();
                     if (subReplica != null)
-                        continue; // Ignore Sub-ReplicaBehaviours
+                        continue; // Ignore sub Replica ReplicaBehaviours
                 }
 
-                var behaviours = t.GetComponents<ReplicaBehaviour>();
-                foreach (var b in behaviours) {
-                    b.replica = this;
-                    b.replicaComponentIdx = componentIdx++;
-                    replicaBehaviours.Add(b);
+                var behaviours = childTransform.GetComponents<ReplicaBehaviour>();
+                foreach (var behaviour in behaviours) {
+                    behaviour.replica = this;
+                    behaviour.replicaComponentIdx = componentIdx++;
+                    replicaBehaviours.Add(behaviour);
                 }
 
-                for (int i = 0; i < t.childCount; ++i) {
-                    todo.Add(t.GetChild(i));
+                for (int i = 0; i < childTransform.childCount; ++i) {
+                    todoTransforms.Add(childTransform.GetChild(i));
                 }
             }
         }
@@ -196,7 +205,7 @@ namespace Cube.Replication {
                 settings = defaultReplicaSettings;
             }
 
-            RebuildReplicaBehaviourCache();
+            RebuildCaches();
         }
 
         /// <summary>

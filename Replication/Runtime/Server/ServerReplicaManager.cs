@@ -97,7 +97,7 @@ namespace Cube.Replication {
             var sceneReplicas = new List<Replica>();
             foreach (var go in scene.GetRootGameObjects()) {
                 foreach (var replica in go.GetComponentsInChildren<Replica>()) {
-                    if (replica.sceneIdx == 0)
+                    if (!replica.isSceneReplica)
                         continue;
 
                     sceneReplicas.Add(replica);
@@ -248,7 +248,7 @@ namespace Cube.Replication {
 
                 foreach (var idReplicaPair in _replicasInConstruction) {
                     var replica = idReplicaPair.Value;
-                    foreach (var anyReplica in replica.GetComponentsInChildren<Replica>()) {
+                    foreach (var anyReplica in replica.withSubReplicas) {
                         _networkScene.AddReplica(anyReplica);
                     }
                 }
@@ -325,7 +325,7 @@ namespace Cube.Replication {
                     if (!replica.isSceneReplica) {
                         updateBs.Write(replica.prefabIdx);
                     }
-                    foreach (var anyReplica in replica.GetComponentsInChildren<Replica>()) {
+                    foreach (var anyReplica in replica.withSubReplicas) {
                         updateBs.Write(anyReplica.id);
 
                         bool isOwner = anyReplica.owner == view.connection;
