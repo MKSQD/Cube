@@ -14,6 +14,11 @@ namespace Cube.Replication {
         /// <summary>
         /// RPC from the server to all clients and to itself.
         /// </summary>
-        All
+        All,
+
+        /// <summary>
+        /// RPC from the server to all clients except to the owner.
+        /// </summary>
+        AllClientsExceptOwner
     }
 }

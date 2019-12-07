@@ -310,14 +310,13 @@ namespace Cube.Replication {
 
             var sortedIndices = GetSortedRelevantReplicaIndices(view);
 
-            int numUpdatesSent = 0;
-            int numRpcsSent = 0;
             foreach (var idx in sortedIndices) {
                 var replica = view.relevantReplicas[idx];
                 if (replica == null || replica.id == ReplicaId.Invalid)
                     continue;
 
                 var updateBitStreamBytes = 0;
+
                 {
                     var updateBs = _server.networkInterface.bitStreamPool.Create();
                     updateBs.Write((byte)MessageId.ReplicaUpdate);
@@ -341,7 +340,6 @@ namespace Cube.Replication {
                     updateBitStreamBytes = updateBs.Length;
                 }
 
-                ++numUpdatesSent;
                 bytesSent += updateBitStreamBytes;
 
                 // We just sent this Replica, reset its priority
@@ -363,18 +361,16 @@ namespace Cube.Replication {
 
                 // Rpcs
                 foreach (var queuedRpc in replica.queuedRpcs) {
-                    if (queuedRpc.target == RpcTarget.Owner && replica.owner == view.connection) {
-                        _server.networkInterface.SendBitStream(queuedRpc.bs, PacketPriority.Low, PacketReliability.Unreliable, replica.owner);
-                    }
-                    else if (queuedRpc.target == RpcTarget.All) {
-                        _server.networkInterface.BroadcastBitStream(queuedRpc.bs, PacketPriority.Low, PacketReliability.Unreliable);
-                    }
+                    if ((queuedRpc.target == RpcTarget.Owner && replica.owner == view.connection)
+                        || queuedRpc.target == RpcTarget.All
+                        || (queuedRpc.target == RpcTarget.AllClientsExceptOwner && replica.owner != view.connection)) {
+                        _server.networkInterface.SendBitStream(queuedRpc.bs, PacketPriority.Low, PacketReliability.Unreliable, view.connection);
 
-                    ++numRpcsSent;
+                        bytesSent += queuedRpc.bs.Length;
 
-                    bytesSent += queuedRpc.bs.Length;
-                    if (bytesSent >= _settings.maxBytesPerConnectionPerUpdate)
-                        return;
+                        if (bytesSent >= _settings.maxBytesPerConnectionPerUpdate)
+                            return; // Packet size exhausted
+                    }
                 }
             }
         }
