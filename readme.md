@@ -1,20 +1,14 @@
 # Cube
-Network replication library for [Unity3d](https://unity.com/). In development for over 4+ years.
+GameObject based network replication library for [Unity3d](https://unity.com/). Simple network protocol based on eventual consistency.
 
 ## Features
-- Only 1 included dependency (Lidgren)
 - Integration with [Unreal-style gameplay framework](https://github.com/NoDogsInc/GameFramework)
-- Support for multiple clients/servers in one process (no singletons, switch between Server + Client/Server/Client in editor)
+- Server and client in the same editor process
+- Simple, documented API surface
 - Eventual consistency based network model (loosely based on [GDC Vault: I Shot You First! Gameplay Networking in Halo: Reach](http://www.gdcvault.com/play/1014345/I-Shot-You-First-Networking))
-- Object-based replication
-- Full support for ScriptableObjects (as rpc arguments)
-- Automation (client/server prefabs and assets are discovered automatically)
-- Transport current based on [Lidgren](https://github.com/lidgren/lidgren-network-gen3)
-
-## Todo
-- Redo the scene Replica system
-- Add validation/changed callbacks to ReplicaVars
-- Improve documentation
+- Full support for ScriptableObjects as rpc arguments
+- Client/server prefabs and assets are discovered automatically, no factory functions to implement or lists to manually maintain
+- Transport current based on [Lidgren](https://github.com/lidgren/lidgren-network-gen3); can be replaced easily
 
 ## Getting Started
 Clone the git repository into your **Assets** folder.
@@ -24,16 +18,13 @@ Create new GameObject *ClientGame* in the scene and add the *Cube/ClientGame* co
 Create another new GameObject *ServerGame* and add the *Cube/ServerGame* component. 
 When you start the game now you should see log output of the client connecting to the server.
 
-Note that the instant connection in ClientGame is just enabled in the Unity editor.
+Note that the automatic connection to the server in ClientGame is just enabled in the Unity editor.
 
 Now that we've got a connection we can start looking at ...
 
 ## Replication
-The hearth of Cube is a powerful replication system.
 
-
-> A **Replica** is replicated from the server to all clients.
-> Replicas must always be prefabs and instances of prefabs for Cube to be able to create client instances of them.
+A **Replica** is replicated from the server to all clients. Replicas must always be instances of prefabs for Cube to be able to create client instances of them.
 
 
 Create a new *GameObject* in the scene. Add the *Cube/Replica* component to mark it as an Replica.
@@ -69,41 +60,37 @@ public class TestServerGame : ServerGame {
 ```
 Replace the *ServerGame* component on the ServerGame scene GameObject. Assign TestReplica to it's prefab field.
 
-> A **ReplicaView** observes Replicas for a connection.
-> Its position is used to scope and priorize which Replicas to send.
+A **ReplicaView** observes Replicas for a connection. Its position and settings is used to scope and priorize which Replicas to send. Without a ReplicaView the client will not receive any Replicas.
 
 Start the game now and you should see the Replica prefab being replicated. Try to move around the server-side instance in the editor.
 
 For the client to instantiate a different prefab, rename your prefab to *Server_TestReplica*
-and create a new prefab variant *Client_TestReplica* (The name prefixes **Server_** and **Client_** are important).
-Now you can for instance set a blue transparent material color on the server prefab.
+and create a new prefab variant *Client_TestReplica* (The name prefixes **Server_** and **Client_** are important). 
 
 #### ReplicaBehaviour instead of MonoBehaviour
-ReplicaBehaviour dervices from MonoBehaviour and are used to implement multiplayer related functionaly on a Replica.
-It provides additional functionality:
-- isServer/isClient and server/client
-- Ownership and isOwner
-- Rpcs
+ReplicaBehaviour derives from MonoBehaviour and is used to implement multiplayer related functionaly on a Replica.
+The server/client members can be used to access the Cube instance the Replica is part of. Rpcs are only available for ReplicaBehaviours.
 
-Only run behaviour on server/client:
 ```C#
 using Cube.Replication;
 using UnityEngine;
 
 public class Test : ReplicaBehaviour {
-    void Update() {
-        if (!isServer) // or isClient
+    void DoTest() {
+        if (!isServer)
             return;
 
-        var pos = transform.position;
-        pos.x += Time.deltaTime;
-        if (pos.x > 8)
-            pos.x = -8;
-        transform.position = pos;
+         RpcTest();
+    }
+    
+    [ReplicaRpc(RpcTarget.Client)]
+    void RpcTest() {
+        Debug.Log("Client rpc called");
     }
 }
 ```
 
+#### Replica ownership
 Each Replica has an owning (Replica.owner) connection. Assign ownership with **Replica.AssignOwnership** and take it away with **Replica.TakeOwnership**. Only the server can set and remove ownership. Ownership information is sent to the owning client. 
 
 ### ReplicaRpc
@@ -129,3 +116,7 @@ public class TestReplica : ReplicaBehaviour {
     }
 }
 ```
+
+## Todo
+- Add validation/changed callbacks to ReplicaVars
+- Improve documentation (doh)
