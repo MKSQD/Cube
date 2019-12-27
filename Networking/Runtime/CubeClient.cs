@@ -25,7 +25,7 @@ namespace Cube.Networking {
             internal set;
         }
 
-        public CubeClient(IWorld world, ClientSimulatedLagSettings lagSettings) {
+        public CubeClient(IWorld world, SimulatedLagSettings lagSettings) {
             this.world = world;
             networkInterface = new LidgrenClientNetworkInterface(lagSettings);
             reactor = new ClientReactor(networkInterface);

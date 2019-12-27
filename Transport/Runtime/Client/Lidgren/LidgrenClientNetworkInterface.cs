@@ -14,7 +14,7 @@ namespace Cube.Transport {
         NetClient _client;
         NetConnection _connection;
 
-        public LidgrenClientNetworkInterface(ClientSimulatedLagSettings lagSettings) {
+        public LidgrenClientNetworkInterface(SimulatedLagSettings lagSettings) {
             bitStreamPool = new BitStreamPool();
 
             var config = new NetPeerConfiguration("Cube") {
@@ -23,12 +23,10 @@ namespace Cube.Transport {
 
 #if UNITY_EDITOR
             if (lagSettings.enabled) {
-                Debug.Log("Lag simulation enabled");
-
-                config.SimulatedLoss = lagSettings.simulatedLoss;
-                config.SimulatedDuplicatesChance = lagSettings.duplicatesChance;
-                config.SimulatedMinimumLatency = lagSettings.minimumLatencySec;
-                config.SimulatedRandomLatency = lagSettings.randomLatencySec;
+                config.SimulatedLoss = lagSettings.simulatedLossPercent * 0.01f;
+                config.SimulatedDuplicatesChance = lagSettings.duplicatesChancePercent * 0.01f;
+                config.SimulatedMinimumLatency = lagSettings.minimumLatencyMs * 0.001f;
+                config.SimulatedRandomLatency = lagSettings.additionalRandomLatencyMs * 0.001f;
             }
 #endif
 
@@ -41,7 +39,7 @@ namespace Cube.Transport {
         }
 
         public void Connect(string address, ushort port) {
-            Debug.Log("[Client] <b>Connecting</b> to '" + address + "'");
+            Debug.Log("[Client] <b>Connecting</b> to <i>" + address + ":" + port + "</i>");
 
             _connection = _client.Connect(address, port);
         }

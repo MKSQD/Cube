@@ -30,11 +30,11 @@ namespace Cube.Networking {
             internal set;
         }
 
-        public CubeServer(ushort port, IWorld world, ServerReplicaManagerSettings replicaManagerSettings) {
+        public CubeServer(ushort port, IWorld world, SimulatedLagSettings lagSettings, ServerReplicaManagerSettings replicaManagerSettings) {
             connections = new List<Connection>();
             this.world = world;
 
-            networkInterface = new LidgrenServerNetworkInterface(port);
+            networkInterface = new LidgrenServerNetworkInterface(port, lagSettings);
 
             reactor = new ServerReactor(networkInterface);
             reactor.AddMessageHandler((byte)MessageId.NewConnectionEstablished, OnNewConnectionEstablished);

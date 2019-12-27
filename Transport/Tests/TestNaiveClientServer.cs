@@ -6,7 +6,7 @@ namespace Cube.Transport.Tests {
     public class TestNaiveClientServer {
         [Test]
         public void StartAndShutdownServer() {
-            var server = new LidgrenServerNetworkInterface(9600);
+            var server = new LidgrenServerNetworkInterface(9600, new SimulatedLagSettings());
             Assert.IsTrue(server.isRunning);
             server.Shutdown();
             Assert.IsFalse(server.isRunning);
@@ -14,8 +14,8 @@ namespace Cube.Transport.Tests {
 
         [UnityTest]
         public IEnumerator ClientServerConnect() {
-            var server = new LidgrenServerNetworkInterface(9600);
-            var client = new LidgrenClientNetworkInterface(new ClientSimulatedLagSettings());
+            var server = new LidgrenServerNetworkInterface(9600, new SimulatedLagSettings());
+            var client = new LidgrenClientNetworkInterface(new SimulatedLagSettings());
             
             client.Connect("127.0.0.1", 9600);
                         

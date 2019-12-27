@@ -23,13 +23,22 @@ namespace Cube.Transport {
 
         NetServer _server;
 
-        public LidgrenServerNetworkInterface(ushort port) {
+        public LidgrenServerNetworkInterface(ushort port, SimulatedLagSettings lagSettings) {
             bitStreamPool = new BitStreamPool();
 
             var config = new NetPeerConfiguration("Cube") {
-                Port = port, //#TODO move host and port to Interface (maybe as IServerNetworkInterfaceConfiguration)
+                Port = port,
                 AutoFlushSendQueue = false
             };
+
+#if UNITY_EDITOR
+            if (lagSettings.enabled) {
+                config.SimulatedLoss = lagSettings.simulatedLossPercent * 0.01f;
+                config.SimulatedDuplicatesChance = lagSettings.duplicatesChancePercent * 0.01f;
+                config.SimulatedMinimumLatency = lagSettings.minimumLatencyMs * 0.001f;
+                config.SimulatedRandomLatency = lagSettings.additionalRandomLatencyMs * 0.001f;
+            }
+#endif
 
 #if !CUBE_DEBUG_TRA
             config.DisableMessageType(NetIncomingMessageType.VerboseDebugMessage);

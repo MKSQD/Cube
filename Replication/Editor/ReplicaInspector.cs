@@ -11,11 +11,6 @@ namespace Cube.Replication.Editor {
         public override void OnInspectorGUI() {
             DrawDefaultInspector();
 
-            if (GUILayout.Button("Find and Kill SceneIDMap")) {
-                var f = GameObject.Find("SceneIDMap");
-                DestroyImmediate(f);
-            }
-
             if (targets.Length != 1)
                 return;
 
@@ -33,7 +28,7 @@ namespace Cube.Replication.Editor {
             EditorGUILayout.LabelField("Scene Idx", idxStr);
 
             if (EditorApplication.isPlaying) {
-                if (GUILayout.Button("Find corresponding Replica")) {
+                if (GUILayout.Button("Find Server/Client Replica")) {
                     PingCorrespondingReplica(replica);
                 }
             }
