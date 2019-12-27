@@ -9,6 +9,10 @@ namespace Cube.Replication {
     /// 
     /// </summary>
     public abstract class ReplicaBehaviour : MonoBehaviour {
+        public struct SerializeContext {
+            public ReplicaView Observer;
+        }
+
         [HideInInspector]
         public byte replicaComponentIdx;
 
@@ -45,10 +49,10 @@ namespace Cube.Replication {
             get { return replica.isOwner; }
         }
 
-        public virtual void Serialize(BitStream bs, ReplicaView view) { }
+        public virtual void Serialize(BitStream bs, SerializeContext ctx) { }
         public virtual void Deserialize(BitStream bs) { }
 
-        public virtual void SerializeDestruction(BitStream bs, ReplicaView view) { }
+        public virtual void SerializeDestruction(BitStream bs, SerializeContext ctx) { }
         public virtual void DeserializeDestruction(BitStream bs) { }
 
         // Do not remove, the call sites will automatically be patched by the AssemblyPatcher

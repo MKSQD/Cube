@@ -16,7 +16,7 @@ namespace Cube.Replication {
         }
 
         class SimpleTreeView : TreeView {
-            public List<ServerReplicaManager.Statistic> data;
+            public List<ServerReplicaManagerStatistics> data;
 
             public SimpleTreeView(TreeViewState treeViewState, MultiColumnHeader header)
                 : base(treeViewState, header) {
@@ -35,7 +35,7 @@ namespace Cube.Replication {
                         var serverItem = new SimpleTreeViewItem { id = nextIdx++, displayName = "Server " + i };
                         root.AddChild(serverItem);
 
-                        foreach (var viewInfoPair in statistic.viewInfos) {
+                        foreach (var viewInfoPair in statistic.ViewInfos) {
                             if (viewInfoPair.view == null)
                                 continue;
 
@@ -152,9 +152,9 @@ namespace Cube.Replication {
             if (_simpleTreeView == null)
                 return;
 
-            var statistics = new List<ServerReplicaManager.Statistic>();
+            var statistics = new List<ServerReplicaManagerStatistics>();
             foreach (var replicaManager in ServerReplicaManager.all) {
-                statistics.Add(replicaManager.statistic);
+                statistics.Add(replicaManager.Statistics);
             }
 
             _simpleTreeView.data = statistics;

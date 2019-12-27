@@ -46,7 +46,7 @@ namespace Cube.Transport {
         }
 
         public void Shutdown() {
-            _server.Shutdown("bye bye"); //#TODO message ???
+            _server.Shutdown("");
         }
 
         public void Update() {

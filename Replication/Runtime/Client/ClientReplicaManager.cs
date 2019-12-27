@@ -58,7 +58,7 @@ namespace Cube.Replication {
                 }
 
                 replica.client = _client;
-                replica.id = ReplicaId.CreateFromExisting(replica.sceneIdx);
+                replica.ReplicaId = ReplicaId.CreateFromExisting(replica.sceneIdx);
                 _networkScene.AddReplica(replica);
             }
         }
@@ -104,59 +104,34 @@ namespace Cube.Replication {
                 prefabIdx = bs.ReadUShort();
             }
 
-            Replica mainReplica = null;
-            Replica[] anyReplicas = null;
-            var anyReplicasIdx = 1;
-            while (!bs.IsExhausted) {
-                var replicaId = bs.ReadReplicaId();
+            var replicaId = bs.ReadReplicaId();
 
-                Replica replica = null;
-                if (mainReplica == null) {
-                    replica = _networkScene.GetReplicaById(replicaId);
-                    if (replica == null) {
-                        if (isSceneReplica)
-                            return; // Don't construct scene Replicas
-
-                        replica = ConstructReplica(prefabIdx, replicaId);
-                        if (replica == null)
-                            return; // Construction failed
-
-                        _networkScene.AddReplica(replica);
-                    }
-                    mainReplica = replica;
-                    anyReplicas = replica.GetComponentsInChildren<Replica>();
-                }
-                else {
-                    replica = _networkScene.GetReplicaById(replicaId);
-                    if (replica == null) {
-                        replica = anyReplicas[anyReplicasIdx];
-                        replica.client = _client;
-                        replica.id = replicaId;
-                        replica.SetParent(mainReplica);
-                        _networkScene.AddReplica(replica);
-
-                        ++anyReplicasIdx;
-                    }
-                }
-                Assert.IsTrue(replica.isClient);
-
-                var isOwner = bs.ReadBool();
-                replica.ClientUpdateOwnership(isOwner);
-
-                // Hack: 
-                // In the editor client and service scene Replica is the same instance. So we don't do
-                // any ReplicaBehaviour replication
-#if UNITY_EDITOR
+            var replica = _networkScene.GetReplicaById(replicaId);
+            if (replica == null) {
                 if (isSceneReplica)
-                    return; // #todo THIS BREAKS SCENE REPLICA SUBREPLICAS
-#endif
-                
-                foreach (var component in replica.replicaBehaviours) {
-                    component.Deserialize(bs);
-                }
+                    return; // Don't construct scene Replicas
 
-                replica.lastUpdateTime = Time.time;
+                replica = ConstructReplica(prefabIdx, replicaId);
+                if (replica == null)
+                    return; // Construction failed
+
+                _networkScene.AddReplica(replica);
             }
+
+            var isOwner = bs.ReadBool();
+            replica.ClientUpdateOwnership(isOwner);
+
+            // Hack: 
+            // In the editor client and service scene Replica is the same instance. So we don't do
+            // any ReplicaBehaviour replication
+#if UNITY_EDITOR
+            if (isSceneReplica)
+                return; // #todo THIS BREAKS SCENE REPLICA SUBREPLICAS
+#endif
+
+            replica.Deserialize(bs);
+
+            replica.lastUpdateTime = Time.time;
         }
 
         Replica ConstructReplica(ushort prefabIdx, ReplicaId replicaId) {
@@ -170,18 +145,13 @@ namespace Cube.Replication {
 
             var newReplica = newInstance.GetComponent<Replica>();
             if (newReplica == null) {
-                Debug.LogWarning("Replica component missing on " + prefab);
+                Debug.LogError("Replica component missing on " + prefab);
                 return null;
             }
 
             newReplica.client = _client;
-            newReplica.id = replicaId;
+            newReplica.ReplicaId = replicaId;
 
-            foreach (var anyReplica in newInstance.GetComponentsInChildren<Replica>()) {
-                if (anyReplica != newReplica) {
-                    anyReplica.SetParent(newReplica);
-                }
-            }
             return newReplica;
         }
 
@@ -206,11 +176,7 @@ namespace Cube.Replication {
 
                 var replica = _networkScene.GetReplicaById(replicaId);
                 if (replica != null) {
-                    for (int i = 0; i < replica.replicaBehaviours.Count; ++i) {
-                        var replicaBehaviour = replica.replicaBehaviours[i];
-                        replicaBehaviour.DeserializeDestruction(bs);
-                    }
-
+                    replica.DeserializeDestruction(bs);
                     Object.Destroy(replica.gameObject);
                 }
 

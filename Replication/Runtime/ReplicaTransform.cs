@@ -32,7 +32,7 @@ namespace Cube.Replication {
             }
         }
 
-        public override void Serialize(BitStream bs, ReplicaView view) {
+        public override void Serialize(BitStream bs, SerializeContext ctx) {
             bs.Write(transform.position);
             bs.Write(transform.rotation);
         }

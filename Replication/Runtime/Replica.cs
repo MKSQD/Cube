@@ -1,7 +1,6 @@
 ﻿using Cube.Transport;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
 using UnityEngine;
 using UnityEngine.Assertions;
@@ -21,7 +20,7 @@ namespace Cube.Replication {
         public bool replicateOnlyToOwner;
 
         [HideInInspector]
-        public ReplicaId id = ReplicaId.Invalid;
+        public ReplicaId ReplicaId = ReplicaId.Invalid;
 
         [HideInInspector]
         public ushort prefabIdx;
@@ -35,11 +34,6 @@ namespace Cube.Replication {
         public ICubeServer server;
         public ICubeClient client;
 
-        public Replica parent {
-            get;
-            internal set;
-        }
-
         public bool isServer {
             get {
                 return server != null;
@@ -52,7 +46,7 @@ namespace Cube.Replication {
             }
         }
 
-        public Connection owner {
+        public Connection Owner {
             get;
             internal set;
         }
@@ -62,18 +56,7 @@ namespace Cube.Replication {
             internal set;
         }
 
-        public List<ReplicaBehaviour> replicaBehaviours {
-            get;
-            internal set;
-        }
-
-        /// <summary>
-        /// This Replica and all sub Replicas (only valid on the top-most Replica.
-        /// </summary>
-        public List<Replica> withSubReplicas {
-            get;
-            internal set;
-        }
+        ReplicaBehaviour[] _replicaBehaviours;
 
         /// <summary>
         /// Used on the client to remove Replicas which received no updates for a long time.
@@ -89,14 +72,14 @@ namespace Cube.Replication {
             Assert.IsTrue(isServer);
             Assert.IsTrue(owner != Connection.Invalid);
 
-            this.owner = owner;
+            this.Owner = owner;
             isOwner = false;
         }
 
         public void TakeOwnership() {
             Assert.IsTrue(isServer);
 
-            owner = Connection.Invalid;
+            Owner = Connection.Invalid;
             isOwner = true;
         }
 
@@ -107,10 +90,6 @@ namespace Cube.Replication {
             isOwner = owned;
         }
 
-        public void SetParent(Replica parent) {
-            this.parent = parent;
-        }
-
         public bool IsRelevantFor(ReplicaView view) {
             Assert.IsTrue(isServer);
 
@@ -118,7 +97,7 @@ namespace Cube.Replication {
                 return false;
 
             if (replicateOnlyToOwner)
-                return view.connection == owner;
+                return view.connection == Owner;
 
             return true;
         }
@@ -164,35 +143,37 @@ namespace Cube.Replication {
             server.replicaManager.RemoveReplica(this);
         }
 
+        public void Serialize(BitStream bs, ReplicaBehaviour.SerializeContext ctx) {
+            foreach (var component in _replicaBehaviours) {
+                component.Serialize(bs, ctx);
+            }
+        }
+
+        public void Deserialize(BitStream bs) {
+            foreach (var component in _replicaBehaviours) {
+                component.Deserialize(bs);
+            }
+        }
+
+        public void SerializeDestruction(BitStream bs, ReplicaBehaviour.SerializeContext ctx) {
+            foreach (var component in _replicaBehaviours) {
+                component.SerializeDestruction(bs, ctx);
+            }
+        }
+
+        public void DeserializeDestruction(BitStream bs) {
+            foreach (var component in _replicaBehaviours) {
+                component.DeserializeDestruction(bs);
+            }
+        }
+
         public void RebuildCaches() {
-            replicaBehaviours = new List<ReplicaBehaviour>();
-            withSubReplicas = GetComponentsInChildren<Replica>().ToList();
+            _replicaBehaviours = GetComponentsInChildren<ReplicaBehaviour>();
 
-            var todoTransforms = new List<Transform> {
-                transform
-            };
-
-            byte componentIdx = 0;
-            while (todoTransforms.Count > 0) {
-                var childTransform = todoTransforms[todoTransforms.Count - 1];
-                todoTransforms.RemoveAt(todoTransforms.Count - 1);
-
-                if (childTransform != transform) {
-                    var subReplica = childTransform.GetComponent<Replica>();
-                    if (subReplica != null)
-                        continue; // Ignore sub Replica ReplicaBehaviours
-                }
-
-                var behaviours = childTransform.GetComponents<ReplicaBehaviour>();
-                foreach (var behaviour in behaviours) {
-                    behaviour.replica = this;
-                    behaviour.replicaComponentIdx = componentIdx++;
-                    replicaBehaviours.Add(behaviour);
-                }
-
-                for (int i = 0; i < childTransform.childCount; ++i) {
-                    todoTransforms.Add(childTransform.GetChild(i));
-                }
+            var idx = 0;
+            foreach (var rb in _replicaBehaviours) {
+                rb.replica = this;
+                rb.replicaComponentIdx = (byte)idx++;
             }
         }
 
@@ -230,13 +211,12 @@ namespace Cube.Replication {
             _applicationQuitting = true;
         }
 
-        public void SendRpc(byte methodId, byte replicaComponentIdx, RpcTarget target, params object[] args) {
-
+        public void SendRpc(byte methodId, byte componentIdx, RpcTarget target, params object[] args) {
             if (isClient) {
                 var bs = client.networkInterface.bitStreamPool.Create();
                 bs.Write((byte)MessageId.ReplicaRpc);
-                bs.Write(id);
-                bs.Write(replicaComponentIdx);
+                bs.Write(ReplicaId);
+                bs.Write(componentIdx);
                 bs.Write(methodId);
 
                 for (int i = 0; i < args.Length; ++i) {
@@ -249,8 +229,8 @@ namespace Cube.Replication {
             if (isServer) {
                 var bs = new BitStream(); // #todo need to pool these instances, but lifetime could be over one frame
                 bs.Write((byte)MessageId.ReplicaRpc);
-                bs.Write(id);
-                bs.Write(replicaComponentIdx);
+                bs.Write(ReplicaId);
+                bs.Write(componentIdx);
                 bs.Write(methodId);
 
                 for (int i = 0; i < args.Length; ++i) {
@@ -266,12 +246,12 @@ namespace Cube.Replication {
         }
 
         public void CallRpcServer(Connection connection, BitStream bs, IReplicaManager replicaManager) {
-            var replicaOwnedByCaller = owner == connection;
+            var replicaOwnedByCaller = Owner == connection;
             if (!replicaOwnedByCaller) {
                 var componentIdx = bs.ReadByte();
                 var methodId = bs.ReadByte();
 
-                var component = replicaBehaviours[componentIdx];
+                var component = _replicaBehaviours[componentIdx];
 
                 MethodInfo methodInfo;
                 if (!component.rpcMethods.TryGetValue(methodId, out methodInfo)) {
@@ -280,7 +260,7 @@ namespace Cube.Replication {
                 }
 
 #if CUBE_DEBUG_REP
-                var ownerStr = owner != Connection.Invalid ? owner.ToString() : "Server";
+                var ownerStr = Owner != Connection.Invalid ? Owner.ToString() : "Server";
                 Debug.LogWarning("Got Replica RPC from non-owning client. Replica=" + gameObject.name + " Method=" + methodInfo.Name + " Client=" + connection + " Owner=" + ownerStr, gameObject);
 #endif
                 return;
@@ -305,7 +285,7 @@ namespace Cube.Replication {
             var componentIdx = bs.ReadByte();
             var methodId = bs.ReadByte();
 
-            var component = replicaBehaviours[componentIdx];
+            var component = _replicaBehaviours[componentIdx];
 
             MethodInfo methodInfo;
             if (!component.rpcMethods.TryGetValue(methodId, out methodInfo)) {
@@ -318,8 +298,12 @@ namespace Cube.Replication {
 
             for (int i = 0; i < args.Length; i++) {
                 var paramType = methodParameters[i].ParameterType;
-                if (!TryReadParameterFromBitStream(paramType, bs, replicaManager, out args[i]))
+                if (!TryReadParameterFromBitStream(paramType, bs, replicaManager, out args[i])) {
+                    Debug.LogWarning("Dropped Replica RPC method=" + methodInfo.Name, this);
+                    Debug.LogWarning("Method Idx = " + methodId);
+                    Debug.LogWarning("componentIdx = " + componentIdx);
                     return;
+                }
             }
 
             methodInfo.Invoke(component, args);
@@ -393,7 +377,7 @@ namespace Cube.Replication {
             }
             else if (type == typeof(Replica)) {
                 var replica = (Replica)value;
-                bs.Write(replica.id);
+                bs.Write(replica.ReplicaId);
             }
             else if (type.IsSubclassOf(typeof(NetworkObject))) {
                 bs.WriteNetworkObject((NetworkObject)value);

@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace Cube.Replication {
     public interface IServerReplicaManager : IReplicaManager {
-        List<ReplicaView> replicaViews {
+        List<ReplicaView> ReplicaViews {
             get;
         }
 

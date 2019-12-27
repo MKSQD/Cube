@@ -3,7 +3,7 @@ using BitStream = Cube.Transport.BitStream;
 
 namespace Cube.Replication {
     /// <summary>
-    /// 
+    /// Synced Rigidbody based on state synchronization.
     /// </summary>
     /// <remarks>Available in: Editor/Client/Server</remarks>
     [AddComponentMenu("Cube/ReplicaRigidbody")]
@@ -37,7 +37,7 @@ namespace Cube.Replication {
             modelLastRot = model.rotation;
         }
 
-        public override void Serialize(BitStream bs, ReplicaView view) {
+        public override void Serialize(BitStream bs, SerializeContext ctx) {
             bs.Write(enabled);
             if (!enabled)
                 return;

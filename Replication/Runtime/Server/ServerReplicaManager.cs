@@ -17,30 +17,30 @@ namespace Cube.Replication {
         public float replicaUpdateRateMS = 33; // 30 times per second
     }
 
+    public class ServerReplicaManagerStatistics {
+        public struct ReplicaTypeInfo {
+            public int numInstances;
+            public int totalBytes;
+            public int numRpcs;
+            public int rpcBytes;
+        }
+
+        public class ReplicaViewInfo {
+            public Dictionary<int, ReplicaTypeInfo> replicaTypeInfos = new Dictionary<int, ReplicaTypeInfo>();
+        }
+
+        public struct ReplicaViewInfoPair {
+            public ReplicaView view;
+            public ReplicaViewInfo info;
+        }
+
+        public List<ReplicaViewInfoPair> ViewInfos = new List<ReplicaViewInfoPair>();
+    }
+
     public sealed class ServerReplicaManager : IServerReplicaManager {
 #if UNITY_EDITOR
         public static List<ServerReplicaManager> all = new List<ServerReplicaManager>();
 #endif
-
-        public class Statistic {
-            public struct ReplicaTypeInfo {
-                public int numInstances;
-                public int totalBytes;
-                public int numRpcs;
-                public int rpcBytes;
-            }
-
-            public class ReplicaViewInfo {
-                public Dictionary<int, ReplicaTypeInfo> replicaTypeInfos = new Dictionary<int, ReplicaTypeInfo>();
-            }
-
-            public struct ReplicaViewInfoPair {
-                public ReplicaView view;
-                public ReplicaViewInfo info;
-            }
-
-            public List<ReplicaViewInfoPair> viewInfos = new List<ReplicaViewInfoPair>();
-        }
 
         const ushort FirstLocalReplicaId = 255; // The first 255 values are reserved for scene Replicas
 
@@ -50,7 +50,7 @@ namespace Cube.Replication {
 
         [SerializeField]
         List<ReplicaView> _replicaViews = new List<ReplicaView>();
-        public List<ReplicaView> replicaViews {
+        public List<ReplicaView> ReplicaViews {
             get { return _replicaViews; }
         }
 
@@ -69,8 +69,8 @@ namespace Cube.Replication {
         List<Replica> _replicasInDestruction = new List<Replica>();
 
 #if UNITY_EDITOR
-        Statistic _statistic;
-        public Statistic statistic {
+        ServerReplicaManagerStatistics _statistic;
+        public ServerReplicaManagerStatistics Statistics {
             get { return _statistic; }
         }
 #endif
@@ -107,7 +107,7 @@ namespace Cube.Replication {
             sceneReplicas.Sort((r1, r2) => r1.sceneIdx - r2.sceneIdx);
 
             foreach (var replica in sceneReplicas) {
-                replica.id = ReplicaId.CreateFromExisting(replica.sceneIdx);
+                replica.ReplicaId = ReplicaId.CreateFromExisting(replica.sceneIdx);
                 replica.server = _server;
                 _networkScene.AddReplica(replica);
             }
@@ -155,16 +155,11 @@ namespace Cube.Replication {
                 return null;
             }
 
-            foreach (var anyReplica in newInstance.GetComponentsInChildren<Replica>()) {
-                anyReplica.server = _server;
-                anyReplica.id = ReplicaId.Create(this);
-                if (anyReplica != newReplica) {
-                    anyReplica.SetParent(newReplica);
-                }
-            }
+            newReplica.server = _server;
+            newReplica.ReplicaId = ReplicaId.Create(this);
 
-            // Delay sending to client because we should wait for one frame until Start is called
-            _replicasInConstruction[newReplica.id] = newReplica;
+            // Wait for one frame until Start is called before replicating to clients
+            _replicasInConstruction[newReplica.ReplicaId] = newReplica;
 
             return newReplica;
         }
@@ -175,17 +170,17 @@ namespace Cube.Replication {
         /// <param name="replica">The Replica to remove</param>
         /// <remarks>Won't do anything if this replica was removed already</remarks>
         public void RemoveReplica(Replica replica) {
-            if (replica.id == ReplicaId.Invalid)
+            if (replica.ReplicaId == ReplicaId.Invalid)
                 return; // Replica already removed
 
-            _replicasInConstruction.Remove(replica.id);
+            _replicasInConstruction.Remove(replica.ReplicaId);
             _networkScene.RemoveReplica(replica);
 
-            if (replica.id != ReplicaId.Invalid) {
-                FreeLocalReplicaId(replica.id);
+            if (replica.ReplicaId != ReplicaId.Invalid) {
+                FreeLocalReplicaId(replica.ReplicaId);
             }
 
-            replica.id = ReplicaId.Invalid;
+            replica.ReplicaId = ReplicaId.Invalid;
         }
 
         /// <summary>
@@ -193,14 +188,14 @@ namespace Cube.Replication {
         /// </summary>
         /// <param name="replica">The Replica to remove</param>
         public void DestroyReplica(Replica replica) {
-            if (replica.id == ReplicaId.Invalid)
+            if (replica.ReplicaId == ReplicaId.Invalid)
                 return; // Replica already destroyed
 
             // We don't need to send a destroy message if the replica is not yet fully constructed on the server
-            bool alreadyConstructed = !_replicasInConstruction.Remove(replica.id);
+            bool alreadyConstructed = !_replicasInConstruction.Remove(replica.ReplicaId);
             if (!alreadyConstructed) {
                 _networkScene.RemoveReplica(replica);
-                replica.id = ReplicaId.Invalid;
+                replica.ReplicaId = ReplicaId.Invalid;
                 UnityEngine.Object.Destroy(replica.gameObject);
                 return;
             }
@@ -231,7 +226,7 @@ namespace Cube.Replication {
                 _nextUpdateTime = Time.time + _settings.replicaUpdateRateMS * 0.001f;
 
 #if UNITY_EDITOR
-                _statistic = new Statistic();
+                _statistic = new ServerReplicaManagerStatistics();
 #endif
 
                 for (int i = 0; i < _replicaViews.Count; ++i) {
@@ -248,9 +243,7 @@ namespace Cube.Replication {
 
                 foreach (var idReplicaPair in _replicasInConstruction) {
                     var replica = idReplicaPair.Value;
-                    foreach (var anyReplica in replica.withSubReplicas) {
-                        _networkScene.AddReplica(anyReplica);
-                    }
+                    _networkScene.AddReplica(replica);
                 }
                 _replicasInConstruction.Clear();
             }
@@ -267,10 +260,10 @@ namespace Cube.Replication {
                     }
 
                     foreach (var replica in _replicasInDestruction) {
-                        FreeLocalReplicaId(replica.id);
+                        FreeLocalReplicaId(replica.ReplicaId);
 
                         _networkScene.RemoveReplica(replica);
-                        replica.id = ReplicaId.Invalid;
+                        replica.ReplicaId = ReplicaId.Invalid;
                         UnityEngine.Object.Destroy(replica.gameObject);
                     }
                 }
@@ -302,8 +295,8 @@ namespace Cube.Replication {
             UpdateRelevantReplicaPriorities(view);
 
 #if UNITY_EDITOR
-            var perReplicaViewInfo = new Statistic.ReplicaViewInfo();
-            _statistic.viewInfos.Add(new Statistic.ReplicaViewInfoPair { view = view, info = perReplicaViewInfo });
+            var perReplicaViewInfo = new ServerReplicaManagerStatistics.ReplicaViewInfo();
+            _statistic.ViewInfos.Add(new ServerReplicaManagerStatistics.ReplicaViewInfoPair { view = view, info = perReplicaViewInfo });
 #endif
 
             int bytesSent = 0;
@@ -312,44 +305,37 @@ namespace Cube.Replication {
 
             foreach (var idx in sortedIndices) {
                 var replica = view.relevantReplicas[idx];
-                if (replica == null || replica.id == ReplicaId.Invalid)
+                if (replica == null || replica.ReplicaId == ReplicaId.Invalid)
                     continue;
 
-                var updateBitStreamBytes = 0;
-
-                {
-                    var updateBs = _server.networkInterface.bitStreamPool.Create();
-                    updateBs.Write((byte)MessageId.ReplicaUpdate);
-                    updateBs.Write(replica.isSceneReplica);
-                    if (!replica.isSceneReplica) {
-                        updateBs.Write(replica.prefabIdx);
-                    }
-                    foreach (var anyReplica in replica.withSubReplicas) {
-                        updateBs.Write(anyReplica.id);
-
-                        bool isOwner = anyReplica.owner == view.connection;
-                        updateBs.Write(isOwner);
-
-                        foreach (var component in anyReplica.replicaBehaviours) {
-                            component.Serialize(updateBs, view);
-                        }
-                    }
-
-                    _server.networkInterface.SendBitStream(updateBs, PacketPriority.Medium, PacketReliability.Unreliable, view.connection);
-
-                    updateBitStreamBytes = updateBs.Length;
+                var updateBs = _server.networkInterface.bitStreamPool.Create();
+                updateBs.Write((byte)MessageId.ReplicaUpdate);
+                updateBs.Write(replica.isSceneReplica);
+                if (!replica.isSceneReplica) {
+                    updateBs.Write(replica.prefabIdx);
                 }
 
-                bytesSent += updateBitStreamBytes;
+                updateBs.Write(replica.ReplicaId);
+
+                bool isOwner = replica.Owner == view.connection;
+                updateBs.Write(isOwner);
+
+                replica.Serialize(updateBs, new ReplicaBehaviour.SerializeContext() {
+                    Observer = view
+                });
+
+                _server.networkInterface.SendBitStream(updateBs, PacketPriority.Medium, PacketReliability.Unreliable, view.connection);
+
+                bytesSent += updateBs.Length;
 
                 // We just sent this Replica, reset its priority
                 view.relevantReplicaPriorityAccumulator[idx] = 0;
 
 #if UNITY_EDITOR
                 // Add some profiling info
-                perReplicaViewInfo.replicaTypeInfos.TryGetValue(replica.prefabIdx, out Statistic.ReplicaTypeInfo replicaTypeInfo);
+                perReplicaViewInfo.replicaTypeInfos.TryGetValue(replica.prefabIdx, out ServerReplicaManagerStatistics.ReplicaTypeInfo replicaTypeInfo);
                 ++replicaTypeInfo.numInstances;
-                replicaTypeInfo.totalBytes += updateBitStreamBytes;
+                replicaTypeInfo.totalBytes += updateBs.Length;
                 replicaTypeInfo.numRpcs += replica.queuedRpcs.Count;
                 replicaTypeInfo.rpcBytes += replica.queuedRpcs.Sum(rpc => rpc.bs.Length);
 
@@ -361,9 +347,9 @@ namespace Cube.Replication {
 
                 // Rpcs
                 foreach (var queuedRpc in replica.queuedRpcs) {
-                    if ((queuedRpc.target == RpcTarget.Owner && replica.owner == view.connection)
+                    if ((queuedRpc.target == RpcTarget.Owner && replica.Owner == view.connection)
                         || queuedRpc.target == RpcTarget.All
-                        || (queuedRpc.target == RpcTarget.AllClientsExceptOwner && replica.owner != view.connection)) {
+                        || (queuedRpc.target == RpcTarget.AllClientsExceptOwner && replica.Owner != view.connection)) {
                         _server.networkInterface.SendBitStream(queuedRpc.bs, PacketPriority.Low, PacketReliability.Unreliable, view.connection);
 
                         bytesSent += queuedRpc.bs.Length;
@@ -413,9 +399,6 @@ namespace Cube.Replication {
                 if (replica == null)
                     continue;
 
-                if (replica.parent != null)
-                    continue; // Ignore sub Replicas
-
                 if (!replica.IsRelevantFor(view))
                     continue;
 
@@ -464,13 +447,13 @@ namespace Cube.Replication {
                 if (!wasInterestedInReplica)
                     continue;
 
-                destroyBs.Write(replica.id);
+                destroyBs.Write(replica.ReplicaId);
 
                 // Serialize custom destruction data
                 var replicaDestructionBs = _server.networkInterface.bitStreamPool.Create();
-                foreach (var component in replica.replicaBehaviours) {
-                    component.SerializeDestruction(replicaDestructionBs, view);
-                }
+                replica.SerializeDestruction(replicaDestructionBs, new ReplicaBehaviour.SerializeContext() {
+                        Observer = view
+                });
 
                 var absOffset = (ushort)(destroyBs.LengthInBits + 16 + replicaDestructionBs.LengthInBits);
                 destroyBs.Write(absOffset);
@@ -512,7 +495,6 @@ namespace Cube.Replication {
             if (_freeReplicaIds.Count > 0)
                 return _freeReplicaIds.Dequeue();
 
-            //#TODO overflow
             return _nextLocalReplicaId++;
         }
 
