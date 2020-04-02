@@ -24,7 +24,6 @@ namespace Cube.Networking {
         /// <exception cref="System.Exception">When build failes</exception>
         /// <param name="configuration"></param>
         public static void BuildWithConfiguration(BuildConfiguration configuration) {
-
             if (configuration == null)
                 throw new ArgumentNullException("configuration");
 

@@ -2,9 +2,9 @@
     "name": "Cube.Networking.Editor",
     "references": [
         "Cube.Networking",
-        "Cube.Replication.Editor"
+        "Cube.Replication.Editor",
+        "Unity.Addressables.Editor"
     ],
-    "optionalUnityReferences": [],
     "includePlatforms": [
         "Editor"
     ],
@@ -13,5 +13,7 @@
     "overrideReferences": false,
     "precompiledReferences": [],
     "autoReferenced": true,
-    "defineConstraints": []
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
 }

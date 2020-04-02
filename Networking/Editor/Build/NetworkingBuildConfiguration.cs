@@ -4,6 +4,7 @@ using UnityEditor.Compilation;
 using UnityEditor.Build.Reporting;
 using UnityEditor;
 using Cube.Replication.Editor;
+using UnityEditor.AddressableAssets.Settings;
 
 namespace Cube.Networking.Editor {
     /// <summary>
@@ -12,7 +13,9 @@ namespace Cube.Networking.Editor {
     [CreateAssetMenu(menuName = "Cube/BuildSystem/NetworkingBuildConfiguration")]
     public class NetworkingBuildConfiguration : BuildConfiguration {
 
-        override public void OnPreProcessBuild() {}
+        override public void OnPreProcessBuild() {
+            AddressableAssetSettings.BuildPlayerContent();
+        }
 
         override public void OnPostProcessBuild(BuildReport report) {
             if (report.summary.result != BuildResult.Succeeded)
