@@ -386,9 +386,6 @@ namespace Cube.Transport {
 
         public unsafe void WriteLossyFloat(float val, float min, float max, float precision = 0.1f) {
             if (val < min || val > max) {
-#if UNITY_EDITOR
-                Debug.LogWarning("Clamped value " + val + " to (" + min + "," + max + ")");
-#endif
                 val = Mathf.Clamp(val, min, max);
             }
 
