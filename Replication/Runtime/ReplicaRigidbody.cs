@@ -15,6 +15,9 @@ namespace Cube.Replication {
         Vector3 modelLastPos;
         Quaternion modelLastRot;
 
+        const float maxVelocity = 16;
+        const float maxAngularVelocity = 16;
+
         void Awake() {
             _rigidbody = GetComponent<Rigidbody>();
         }
@@ -56,20 +59,14 @@ namespace Cube.Replication {
             bs.Write(sleeping);
             if (!sleeping) {
                 var velocity = _rigidbody.velocity;
-                velocity.x = Mathf.Clamp(velocity.x, -20, 20);
-                velocity.y = Mathf.Clamp(velocity.y, -20, 20);
-                velocity.z = Mathf.Clamp(velocity.z, -20, 20);
-                bs.WriteLossyFloat(velocity.x, -20, 20);
-                bs.WriteLossyFloat(velocity.y, -20, 20);
-                bs.WriteLossyFloat(velocity.z, -20, 20);
+                bs.WriteLossyFloat(velocity.x, -maxVelocity, maxVelocity);
+                bs.WriteLossyFloat(velocity.y, -maxVelocity, maxVelocity);
+                bs.WriteLossyFloat(velocity.z, -maxVelocity, maxVelocity);
 
                 var angularVelocity = _rigidbody.angularVelocity;
-                angularVelocity.x = Mathf.Clamp(angularVelocity.x, -20, 20);
-                angularVelocity.y = Mathf.Clamp(angularVelocity.y, -20, 20);
-                angularVelocity.z = Mathf.Clamp(angularVelocity.z, -20, 20);
-                bs.WriteLossyFloat(angularVelocity.x, -10, 10);
-                bs.WriteLossyFloat(angularVelocity.y, -10, 10);
-                bs.WriteLossyFloat(angularVelocity.z, -10, 10);
+                bs.WriteLossyFloat(angularVelocity.x, -maxAngularVelocity, maxAngularVelocity);
+                bs.WriteLossyFloat(angularVelocity.y, -maxAngularVelocity, maxAngularVelocity);
+                bs.WriteLossyFloat(angularVelocity.z, -maxAngularVelocity, maxAngularVelocity);
             }
         }
 
@@ -91,16 +88,16 @@ namespace Cube.Replication {
             var sleeping = bs.ReadBool();
             if (!sleeping) {
                 var velocity = new Vector3 {
-                    x = bs.ReadLossyFloat(-20, 20),
-                    y = bs.ReadLossyFloat(-20, 20),
-                    z = bs.ReadLossyFloat(-20, 20)
+                    x = bs.ReadLossyFloat(-maxVelocity, maxVelocity),
+                    y = bs.ReadLossyFloat(-maxVelocity, maxVelocity),
+                    z = bs.ReadLossyFloat(-maxVelocity, maxVelocity)
                 };
                 _rigidbody.velocity = velocity;
 
                 var angularVelocity = new Vector3 {
-                    x = bs.ReadLossyFloat(-10, 10),
-                    y = bs.ReadLossyFloat(-10, 10),
-                    z = bs.ReadLossyFloat(-10, 10)
+                    x = bs.ReadLossyFloat(-maxAngularVelocity, maxAngularVelocity),
+                    y = bs.ReadLossyFloat(-maxAngularVelocity, maxAngularVelocity),
+                    z = bs.ReadLossyFloat(-maxAngularVelocity, maxAngularVelocity)
                 };
                 _rigidbody.angularVelocity = angularVelocity;
             }
