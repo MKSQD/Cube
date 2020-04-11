@@ -1,4 +1,3 @@
-using System;
 using UnityEngine;
 using UnityEditor;
 
@@ -10,15 +9,10 @@ namespace Cube.Networking.Editor {
 
             var editor = CreateEditor(buildConfiguration);
             editor.DrawDefaultInspector();
-            
+
             if (GUILayout.Button("Build")) {
-                try {
-                    Build.BuildWithConfiguration((BuildConfiguration)target);
-                    Debug.Log("Build successful");
-                }
-                catch (Exception e) {
-                    Debug.LogError(e.ToString());
-                }
+                Build.BuildWithConfiguration((BuildConfiguration)target);
+                Debug.Log("Build successful");
             }
         }
     }

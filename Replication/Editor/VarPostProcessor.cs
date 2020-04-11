@@ -48,15 +48,14 @@ namespace Cube.Replication.Editor {
             }
         }
 
-        public override bool Process() {
+        public override void Process(ModuleDefinition module) {
             foreach (var type in module.Types) {
                 ProcessType(type);
             }
 
-            foreach (var type in module.Types)
+            foreach (var type in module.Types) {
                 ProcessCallsites(type);
-
-            return true;
+            }
         }
 
         void ProcessType(TypeDefinition type) {
@@ -154,7 +153,7 @@ namespace Cube.Replication.Editor {
                 serializedMethodFlags = MethodAttributes.HideBySig | MethodAttributes.Private;
             }
 
-            var serialize = new MethodDefinition(serializedMethodName, serializedMethodFlags, module.TypeSystem.Void);
+            var serialize = new MethodDefinition(serializedMethodName, serializedMethodFlags, mainModule.TypeSystem.Void);
             serialize.Parameters.Add(new ParameterDefinition("bs", ParameterAttributes.None, ImportType(_bitStreamType)));
             serialize.Parameters.Add(new ParameterDefinition("view", ParameterAttributes.None, _replicaViewType));
             type.Methods.Add(serialize);
@@ -261,7 +260,7 @@ namespace Cube.Replication.Editor {
                 deserializedMethodFlags = MethodAttributes.HideBySig | MethodAttributes.Private;
             }
 
-            var deserialize = new MethodDefinition(deserializedMethodName, deserializedMethodFlags, module.TypeSystem.Void);
+            var deserialize = new MethodDefinition(deserializedMethodName, deserializedMethodFlags, mainModule.TypeSystem.Void);
             deserialize.Parameters.Add(new ParameterDefinition("bs", ParameterAttributes.None, ImportType(_bitStreamType)));
             type.Methods.Add(deserialize);
 
@@ -404,7 +403,7 @@ namespace Cube.Replication.Editor {
 
             MethodDefinition setter;
             {
-                setter = new MethodDefinition("set_" + propName, MethodAttributes.HideBySig | MethodAttributes.SpecialName | MethodAttributes.Public, module.TypeSystem.Void);
+                setter = new MethodDefinition("set_" + propName, MethodAttributes.HideBySig | MethodAttributes.SpecialName | MethodAttributes.Public, mainModule.TypeSystem.Void);
                 setter.Parameters.Add(new ParameterDefinition("value", ParameterAttributes.None, field.FieldType));
 
                 var il = setter.Body.GetILProcessor();

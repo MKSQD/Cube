@@ -21,8 +21,7 @@ namespace Cube.Networking.Editor {
             if (report.summary.result != BuildResult.Succeeded)
                 return;
 
-            var searchPathList = new List<string>();
-            searchPathList.Add(GetAssembliesDirectory());
+           
 
             foreach (var assembly in CompilationPipeline.GetAssemblies()) {
                 if ((assembly.flags & AssemblyFlags.EditorAssembly) != 0)
@@ -32,17 +31,21 @@ namespace Cube.Networking.Editor {
                 if (assembly.name == "Cube.Networking.Transport.RuntimeTests" || assembly.name == "Cube.Networking.RuntimeTests")
                     continue;
 
-                var assemblyPath = GetAssembliesDirectory() + "/" + assembly.name + ".dll";
+                using (var assemblyCache = new CachedAssemblyResolver()) {
+                    assemblyCache.AddSearchDirectory(GetAssembliesDirectory());
 
-                var options = AssemblyPostProcessor.PatcherOptions.None;
+                    var assemblyPath = GetAssembliesDirectory() + "/" + assembly.name + ".dll";
 
-                var skipSymbols = (report.summary.options & BuildOptions.Development) == 0;
-                if(skipSymbols) {
-                    options |= AssemblyPostProcessor.PatcherOptions.SkipSymbols;
+                    var options = AssemblyPostProcessor.PatcherOptions.None;
+
+                    var skipSymbols = (report.summary.options & BuildOptions.Development) == 0;
+                    if (skipSymbols) {
+                        options |= AssemblyPostProcessor.PatcherOptions.SkipSymbols;
+                    }
+
+                    AssemblyPostProcessor.Start(assemblyPath, assemblyCache, options);
                 }
-
-                AssemblyPostProcessor.Start(assemblyPath, searchPathList.ToArray(), options);
             }
-        }        
+        }
     }
 }

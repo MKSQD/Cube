@@ -34,7 +34,12 @@ namespace Cube.Replication.Editor {
                 Application.dataPath + "/../Library/ScriptAssemblies"
             };
 
-            AssemblyPostProcessor.Start(assemblyPath, searchPathList.ToArray());
+            var assemblyCache = new CachedAssemblyResolver();
+            foreach (var path in searchPathList) {
+                assemblyCache.AddSearchDirectory(path);
+            }
+
+            AssemblyPostProcessor.Start(assemblyPath, assemblyCache);
         }
     }
 }

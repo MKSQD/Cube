@@ -8,16 +8,6 @@ using UnityEngine;
 
 #if UNITY_EDITOR
 namespace Cube.Replication.Editor {
-    class ReloadAssembiesLocker : IDisposable {
-        public ReloadAssembiesLocker() {
-            EditorApplication.LockReloadAssemblies();
-        }
-
-        public void Dispose() {
-            EditorApplication.UnlockReloadAssemblies();
-        }
-    }
-
     public static class AssemblyPostProcessor {
         [Flags]
         public enum PatcherOptions {
@@ -33,7 +23,7 @@ namespace Cube.Replication.Editor {
         /// <param name="assemblyPath"></param>
         /// <param name="assemblySearchPaths"></param>
         /// <param name="withSymbols"></param>
-        public static void Start(string assemblyPath, string[] assemblySearchPaths, PatcherOptions options = PatcherOptions.None) {
+        public static void Start(string assemblyPath, IAssemblyResolver assemblyResolver, PatcherOptions options = PatcherOptions.None) {
             if (!File.Exists(assemblyPath)) {
                 Debug.Log("RPC Patcher skipped file (not found): " + assemblyPath);
                 return;
@@ -45,73 +35,67 @@ namespace Cube.Replication.Editor {
                 var watch = new System.Diagnostics.Stopwatch();
                 watch.Start();
 
-                using (var assemblyResolver = new CachedAssemblyResolver()) {
-                    foreach (var path in assemblySearchPaths) {
-                        assemblyResolver.AddSearchDirectory(path);
-                    }
+                try {
+                    var readerParameters = new ReaderParameters() {
+                        AssemblyResolver = assemblyResolver,
+                        ReadWrite = true
+                    };
 
-                    try {
-                        var readerParameters = new ReaderParameters() {
-                            AssemblyResolver = assemblyResolver,
-                            ReadWrite = true
-                        };
+                    var writerParameters = new WriterParameters();
 
-                        var writerParameters = new WriterParameters();
+                    if (!options.HasFlag(PatcherOptions.SkipSymbols)) {
+                        // mdbs have the naming convention myDll.dll.mdb whereas pdbs have myDll.pdb
+                        var mdbPath = assemblyPath + ".mdb";
+                        var pdbPath = assemblyPath.Substring(0, assemblyPath.Length - 3) + "pdb";
 
-                        if (!options.HasFlag(PatcherOptions.SkipSymbols)) {
-                            // mdbs have the naming convention myDll.dll.mdb whereas pdbs have myDll.pdb
-                            var mdbPath = assemblyPath + ".mdb";
-                            var pdbPath = assemblyPath.Substring(0, assemblyPath.Length - 3) + "pdb";
-
-                            // Figure out if there's an pdb/mdb to go with it
-                            if (File.Exists(pdbPath)) {
-                                readerParameters.ReadSymbols = true;
-                                readerParameters.SymbolReaderProvider = new Mono.Cecil.Pdb.PdbReaderProvider();
-                                writerParameters.WriteSymbols = true;
-                                writerParameters.SymbolWriterProvider = new Mono.Cecil.Mdb.MdbWriterProvider(); // pdb written out as mdb, as mono can't work with pdbs
-                            }
-                            else if (File.Exists(mdbPath)) {
-                                readerParameters.ReadSymbols = true;
-                                readerParameters.SymbolReaderProvider = new Mono.Cecil.Mdb.MdbReaderProvider();
-                                writerParameters.WriteSymbols = true;
-                                writerParameters.SymbolWriterProvider = new Mono.Cecil.Mdb.MdbWriterProvider();
-                            }
-                            else {
-                                readerParameters.ReadSymbols = false;
-                                readerParameters.SymbolReaderProvider = null;
-                                writerParameters.WriteSymbols = false;
-                                writerParameters.SymbolWriterProvider = null;
-                            }
+                        // Figure out if there's an pdb/mdb to go with it
+                        if (File.Exists(pdbPath)) {
+                            readerParameters.ReadSymbols = true;
+                            readerParameters.SymbolReaderProvider = new Mono.Cecil.Pdb.PdbReaderProvider();
+                            writerParameters.WriteSymbols = true;
+                            writerParameters.SymbolWriterProvider = new Mono.Cecil.Mdb.MdbWriterProvider(); // pdb written out as mdb, as mono can't work with pdbs
                         }
-
-                        using (var assembly = AssemblyDefinition.ReadAssembly(assemblyPath, readerParameters)) {
-                            if (assembly.FullName == Assembly.GetAssembly(typeof(AssemblyPostProcessor)).FullName)
-                                return; // Skip Cube.Replication.Editor
-
-                            var hasRefToReplication = false;
-                            foreach (var reference in assembly.MainModule.AssemblyReferences) {
-                                if (reference.Name == "Cube.Replication") {
-                                    hasRefToReplication = true;
-                                    break;
-                                }
-                            }
-                            if (!hasRefToReplication)
-                                return; // Skip assemblies not referencing Cube.Replication
-
-                            foreach (var module in assembly.Modules) {
-                                var rpcProcessor = new RpcPostProcessor(appType, module);
-                                rpcProcessor.Process();
-
-                                var varProcessor = new VarPostProcessor(appType, module);
-                                varProcessor.Process();
-                            }
-
-                            assembly.Write(writerParameters);
+                        else if (File.Exists(mdbPath)) {
+                            readerParameters.ReadSymbols = true;
+                            readerParameters.SymbolReaderProvider = new Mono.Cecil.Mdb.MdbReaderProvider();
+                            writerParameters.WriteSymbols = true;
+                            writerParameters.SymbolWriterProvider = new Mono.Cecil.Mdb.MdbWriterProvider();
+                        }
+                        else {
+                            readerParameters.ReadSymbols = false;
+                            readerParameters.SymbolReaderProvider = null;
+                            writerParameters.WriteSymbols = false;
+                            writerParameters.SymbolWriterProvider = null;
                         }
                     }
-                    catch (Exception e) {
-                        throw new Exception("RPC Patcher failed (assembly = " + assemblyPath + ", appType = " + appType.ToString() + ")", e);
+
+                    using (var assembly = AssemblyDefinition.ReadAssembly(assemblyPath, readerParameters)) {
+                        if (assembly.FullName == Assembly.GetAssembly(typeof(AssemblyPostProcessor)).FullName)
+                            return; // Skip Cube.Replication.Editor
+
+                        var hasRefToReplication = false;
+                        foreach (var reference in assembly.MainModule.AssemblyReferences) {
+                            if (reference.Name == "Cube.Replication") {
+                                hasRefToReplication = true;
+                                break;
+                            }
+                        }
+                        if (!hasRefToReplication)
+                            return; // Skip assemblies not referencing Cube.Replication
+
+                        var rpcProcessor = new RpcPostProcessor(appType, assembly.MainModule);
+                        //var varProcessor = new VarPostProcessor(appType, assembly.MainModule);
+
+                        foreach (var module in assembly.Modules) {
+                            rpcProcessor.Process(module);
+                            //varProcessor.Process(module);
+                        }
+
+                        assembly.Write(writerParameters);
                     }
+                }
+                catch (Exception e) {
+                    throw new Exception("RPC Patcher failed (assembly = " + assemblyPath + ", appType = " + appType.ToString() + ")", e);
                 }
 
                 watch.Stop();
@@ -137,12 +121,23 @@ namespace Cube.Replication.Editor {
         }
 
         protected override void Dispose(bool disposing) {
-            if (disposing) {
-                foreach (var assembly in _cache) {
-                    assembly.Value.Dispose();
-                }
-                _cache.Clear();
+            if (!disposing)
+                return;
+
+            foreach (var assembly in _cache) {
+                assembly.Value.Dispose();
             }
+            _cache.Clear();
+        }
+    }
+
+    class ReloadAssembiesLocker : IDisposable {
+        public ReloadAssembiesLocker() {
+            EditorApplication.LockReloadAssemblies();
+        }
+
+        public void Dispose() {
+            EditorApplication.UnlockReloadAssemblies();
         }
     }
 }

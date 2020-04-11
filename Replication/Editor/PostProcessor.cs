@@ -18,25 +18,28 @@ namespace Cube.Replication {
     /// </summary>
     /// <remarks>Available in: Editor</remarks>
     abstract class PostProcessor {
-        ApplicationType _appType;
-        protected ApplicationType appType { get { return _appType; } }
-
-        ModuleDefinition _module;
-        protected ModuleDefinition module { get { return _module; } }
-
-        public PostProcessor(ApplicationType appType, ModuleDefinition module) {
-            _appType = appType;
-            _module = module;
+        protected ApplicationType appType {
+            get;
+            private set;
+        }
+        protected ModuleDefinition mainModule {
+            get;
+            private set;
         }
 
-        public abstract bool Process();
+        public PostProcessor(ApplicationType appType, ModuleDefinition mainModule) {
+            this.appType = appType;
+            this.mainModule = mainModule;
+        }
+
+        public abstract void Process(ModuleDefinition module);
 
         protected TypeReference ImportType(TypeDefinition type) {
             if (type == null)
                 throw new ArgumentNullException("type");
 
             try {
-                return _module.Assembly.MainModule.ImportReference(type);
+                return mainModule.ImportReference(type);
             }
             catch (Exception e) {
                 Debug.LogError(type);
@@ -45,7 +48,7 @@ namespace Cube.Replication {
         }
 
         protected MethodReference ImportMethod(MethodDefinition method) {
-            return _module.Assembly.MainModule.ImportReference(method);
+            return mainModule.ImportReference(method);
         }
 
         protected List<MethodReference> ImportMethods(IEnumerable<MethodDefinition> methods) {
@@ -57,7 +60,7 @@ namespace Cube.Replication {
         }
 
         protected FieldReference ImportField(FieldDefinition field) {
-            return _module.Assembly.MainModule.ImportReference(field);
+            return mainModule.ImportReference(field);
         }
 
         protected TypeDefinition GetTypeDefinitionByName(ModuleDefinition module, string typeName) {
@@ -194,10 +197,7 @@ namespace Cube.Replication {
         }
 
         protected AssemblyDefinition ResolveAssembly(string name) {
-            if (module.Assembly.Name.Name == name)
-                return module.Assembly;
-
-            var assembly = module.AssemblyResolver.Resolve(new AssemblyNameReference(name, new Version()));
+            var assembly = mainModule.AssemblyResolver.Resolve(new AssemblyNameReference(name, new Version()));
             if (assembly == null) {
                 Debug.LogError("Cannot resolve Assembly '" + name + "'");
             }

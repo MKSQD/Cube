@@ -87,10 +87,10 @@ namespace Cube.Replication.Editor {
             _rpcTargetAllValue = GetEnumValueByName(_rpcTargetType, "All");
         }
 
-        public override bool Process() {
+        public override void Process(ModuleDefinition module) {
             foreach (var type in module.Types) {
                 try {
-                    ProcessType(type);
+                    ProcessType(type, module);
                 }
                 catch (Exception e) {
                     Debug.LogException(e);
@@ -98,17 +98,16 @@ namespace Cube.Replication.Editor {
 
                 foreach (var nestedType in type.NestedTypes) {
                     try {
-                        ProcessType(nestedType);
+                        ProcessType(nestedType, module);
                     }
                     catch (Exception e) {
                         Debug.LogException(e);
                     }
                 }
             }
-            return true;
         }
 
-        void ProcessType(TypeDefinition type) {
+        void ProcessType(TypeDefinition type, ModuleDefinition module) {
             if (!type.IsClass || !type.HasMethods)
                 return;
 
@@ -121,7 +120,7 @@ namespace Cube.Replication.Editor {
 
                 // #TODO classes from other modules (filter "tmp.Module.path" in "Application.dataPath" ?)
                 if (baseType.FullName != "Cube.Replication.ReplicaBehaviour" && baseType.Module.Name == module.Name) {
-                    ProcessType(baseType);
+                    ProcessType(baseType, module);
                     nextRpcMethodId = _processedTypes[baseType.FullName];
                 }
             }

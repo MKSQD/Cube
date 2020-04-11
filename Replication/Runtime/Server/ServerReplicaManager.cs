@@ -157,6 +157,7 @@ namespace Cube.Replication {
 
             newReplica.server = _server;
             newReplica.ReplicaId = ReplicaId.Create(this);
+            Assert.IsTrue(newReplica.ReplicaId != ReplicaId.Invalid);
 
             // Wait for one frame until Start is called before replicating to clients
             _replicasInConstruction[newReplica.ReplicaId] = newReplica;
