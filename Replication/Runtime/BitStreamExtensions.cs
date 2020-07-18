@@ -11,6 +11,11 @@ namespace Cube.Replication {
             return ReplicaId.CreateFromExisting(id);
         }
 
+        public static void Write(this BitStream bs, ReplicaId id) {
+            bs.Write(id.data);
+        }
+
+
         public static T ReadNetworkObject<T>(this BitStream bs) where T : NetworkObject {
             var id = bs.ReadString();
             if (id.Length == 0)
@@ -19,10 +24,6 @@ namespace Cube.Replication {
             return (T)NetworkObjectLookup.instance.CreateFromNetworkAssetId(id);
         }
 
-        public static void Write(this BitStream bs, ReplicaId id) {
-            bs.Write(id.data);
-        }
-                
         public static void WriteNetworkObject(this BitStream bs, NetworkObject networkObject) {
             bs.Write(networkObject != null ? networkObject.networkAssetId : "");
         }

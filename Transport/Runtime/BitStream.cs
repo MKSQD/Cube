@@ -85,7 +85,14 @@ namespace Cube.Transport {
             _readBitOffset += 8 - (((_readBitOffset - 1) & 7) + 1);
         }
 
-#region Read
+
+        public unsafe void Write(bool val) {
+            if (val)
+                Write1();
+            else
+                Write0();
+        }
+
         public void Read(ref bool val) {
             val = ReadBool();
         }
@@ -94,6 +101,11 @@ namespace Cube.Transport {
             var val = new bool();
             Read((byte*)&val, 1);
             return val;
+        }
+
+
+        public unsafe void Write(byte val) {
+            Write(&val, 8);
         }
 
         public void Read(ref byte val) {
@@ -106,6 +118,12 @@ namespace Cube.Transport {
             return val;
         }
 
+
+        public unsafe void Write(ushort val) {
+            val = Endian.SwapUInt16(val);
+            Write((byte*)&val, 16);
+        }
+
         public void Read(ref ushort val) {
             val = ReadUShort();
         }
@@ -114,6 +132,11 @@ namespace Cube.Transport {
             var val = new ushort();
             Read((byte*)&val, 16);
             return Endian.SwapUInt16(val);
+        }
+
+
+        public unsafe void Write(float val) {
+            Write((byte*)&val, 32);
         }
 
         public void Read(ref float val) {
@@ -126,10 +149,31 @@ namespace Cube.Transport {
             return val;
         }
 
+
+        public unsafe void WriteLossyFloat(float val, float min, float max, float precision = 0.1f) {
+            if (val < min || val > max) {
+                val = Mathf.Clamp(val, min, max);
+            }
+
+            var inv = 1 / precision;
+            WriteIntInRange((int)(val * inv), (int)(min * inv), (int)(max * inv));
+        }
+
         public unsafe float ReadLossyFloat(float min, float max, float precision = 0.1f) {
             var inv = 1 / precision;
             var val = ReadIntInRange((int)(min * inv), (int)(max * inv));
             return val * precision;
+        }
+
+
+        /// <summary>
+        /// Write float in the range [0,1].
+        /// </summary>
+        public void WriteNormalised(float val) {
+            Assert.IsTrue(val > -1.01f && val < 1.01f);
+
+            val = Mathf.Clamp(val, -1f, 1f);
+            Write((ushort)((val + 1f) * 32767.5f));
         }
 
         public float ReadNormalisedFloat() {
@@ -143,10 +187,32 @@ namespace Cube.Transport {
             val = ReadInt();
         }
 
+
+        public unsafe void Write(int val) {
+            val = Endian.SwapInt32(val);
+            Write((byte*)&val, 32);
+        }
+
         public unsafe int ReadInt() {
             var val = new int();
             Read((byte*)&val, 32);
             return Endian.SwapInt32(val);
+        }
+
+
+        public unsafe void WriteIntInRange(int val, int min, int max) {
+            if (val < min || val > max) {
+#if UNITY_EDITOR
+                Debug.LogWarning("Clamped value " + val + " to (" + min + "," + max + ")");
+#endif
+                val = Mathf.Clamp(val, min, max);
+            }
+
+            var bits = ComputeRequiredIntBits(min, max);
+            var mask = (uint)((1L << bits) - 1);
+            var data = (uint)(val - min) & mask;
+
+            Write((byte*)&data, bits);
         }
 
         public unsafe int ReadIntInRange(int min, int max) {
@@ -158,14 +224,27 @@ namespace Cube.Transport {
             return (int)(val + min);
         }
 
+
         public void Read(ref uint val) {
             val = ReadUInt();
+        }
+
+
+        public unsafe void Write(uint val) {
+            val = Endian.SwapUInt32(val);
+            Write((byte*)&val, 32);
         }
 
         public unsafe uint ReadUInt() {
             var val = new uint();
             Read((byte*)&val, 32);
             return Endian.SwapUInt32(val);
+        }
+
+
+        public unsafe void Write(long val) {
+            val = Endian.SwapInt64(val);
+            Write((byte*)&val, 64);
         }
 
         public void Read(ref long val) {
@@ -178,6 +257,12 @@ namespace Cube.Transport {
             return Endian.SwapInt64(val);
         }
 
+
+        public unsafe void Write(ulong val) {
+            val = Endian.SwapUInt64(val);
+            Write((byte*)&val, 64);
+        }
+
         public void Read(ref ulong val) {
             val = ReadULong();
         }
@@ -186,6 +271,19 @@ namespace Cube.Transport {
             var val = new ulong();
             Read((byte*)&val, 64);
             return Endian.SwapUInt64(val);
+        }
+
+
+        public unsafe void Write(string val) {
+            var chars = val.ToCharArray();
+            Write((ushort)chars.Length);
+
+            if (chars.Length == 0)
+                return;
+
+            fixed (char* charPtr = &chars[0]) {
+                Write((byte*)charPtr, chars.Length * 16);
+            }
         }
 
         public unsafe string ReadString() {
@@ -200,6 +298,12 @@ namespace Cube.Transport {
             return new string(chars);
         }
 
+
+        public void Write(Vector2 val) {
+            Write(val.x);
+            Write(val.y);
+        }
+
         public void Read(ref Vector2 val) {
             val = ReadVector2();
         }
@@ -210,6 +314,13 @@ namespace Cube.Transport {
                 y = ReadFloat()
             };
             return val;
+        }
+
+
+        public void Write(Vector3 val) {
+            Write(val.x);
+            Write(val.y);
+            Write(val.z);
         }
 
         public void Read(ref Vector3 val) {
@@ -225,6 +336,13 @@ namespace Cube.Transport {
             return val;
         }
 
+
+        public void WriteNormalised(Vector3 val) {
+            WriteNormalised(val.x);
+            WriteNormalised(val.y);
+            WriteNormalised(val.z);
+        }
+
         public Vector3 ReadNormalisedVector3() {
             var result = Vector3.zero;
             result.x = ReadNormalisedFloat();
@@ -233,9 +351,71 @@ namespace Cube.Transport {
             return result;
         }
 
+
+        public void Write(Quaternion val) {
+            int largest = 0;
+            float a, b, c;
+
+            float abs_w = Mathf.Abs(val.w);
+            float abs_x = Mathf.Abs(val.x);
+            float abs_y = Mathf.Abs(val.y);
+            float abs_z = Mathf.Abs(val.z);
+
+            float largest_value = abs_x;
+
+            if (abs_y > largest_value) {
+                largest = 1;
+                largest_value = abs_y;
+            }
+            if (abs_z > largest_value) {
+                largest = 2;
+                largest_value = abs_z;
+            }
+            if (abs_w > largest_value) {
+                largest = 3;
+                largest_value = abs_w;
+            }
+            if (val[largest] >= 0f) {
+                a = val[(largest + 1) % 4];
+                b = val[(largest + 2) % 4];
+                c = val[(largest + 3) % 4];
+            }
+            else {
+                a = -val[(largest + 1) % 4];
+                b = -val[(largest + 2) % 4];
+                c = -val[(largest + 3) % 4];
+            }
+
+            // serialize
+            const float minimum = -1f / 1.414214f;        // note: 1.0f / sqrt(2)
+            const float maximum = +1f / 1.414214f;
+            const float delta = maximum - minimum;
+            const uint maxIntegerValue = (1 << 10) - 1; // 10 bits
+            const float maxIntegerValueF = (float)maxIntegerValue;
+            float normalizedValue;
+            uint integerValue;
+
+            uint sentData = ((uint)largest) << 30;
+            // a
+            normalizedValue = Mathf.Clamp01((a - minimum) / delta);
+            integerValue = (uint)Mathf.Floor(normalizedValue * maxIntegerValueF + 0.5f);
+            sentData = sentData | ((integerValue & maxIntegerValue) << 20);
+            // b
+            normalizedValue = Mathf.Clamp01((b - minimum) / delta);
+            integerValue = (uint)Mathf.Floor(normalizedValue * maxIntegerValueF + 0.5f);
+            sentData = sentData | ((integerValue & maxIntegerValue) << 10);
+            // c
+            normalizedValue = Mathf.Clamp01((c - minimum) / delta);
+            integerValue = (uint)Mathf.Floor(normalizedValue * maxIntegerValueF + 0.5f);
+            sentData = sentData | (integerValue & maxIntegerValue);
+
+            Write(sentData);
+        }
+
         public void Read(ref Quaternion val) {
             val = ReadQuaternion();
         }
+
 
         public Quaternion ReadQuaternion() {
             uint readedData = ReadUInt();
@@ -277,12 +457,21 @@ namespace Cube.Transport {
             val = ReadConnection();
         }
 
+
+        public void Write(Connection connection) {
+            Write(connection.id);
+        }
+
         public Connection ReadConnection() {
-            // TODO lookup connection
             var id = ReadULong();
             return new Connection(id);
         }
-        
+
+
+        public void Write(ISerializable obj) {
+            obj.Serialize(this);
+        }
+
         public void Read(ref ISerializable obj) {
             ReadSerializable(obj);
         }
@@ -290,6 +479,7 @@ namespace Cube.Transport {
         public void ReadSerializable(ISerializable obj) {
             obj.Deserialize(this);
         }
+
 
         public unsafe int Read(byte[] buffer, int count) {
             if (count > buffer.Length * 8)
@@ -343,184 +533,7 @@ namespace Cube.Transport {
             }
             return read;
         }
-#endregion
 
-#region Write
-        public unsafe void Write(byte val) {
-            Write(&val, 8);
-        }
-
-        public unsafe void Write(ushort val) {
-            val = Endian.SwapUInt16(val);
-            Write((byte*)&val, 16);
-        }
-
-        public unsafe void Write(int val) {
-            val = Endian.SwapInt32(val);
-            Write((byte*)&val, 32);
-        }
-
-        public unsafe void WriteIntInRange(int val, int min, int max) {
-            if (val < min || val > max) {
-#if UNITY_EDITOR
-                Debug.LogWarning("Clamped value " + val + " to (" + min + "," + max + ")");
-#endif
-                val = Mathf.Clamp(val, min, max);
-            }
-
-            var bits = ComputeRequiredIntBits(min, max);
-            var mask = (uint)((1L << bits) - 1);
-            var data = (uint)(val - min) & mask;
-
-            Write((byte*)&data, bits);
-        }
-
-        public unsafe void Write(uint val) {
-            val = Endian.SwapUInt32(val);
-            Write((byte*)&val, 32);
-        }
-
-        public unsafe void Write(float val) {
-            Write((byte*)&val, 32);
-        }
-
-        public unsafe void WriteLossyFloat(float val, float min, float max, float precision = 0.1f) {
-            if (val < min || val > max) {
-                val = Mathf.Clamp(val, min, max);
-            }
-
-            var inv = 1 / precision;
-            WriteIntInRange((int)(val * inv), (int)(min * inv), (int)(max * inv));
-        }
-
-        public static float NormaliseFloat(float val, float precision = 0.1f) {
-            var inv = 1 / precision;
-            var temp = (int)(val * inv);
-            return temp * precision;
-        }
-
-        public unsafe void Write(long val) {
-            val = Endian.SwapInt64(val);
-            Write((byte*)&val, 64);
-        }
-
-        public unsafe void Write(ulong val) {
-            val = Endian.SwapUInt64(val);
-            Write((byte*)&val, 64);
-        }
-
-        public unsafe void Write(bool val) {
-            if (val)
-                Write1();
-            else
-                Write0();
-        }
-
-        public unsafe void Write(string val) {
-            var chars = val.ToCharArray();
-            Write((ushort)chars.Length);
-
-            if (chars.Length == 0)
-                return;
-
-            fixed (char* charPtr = &chars[0]) {
-                Write((byte*)charPtr, chars.Length * 16);
-            }
-        }
-
-        public void Write(Vector2 val) {
-            Write(val.x);
-            Write(val.y);
-        }
-
-        public void Write(Vector3 val) {
-            Write(val.x);
-            Write(val.y);
-            Write(val.z);
-        }
-        
-        public void Write(Quaternion val) {
-            int largest = 0;
-            float a, b, c;
-
-            float abs_w = Mathf.Abs(val.w);
-            float abs_x = Mathf.Abs(val.x);
-            float abs_y = Mathf.Abs(val.y);
-            float abs_z = Mathf.Abs(val.z);
-
-            float largest_value = abs_x;
-
-            if (abs_y > largest_value) {
-                largest = 1;
-                largest_value = abs_y;
-            }
-            if (abs_z > largest_value) {
-                largest = 2;
-                largest_value = abs_z;
-            }
-            if (abs_w > largest_value) {
-                largest = 3;
-                largest_value = abs_w;
-            }
-            if (val[largest] >= 0f) {
-                a = val[(largest + 1) % 4];
-                b = val[(largest + 2) % 4];
-                c = val[(largest + 3) % 4];
-            } else {
-                a = -val[(largest + 1) % 4];
-                b = -val[(largest + 2) % 4];
-                c = -val[(largest + 3) % 4];
-            }
-
-            // serialize
-            const float minimum = -1f / 1.414214f;        // note: 1.0f / sqrt(2)
-            const float maximum = +1f / 1.414214f;
-            const float delta = maximum - minimum;
-            const uint maxIntegerValue = (1 << 10) - 1; // 10 bits
-            const float maxIntegerValueF = (float)maxIntegerValue;
-            float normalizedValue;
-            uint integerValue;
-
-            uint sentData = ((uint)largest) << 30;
-            // a
-            normalizedValue = Mathf.Clamp01((a - minimum) / delta);
-            integerValue = (uint)Mathf.Floor(normalizedValue * maxIntegerValueF + 0.5f);
-            sentData = sentData | ((integerValue & maxIntegerValue) << 20);
-            // b
-            normalizedValue = Mathf.Clamp01((b - minimum) / delta);
-            integerValue = (uint)Mathf.Floor(normalizedValue * maxIntegerValueF + 0.5f);
-            sentData = sentData | ((integerValue & maxIntegerValue) << 10);
-            // c
-            normalizedValue = Mathf.Clamp01((c - minimum) / delta);
-            integerValue = (uint)Mathf.Floor(normalizedValue * maxIntegerValueF + 0.5f);
-            sentData = sentData | (integerValue & maxIntegerValue);
-
-            Write(sentData);
-        }
-        
-        public void Write(Connection connection) {
-            Write(connection.id);
-        }
-
-        /// <summary>
-        /// Write float in the range [0,1].
-        /// </summary>
-        public void WriteNormalised(float val) {
-            Assert.IsTrue(val > -1.01f && val < 1.01f);
-
-            val = Mathf.Clamp(val, -1f, 1f);
-            Write((ushort)((val + 1f) * 32767.5f));
-        }
-
-        public void WriteNormalised(Vector3 val) {
-            WriteNormalised(val.x);
-            WriteNormalised(val.y);
-            WriteNormalised(val.z);
-        }
-
-        public void Write(ISerializable obj) {
-            obj.Serialize(this);
-        }
 
         public void Write(BitStream other) {
             Write(other, other.LengthInBits - other.Position);
@@ -628,7 +641,7 @@ namespace Cube.Transport {
         void Write1() {
             Resize(1);
 
-            int numberOfBitsMod8 = (int)(_numberOfBitsUsed & 7);
+            int numberOfBitsMod8 = _numberOfBitsUsed & 7;
             if (numberOfBitsMod8 == 0)
                 _data[_numberOfBitsUsed >> 3] = 0x80;
             else
@@ -636,7 +649,20 @@ namespace Cube.Transport {
 
             _numberOfBitsUsed++;
         }
-        #endregion
+
+        public static float NormaliseFloat(float val, float precision = 0.1f) {
+            var inv = 1 / precision;
+            var temp = (int)(val * inv);
+            return temp * precision;
+        }
+
+        public override string ToString() {
+            var buffer = new byte[Length];
+            Array.Copy(_data, buffer, Length);
+
+            var s = BitConverter.ToString(buffer).Replace("-", " ");
+            return "{bits = " + LengthInBits + ", offset = " + Position + ", data = " + s + "}";
+        }
 
         void Resize(int numberOfBitsToWrite) {
             if (numberOfBitsToWrite == 0)
@@ -646,14 +672,6 @@ namespace Cube.Transport {
             if (_data.Length < newNumberOfBytesAllocated) {
                 Array.Resize(ref _data, newNumberOfBytesAllocated);
             }
-        }
-
-        public override string ToString() {
-            var buffer = new byte[Length];
-            Array.Copy(_data, buffer, Length);
-
-            var s = BitConverter.ToString(buffer).Replace("-", " ");
-            return "{bits = " + LengthInBits + ", offset = " + Position + ", data = " + s + "}";
         }
 
         static int BytesToBits(int bytes) {
