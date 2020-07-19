@@ -94,6 +94,10 @@ namespace Cube.Replication.Editor {
                         assembly.Write(writerParameters);
                     }
                 }
+                catch (InvalidOperationException e) {
+                    // InvalidOperationException: Operation is not valid due to the current state of the object.
+                    // Assembly is in use
+                }
                 catch (Exception e) {
                     throw new Exception("RPC Patcher failed (assembly = " + assemblyPath + ", appType = " + appType.ToString() + ")", e);
                 }
