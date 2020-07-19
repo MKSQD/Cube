@@ -51,6 +51,18 @@ namespace Cube.Transport.Tests {
         }
 
         [Test]
+        public void Test_WriteRead_String() {
+            var strings = new string[] { "", "f", "foo", "foooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo" };
+            foreach (var str in strings) {
+                var bs = new BitStream();
+
+                bs.Write(str);
+
+                Assert.AreEqual(bs.ReadString(), str);
+            }
+        }
+
+        [Test]
         public void Test_WriteRead_Int() {
             var bs = new BitStream();
 
@@ -92,7 +104,7 @@ namespace Cube.Transport.Tests {
             Assert.AreEqual(0, bs.ReadNormalisedFloat());
 
             bs.WriteNormalised(0.5f);
-            Assert.AreEqual(0.5f, bs.ReadNormalisedFloat());
+            Assert.AreEqual(0.5f, bs.ReadNormalisedFloat(), 0.001f);
 
             bs.WriteNormalised(1);
             Assert.AreEqual(1, bs.ReadNormalisedFloat());

@@ -57,16 +57,16 @@ namespace Cube.Transport {
             _data = buffer;
             _numberOfBitsUsed = lengthInBits;
         }
-        
+
         public static BitStream CreateWithExistingBuffer(byte[] data, int lengthInBits) {
             return new BitStream(data, lengthInBits);
         }
-        
+
         public void Reset() {
             _numberOfBitsUsed = 0;
             _readBitOffset = 0;
         }
-        
+
         public void ResetWithBuffer(byte[] data, int lengthInBits) {
             var lengthInBytes = BitsToBytes(lengthInBits);
             if (lengthInBytes > Capacity) {
@@ -182,7 +182,7 @@ namespace Cube.Transport {
             result = Mathf.Clamp(result, 0, 1);
             return result;
         }
-        
+
         public void Read(ref int val) {
             val = ReadInt();
         }
@@ -275,19 +275,48 @@ namespace Cube.Transport {
 
 
         public unsafe void Write(string val) {
+            // alt: 16bit ushort
+
             var chars = val.ToCharArray();
-            Write((ushort)chars.Length);
 
-            if (chars.Length == 0)
-                return;
+            if (chars.Length <= 32) {
+                Write(true);
+                Write(true);
+                WriteIntInRange(chars.Length, 0, 32);
+            }
+            else if (chars.Length <= 256) {
+                Write(false);
+                Write(true);
+                WriteIntInRange(chars.Length, 0, 256);
+            }
+            else {
+                Write(false);
+                Write(false);
+                Write((ushort)chars.Length);
+            }
 
-            fixed (char* charPtr = &chars[0]) {
-                Write((byte*)charPtr, chars.Length * 16);
+            if (chars.Length > 0) {
+                fixed (char* charPtr = &chars[0]) {
+                    Write((byte*)charPtr, chars.Length * 16);
+                }
             }
         }
 
         public unsafe string ReadString() {
-            var length = ReadUShort();
+            var under32 = ReadBool();
+            var under256 = ReadBool();
+
+            var length = 0;
+            if (under32) {
+                length = ReadIntInRange(0, 32);
+            }
+            else if (under256) {
+                length = ReadIntInRange(0, 256);
+            }
+            else {
+                length = ReadUShort();
+            }
+
             if (length == 0)
                 return "";
 
@@ -452,7 +481,7 @@ namespace Cube.Transport {
 
             return value;
         }
-        
+
         public void Read(ref Connection val) {
             val = ReadConnection();
         }
@@ -519,12 +548,14 @@ namespace Cube.Transport {
                     count -= 8;
                     _readBitOffset += 8;
                     read += 8;
-                } else {
+                }
+                else {
                     int neg = count - 8;
                     if (neg < 0) {
                         buffer[read >> 3] >>= -neg;
                         _readBitOffset += 8 + neg;
-                    } else {
+                    }
+                    else {
                         _readBitOffset += 8;
                     }
                     read += count;
@@ -575,7 +606,8 @@ namespace Cube.Transport {
                         // Write 0
                         data[_numberOfBitsUsed >> 3] = 0;
                     }
-                } else {
+                }
+                else {
                     // Existing byte
                     if ((other._data[other.Position >> 3] & (0x80 >> (other.Position & 7))) != 0) {
                         // Set bit to 1
@@ -612,7 +644,8 @@ namespace Cube.Transport {
 
                 if (numberOfBitsUsedMod8 == 0) {
                     _data[_numberOfBitsUsed >> 3] = dataByte;
-                } else {
+                }
+                else {
                     _data[_numberOfBitsUsed >> 3] |= (byte)(dataByte >> numberOfBitsUsedMod8);
 
                     if (8 - (numberOfBitsUsedMod8) < 8 && 8 - (numberOfBitsUsedMod8) < numberOfBitsToWrite)
@@ -622,7 +655,8 @@ namespace Cube.Transport {
                 if (numberOfBitsToWrite >= 8) {
                     _numberOfBitsUsed += 8;
                     numberOfBitsToWrite -= 8;
-                } else {
+                }
+                else {
                     _numberOfBitsUsed += numberOfBitsToWrite;
                     numberOfBitsToWrite = 0;
                 }
