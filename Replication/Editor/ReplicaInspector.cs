@@ -28,18 +28,21 @@ namespace Cube.Replication.Editor {
             EditorGUILayout.LabelField("Scene Idx", idxStr);
 
             if (EditorApplication.isPlaying) {
-                if (GUILayout.Button("Find Server/Client Replica")) {
-                    PingCorrespondingReplica(replica);
+                if (GUILayout.Button("Find " + (replica.isClient ? "Server" : "Client") +  " Replica")) {
+                    ApplyToCorrespondingReplica(replica, cr => EditorGUIUtility.PingObject(cr.transform.gameObject));
+                }
+                if (GUILayout.Button("Select " + (replica.isClient ? "Server" : "Client") + " Replica")) {
+                    ApplyToCorrespondingReplica(replica, cr => Selection.activeGameObject = cr.transform.gameObject);
                 }
             }
         }
 
-        void PingCorrespondingReplica(Replica replica) {
-            Action<GameObject> pingMatching = (go) => {
+        void ApplyToCorrespondingReplica(Replica replica, Action<Replica> func) {
+            Action<GameObject> impl = (go) => {
                 var correspondingReplicas = go.GetComponentsInChildren<Replica>();
                 foreach (var correspondingReplica in correspondingReplicas) {
                     if (correspondingReplica.ReplicaId == replica.ReplicaId) {
-                        EditorGUIUtility.PingObject(correspondingReplica.transform.gameObject);
+                        func(correspondingReplica);
                         break;
                     }
                 }
@@ -51,7 +54,7 @@ namespace Cube.Replication.Editor {
                     if (otherReplica == null)
                         continue;
 
-                    pingMatching(otherReplica.gameObject);
+                    impl(otherReplica.gameObject);
                     break;
                 }
             }
@@ -62,7 +65,7 @@ namespace Cube.Replication.Editor {
                     if (otherReplica == null)
                         continue;
 
-                    pingMatching(otherReplica.gameObject);
+                    impl(otherReplica.gameObject);
                     break;
                 }
             }
