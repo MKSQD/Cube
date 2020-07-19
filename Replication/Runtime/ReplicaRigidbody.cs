@@ -41,10 +41,6 @@ namespace Cube.Replication {
         }
 
         public override void Serialize(BitStream bs, SerializeContext ctx) {
-            bs.Write(enabled);
-            if (!enabled)
-                return;
-
             bs.Write(transform.position);
 
             var euler = transform.rotation.eulerAngles;
@@ -71,11 +67,6 @@ namespace Cube.Replication {
         }
 
         public override void Deserialize(BitStream bs) {
-            var isEnabled = bs.ReadBool();
-            enabled = isEnabled;
-            if (!isEnabled)
-                return;
-
             transform.position = bs.ReadVector3();
 
             var euler = new Vector3 {
