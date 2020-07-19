@@ -303,6 +303,9 @@ namespace Cube.Replication {
             int bytesSent = 0;
 
             var sortedIndices = GetSortedRelevantReplicaIndices(view);
+            var serializeCtx = new ReplicaBehaviour.SerializeContext() {
+                Observer = view
+            };
 
             foreach (var idx in sortedIndices) {
                 var replica = view.relevantReplicas[idx];
@@ -321,9 +324,7 @@ namespace Cube.Replication {
                 bool isOwner = replica.Owner == view.connection;
                 updateBs.Write(isOwner);
 
-                replica.Serialize(updateBs, new ReplicaBehaviour.SerializeContext() {
-                    Observer = view
-                });
+                replica.Serialize(updateBs, serializeCtx);
 
                 _server.networkInterface.SendBitStream(updateBs, PacketPriority.Medium, PacketReliability.Unreliable, view.connection);
 

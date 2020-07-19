@@ -170,10 +170,10 @@ namespace Cube.Replication {
         public void RebuildCaches() {
             _replicaBehaviours = GetComponentsInChildren<ReplicaBehaviour>();
 
-            var idx = 0;
+            byte idx = 0;
             foreach (var rb in _replicaBehaviours) {
                 rb.replica = this;
-                rb.replicaComponentIdx = (byte)idx++;
+                rb.replicaComponentIdx = idx++;
             }
         }
 
