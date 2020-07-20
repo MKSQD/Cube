@@ -1,14 +1,17 @@
 {
     "name": "Cube.Replication",
     "references": [
-        "Cube.Transport"
+        "Cube.Transport",
+        "Unity.Addressables",
+        "Unity.ResourceManager"
     ],
-    "optionalUnityReferences": [],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
     "overrideReferences": false,
     "precompiledReferences": [],
     "autoReferenced": true,
-    "defineConstraints": []
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
 }

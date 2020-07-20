@@ -7,6 +7,8 @@ using UnityEngine.SceneManagement;
 using Cube.Transport;
 using BitStream = Cube.Transport.BitStream;
 using System.Linq;
+using UnityEngine.AddressableAssets;
+using UnityEngine.ResourceManagement.AsyncOperations;
 
 namespace Cube.Replication {
     [Serializable]
@@ -137,27 +139,45 @@ namespace Cube.Replication {
             if (prefab == null)
                 throw new ArgumentNullException("prefab");
 
-            var replica = InstantiateReplicaImpl(prefab, position, rotation);
-            if (replica == null)
-                return null;
-
-            replica.TakeOwnership();
-
-            return replica.gameObject;
-        }
-
-        Replica InstantiateReplicaImpl(GameObject prefab, Vector3 position, Quaternion rotation) {
             var newInstance = UnityEngine.Object.Instantiate(prefab, position, rotation, _server.world.transform);
-
-            var newReplica = newInstance.GetComponent<Replica>();
-            if (newReplica == null) {
+            var replica = InstantiateReplicaImpl(newInstance);
+            if (replica == null) {
                 Debug.LogError("Prefab <i>" + prefab + "</i> is missing Replica Component", prefab);
                 return null;
             }
 
+            return newInstance;
+        }
+
+        public AsyncOperationHandle<GameObject> InstantiateReplicaAsync(string key) {
+            return InstantiateReplicaAsync(key, Vector3.zero, Quaternion.identity);
+        }
+
+        public AsyncOperationHandle<GameObject> InstantiateReplicaAsync(string key, Vector3 position) {
+            return InstantiateReplicaAsync(key, position, Quaternion.identity);
+        }
+
+        public AsyncOperationHandle<GameObject> InstantiateReplicaAsync(string key, Vector3 position, Quaternion rotation) {
+            var newInstance = Addressables.InstantiateAsync(key, position, rotation, _server.world.transform);
+            newInstance.Completed += obj => {
+                var replica = InstantiateReplicaImpl(obj.Result);
+                if (replica == null) {
+                    Debug.LogError("Prefab <i>" + key + "</i> is missing Replica Component");
+                }
+            };
+
+            return newInstance;
+        }
+
+        Replica InstantiateReplicaImpl(GameObject newInstance) {
+            var newReplica = newInstance.GetComponent<Replica>();
+            if (newReplica == null)
+                return null;
+
             newReplica.server = _server;
             newReplica.ReplicaId = ReplicaId.Create(this);
             Assert.IsTrue(newReplica.ReplicaId != ReplicaId.Invalid);
+            newReplica.TakeOwnership();
 
             // Wait for one frame until Start is called before replicating to clients
             _replicasInConstruction[newReplica.ReplicaId] = newReplica;

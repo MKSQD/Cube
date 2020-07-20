@@ -1,6 +1,7 @@
 ﻿using Cube.Transport;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.ResourceManagement.AsyncOperations;
 
 namespace Cube.Replication {
     public interface IServerReplicaManager : IReplicaManager {
@@ -13,6 +14,10 @@ namespace Cube.Replication {
         GameObject InstantiateReplica(GameObject prefab);
         GameObject InstantiateReplica(GameObject prefab, Vector3 position);
         GameObject InstantiateReplica(GameObject prefab, Vector3 position, Quaternion rotation);
+
+        AsyncOperationHandle<GameObject> InstantiateReplicaAsync(string key);
+        AsyncOperationHandle<GameObject> InstantiateReplicaAsync(string key, Vector3 position);
+        AsyncOperationHandle<GameObject> InstantiateReplicaAsync(string key, Vector3 position, Quaternion rotation);
 
         /// <summary>
         /// Remove the Replica instantly from the manager, without notifying the clients.
