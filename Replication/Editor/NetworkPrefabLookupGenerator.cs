@@ -14,6 +14,7 @@ namespace Cube.Replication {
         const string SERVER_PREFAB_PREFIX = "Server_";
 
         [DidReloadScripts]
+        [MenuItem("Cube/Internal/GenerateNetworkPrefabLookup")]
         public static void GenerateNetworkPrefabLookup() {
             EditorSceneManager.sceneSaving -= OnSceneSaving;
             EditorSceneManager.sceneSaving += OnSceneSaving;

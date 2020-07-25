@@ -1,4 +1,5 @@
 ﻿using Cube.Transport;
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Assertions;
@@ -91,7 +92,7 @@ namespace Cube.Replication {
 
                 if (replica.lastUpdateTime <= removeTime) {
                     // Note we modify the replicas variable implicitly here -> the Replica deletes itself
-                    Object.Destroy(replica.gameObject);
+                    UnityEngine.Object.Destroy(replica.gameObject);
                 }
             }
         }
@@ -126,10 +127,15 @@ namespace Cube.Replication {
             // any ReplicaBehaviour replication
 #if UNITY_EDITOR
             if (isSceneReplica)
-                return; // #todo THIS BREAKS SCENE REPLICA SUBREPLICAS
+                return;
 #endif
 
-            replica.Deserialize(bs);
+            try {
+                replica.Deserialize(bs);
+            }
+            catch (Exception e) {
+                Debug.LogException(e);
+            }
 
             replica.lastUpdateTime = Time.time;
         }
@@ -141,7 +147,7 @@ namespace Cube.Replication {
                 return null;
             }
 
-            var newInstance = Object.Instantiate(prefab, _client.world.transform);
+            var newInstance = UnityEngine.Object.Instantiate(prefab, _client.world.transform);
 
             var newReplica = newInstance.GetComponent<Replica>();
             if (newReplica == null) {
@@ -177,7 +183,7 @@ namespace Cube.Replication {
                 var replica = _networkScene.GetReplicaById(replicaId);
                 if (replica != null) {
                     replica.DeserializeDestruction(bs);
-                    Object.Destroy(replica.gameObject);
+                    UnityEngine.Object.Destroy(replica.gameObject);
                 }
 
                 bs.Position = absOffset;

@@ -102,6 +102,7 @@ namespace Cube.Replication {
             return true;
         }
 
+        /// [0,1]
         public virtual float GetPriorityFor(ReplicaView view) {
             Assert.IsNotNull(view);
             Assert.IsTrue(isServer);

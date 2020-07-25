@@ -666,9 +666,11 @@ namespace Cube.Transport {
         void Write0() {
             Resize(1);
 
-            if ((_numberOfBitsUsed & 7) == 0) {
+            int numberOfBitsMod8 = _numberOfBitsUsed & 7;
+            if (numberOfBitsMod8 == 0) {
                 _data[_numberOfBitsUsed >> 3] = 0;
             }
+
             ++_numberOfBitsUsed;
         }
 
@@ -676,12 +678,14 @@ namespace Cube.Transport {
             Resize(1);
 
             int numberOfBitsMod8 = _numberOfBitsUsed & 7;
-            if (numberOfBitsMod8 == 0)
+            if (numberOfBitsMod8 == 0) {
                 _data[_numberOfBitsUsed >> 3] = 0x80;
-            else
+            }
+            else {
                 _data[_numberOfBitsUsed >> 3] |= (byte)(0x80 >> (numberOfBitsMod8));
+            }
 
-            _numberOfBitsUsed++;
+            ++_numberOfBitsUsed;
         }
 
         public static float NormaliseFloat(float val, float precision = 0.1f) {

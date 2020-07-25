@@ -46,12 +46,7 @@ namespace Cube.Transport {
 #endif
 
             _server = new NetServer(config);
-            try {
-                _server.Start();
-            }
-            catch (Exception e) {
-                Debug.LogError(e);
-            }
+            _server.Start();
         }
 
         public void Shutdown() {

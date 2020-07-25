@@ -17,11 +17,11 @@ namespace Cube.Replication.Editor {
             var replica = target as Replica;
 
             if (PrefabUtility.GetPrefabAssetType(replica) == PrefabAssetType.NotAPrefab) {
-                EditorGUILayout.LabelField("Prefab Id", replica.prefabIdx.ToString());
+                EditorGUILayout.LabelField("Prefab ID", replica.prefabIdx.ToString());
             }
 
             if (EditorApplication.isPlaying) {
-                EditorGUILayout.LabelField("Replica Id", replica.ReplicaId.data.ToString());
+                EditorGUILayout.LabelField("Replica ID", replica.ReplicaId.data.ToString());
             }
 
             var idxStr = replica.sceneIdx != 0 ? replica.sceneIdx.ToString() : "-";
