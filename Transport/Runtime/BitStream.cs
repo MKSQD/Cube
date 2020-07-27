@@ -13,6 +13,9 @@ namespace Cube.Transport {
         int _numberOfBitsUsed = 0;
         int _readBitOffset = 0;
 
+        /// <summary>
+        /// Current write position in bits.
+        /// </summary>
         public int LengthInBits {
             get { return _numberOfBitsUsed; }
         }

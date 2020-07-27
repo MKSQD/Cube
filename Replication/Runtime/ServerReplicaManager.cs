@@ -327,8 +327,8 @@ namespace Cube.Replication {
                 Observer = view
             };
 
-            foreach (var idx in sortedIndices) {
-                var replica = view.relevantReplicas[idx];
+            foreach (var currentReplicaIdx in sortedIndices) {
+                var replica = view.relevantReplicas[currentReplicaIdx];
                 if (replica == null || replica.ReplicaId == ReplicaId.Invalid)
                     continue;
 
@@ -351,7 +351,7 @@ namespace Cube.Replication {
                 bytesSent += updateBs.Length;
 
                 // We just sent this Replica, reset its priority
-                view.relevantReplicaPriorityAccumulator[idx] = 0;
+                view.relevantReplicaPriorityAccumulator[currentReplicaIdx] = 0;
 
 #if UNITY_EDITOR
                 // Add some profiling info

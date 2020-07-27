@@ -134,6 +134,7 @@ namespace Cube.Replication {
                 replica.Deserialize(bs);
             }
             catch (Exception e) {
+                Debug.LogError("Exception while deserializing Replica " + replica + ":");
                 Debug.LogException(e);
             }
 
@@ -141,8 +142,7 @@ namespace Cube.Replication {
         }
 
         Replica ConstructReplica(ushort prefabIdx, ReplicaId replicaId) {
-            GameObject prefab;
-            if (!_networkPrefabLookup.TryGetClientPrefabForIndex(prefabIdx, out prefab)) {
+            if (!_networkPrefabLookup.TryGetClientPrefabForIndex(prefabIdx, out GameObject prefab)) {
                 Debug.LogWarning("Prefab for index " + prefabIdx + " not found!");
                 return null;
             }
