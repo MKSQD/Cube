@@ -14,11 +14,15 @@ namespace Cube.Replication {
         const string SERVER_PREFAB_PREFIX = "Server_";
 
         [DidReloadScripts]
-        [MenuItem("Cube/Internal/GenerateNetworkPrefabLookup")]
         public static void GenerateNetworkPrefabLookup() {
             EditorSceneManager.sceneSaving -= OnSceneSaving;
             EditorSceneManager.sceneSaving += OnSceneSaving;
 
+            GenerateNetworkPrefabLookupImpl();
+        }
+
+        [MenuItem("Cube/Internal/GenerateNetworkPrefabLookup")]
+        static void GenerateNetworkPrefabLookupImpl() {
             var prefabs = new List<GameObject>();
 
             ushort nextPrefabIdx = 0;
@@ -39,8 +43,9 @@ namespace Cube.Replication {
                     continue;
 
                 var clientPrefab = serverPrefab;
+                var clientAssetPath = "";
                 if (serverAssetPath.IndexOf("Server_", StringComparison.InvariantCultureIgnoreCase) != -1) {
-                    var clientAssetPath = ReplaceString(serverAssetPath, SERVER_PREFAB_PREFIX, CLIENT_PREFAB_PREFIX, StringComparison.InvariantCultureIgnoreCase);
+                    clientAssetPath = ReplaceString(serverAssetPath, SERVER_PREFAB_PREFIX, CLIENT_PREFAB_PREFIX, StringComparison.InvariantCultureIgnoreCase);
 
                     clientPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(clientAssetPath);
                     if (clientPrefab == null) {
@@ -50,10 +55,26 @@ namespace Cube.Replication {
                 }
 
                 var serverReplica = serverPrefab.GetComponent<Replica>();
-                serverReplica.prefabIdx = nextPrefabIdx;
+                if (serverReplica.prefabIdx != nextPrefabIdx) {
+                    serverReplica.prefabIdx = nextPrefabIdx;
+                    EditorUtility.SetDirty(serverPrefab);
+                }
 
                 var clientReplica = clientPrefab.GetComponent<Replica>();
-                clientReplica.prefabIdx = nextPrefabIdx;
+                if (clientReplica.prefabIdx != nextPrefabIdx) {
+                    clientReplica.prefabIdx = nextPrefabIdx;
+                    EditorUtility.SetDirty(clientPrefab);
+                }
+
+                // Fix copy&paste errors
+                if (serverReplica.sceneIdx != 0) {
+                    serverReplica.sceneIdx = 0;
+                    EditorUtility.SetDirty(serverPrefab);
+                }
+                if (clientReplica.sceneIdx != 0) {
+                    clientReplica.sceneIdx = 0;
+                    EditorUtility.SetDirty(clientReplica);
+                }
 
                 prefabs.Add(clientPrefab);
                 nextPrefabIdx++;
