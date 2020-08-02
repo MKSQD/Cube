@@ -2,6 +2,8 @@
 
 namespace Cube.Replication {
     public class TransformHistory {
+        public int Capacity => _history.Capacity;
+
         struct Entry {
             public float time;
             public Vector3 position;
@@ -31,6 +33,16 @@ namespace Cube.Replication {
             }
 
             public static Entry GetTransformAtTime(RingBuffer<Entry> history, float desiredTime) {
+                if (history.Count == 0)
+                    return new Entry() {
+                        time = desiredTime,
+                        position = Vector3.zero,
+                        rotation = Quaternion.identity
+                    };
+
+                if (desiredTime <= history.GetOldest().time)
+                    return history.GetOldest();
+
                 for (var i = history.Count - 1; i > 0; i--) {
                     var entry1 = history.Get(i);
                     var entry2 = history.Get(i - 1);
@@ -38,35 +50,37 @@ namespace Cube.Replication {
                         return Lerp(entry2, entry1, desiredTime);
                 }
 
-                if (history.Count > 0)
-                    return history.GetLatest();
-
-                return new Entry() {
-                    time = desiredTime,
-                    position = Vector3.zero,
-                    rotation = Quaternion.identity
-                };
+                return history.GetLatest();
             }
         }
 
         RingBuffer<Entry> _history;
+        float _writeInterval;
 
-        public TransformHistory(int capacity = 32) {
+        public TransformHistory(float maxWriteIntervalMs, float maxHistoryTimeMs) {
+            _writeInterval = maxWriteIntervalMs * 0.001f;
+            _history = new RingBuffer<Entry>((int)(maxHistoryTimeMs / maxWriteIntervalMs) + 1);
+        }
+
+        public TransformHistory(int capacity) {
+            _writeInterval = 0.001f;
             _history = new RingBuffer<Entry>(capacity);
         }
 
-        public void Add(Pose curPose, float timestamp) {
+        public void Add(float timestamp, Pose curPose) {
+            if (_history.Count > 0 && timestamp - _history.GetLatest().time < _writeInterval)
+                return;
+
             var currentTransform = new Entry() {
                 time = timestamp,
                 position = curPose.position,
                 rotation = curPose.rotation,
             };
-
             _history.Add(currentTransform);
         }
 
         public void Sample(float timestamp, out Vector3 delayedPos, out Quaternion delayedRot) {
-            Entry desiredTransform = Entry.GetTransformAtTime(_history, timestamp);
+            var desiredTransform = Entry.GetTransformAtTime(_history, timestamp);
             delayedPos = desiredTransform.position;
             delayedRot = desiredTransform.rotation;
         }

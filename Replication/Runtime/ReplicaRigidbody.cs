@@ -9,35 +9,39 @@ namespace Cube.Replication {
     [AddComponentMenu("Cube/ReplicaRigidbody")]
     [RequireComponent(typeof(Rigidbody))]
     public class ReplicaRigidbody : ReplicaBehaviour {
+        [Tooltip("Visual representation of the object to be interpolated (seperate from the physical representation)")]
         public Transform model;
 
+        public TransformHistory history;
+
         Rigidbody _rigidbody;
-        Vector3 modelLastPos;
-        Quaternion modelLastRot;
+        bool _clientSleeping = false;
 
         const float maxVelocity = 16;
         const float maxAngularVelocity = 16;
 
         void Awake() {
             _rigidbody = GetComponent<Rigidbody>();
+
+            history = new TransformHistory(25, 500);
         }
 
         void Update() {
             if (model == null || !isClient)
                 return;
 
-            var dist = (modelLastPos - transform.position).sqrMagnitude;
-            if (dist < 10) {
-                model.position = Vector3.Lerp(modelLastPos, transform.position, Time.deltaTime * 14);
-                model.rotation = Quaternion.Lerp(modelLastRot, transform.rotation, Time.deltaTime * 14);
-            }
-            else {
-                model.position = transform.position;
-                model.rotation = transform.rotation;
+            history.Add(Time.time + 0.025f, new Pose(transform.position, transform.rotation));
 
+            history.Sample(Time.time, out Vector3 pos, out Quaternion rot);
+            model.position = pos;
+            model.rotation = rot;
+        }
+
+        void FixedUpdate() {
+            if (isClient && _clientSleeping) {
+                _rigidbody.velocity = Vector3.zero;
+                _rigidbody.angularVelocity = Vector3.zero;
             }
-            modelLastPos = model.position;
-            modelLastRot = model.rotation;
         }
 
         public override void Serialize(BitStream bs, SerializeContext ctx) {
@@ -76,8 +80,8 @@ namespace Cube.Replication {
             };
             transform.rotation = Quaternion.Euler(euler);
 
-            var sleeping = bs.ReadBool();
-            if (!sleeping) {
+            _clientSleeping = bs.ReadBool();
+            if (!_clientSleeping) {
                 var velocity = new Vector3 {
                     x = bs.ReadLossyFloat(-maxVelocity, maxVelocity),
                     y = bs.ReadLossyFloat(-maxVelocity, maxVelocity),
@@ -91,9 +95,6 @@ namespace Cube.Replication {
                     z = bs.ReadLossyFloat(-maxAngularVelocity, maxAngularVelocity)
                 };
                 _rigidbody.angularVelocity = angularVelocity;
-            }
-            else {
-                _rigidbody.Sleep();
             }
         }
     }

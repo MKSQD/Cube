@@ -17,6 +17,12 @@ namespace Cube.Replication {
 
         public static ReplicaSettings defaultReplicaSettings;
         public ReplicaSettings settings;
+        public ReplicaSettings settingsOrDefault {
+            get {
+                return settings != null ? settings : defaultReplicaSettings;
+            }
+        }
+
         public bool replicateOnlyToOwner;
 
         [HideInInspector]

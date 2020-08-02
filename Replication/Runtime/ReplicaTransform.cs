@@ -21,7 +21,7 @@ namespace Cube.Replication {
         TransformHistory _history;
 
         void Awake() {
-            _history = new TransformHistory();
+            _history = new TransformHistory(replica.settingsOrDefault.desiredUpdateRateMs, interpolationDelayMs);
         }
 
         void Update() {
@@ -46,7 +46,8 @@ namespace Cube.Replication {
                 transform.rotation = rotation;
             }
             else if (interpolation == Interpolation.Interpolate) {
-                _history.Add(new Pose(position, rotation), Time.time + interpolationDelayMs * 0.001f);
+                var t = Time.time + interpolationDelayMs * 0.001f;
+                _history.Add(t, new Pose(position, rotation));
             }
         }
     }
