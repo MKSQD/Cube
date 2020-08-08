@@ -16,6 +16,8 @@ namespace Cube.Replication.Editor {
 
             var replica = target as Replica;
 
+            EditorGUILayout.LabelField("Is Owner", replica.isOwner.ToString());
+
             EditorGUILayout.LabelField("Prefab ID", replica.prefabIdx.ToString());
 
             if (EditorApplication.isPlaying) {
