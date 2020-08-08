@@ -68,15 +68,31 @@ namespace Cube.Replication {
         }
 
         public void Add(float timestamp, Pose curPose) {
-            if (_history.Count > 0 && timestamp - _history.GetLatest().time < _writeInterval)
-                return;
+            if (_history.Count > 0) {
+                var latest = _history.GetLatest();
+                timestamp -= latest.time;
 
-            var currentTransform = new Entry() {
-                time = timestamp,
-                position = curPose.position,
-                rotation = curPose.rotation,
-            };
-            _history.Add(currentTransform);
+                if (timestamp < _writeInterval)
+                    return;
+
+                var a = (int)(timestamp / _writeInterval);
+                timestamp = a * _writeInterval;
+
+                var currentTransform = new Entry() {
+                    time = latest.time + timestamp,
+                    position = curPose.position,
+                    rotation = curPose.rotation,
+                };
+                _history.Add(currentTransform);
+            }
+            else {
+                var currentTransform = new Entry() {
+                    time = timestamp,
+                    position = curPose.position,
+                    rotation = curPose.rotation,
+                };
+                _history.Add(currentTransform);
+            }
         }
 
         public void Sample(float timestamp, out Vector3 delayedPos, out Quaternion delayedRot) {
