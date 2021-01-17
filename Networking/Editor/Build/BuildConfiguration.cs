@@ -20,9 +20,6 @@ namespace Cube.Networking {
         /// <see cref="UnityEditor.BuildTarget"/>
         public BuildTarget buildTarget;
 
-        /// <see cref="UnityEditor.BuildOptions.AcceptExternalModificationsToPlayer"/>
-        public bool acceptExternalModificationsToPlayer;
-
         /// <see cref="UnityEditor.BuildOptions.Development"/>
         public bool development;
 
@@ -64,7 +61,6 @@ namespace Cube.Networking {
         protected virtual BuildOptions GetBuildOptions() {
             var options = new BuildOptions();
 
-            if (acceptExternalModificationsToPlayer) options |= BuildOptions.AcceptExternalModificationsToPlayer;
             if (development) options |= BuildOptions.Development;
             if (autoRunPlayer) options |= BuildOptions.AutoRunPlayer;
 

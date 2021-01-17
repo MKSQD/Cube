@@ -149,15 +149,15 @@ namespace Cube.Replication {
             return newInstance;
         }
 
-        public AsyncOperationHandle<GameObject> InstantiateReplicaAsync(string key) {
+        public AsyncOperationHandle<GameObject> InstantiateReplicaAsync(object key) {
             return InstantiateReplicaAsync(key, Vector3.zero, Quaternion.identity);
         }
 
-        public AsyncOperationHandle<GameObject> InstantiateReplicaAsync(string key, Vector3 position) {
+        public AsyncOperationHandle<GameObject> InstantiateReplicaAsync(object key, Vector3 position) {
             return InstantiateReplicaAsync(key, position, Quaternion.identity);
         }
 
-        public AsyncOperationHandle<GameObject> InstantiateReplicaAsync(string key, Vector3 position, Quaternion rotation) {
+        public AsyncOperationHandle<GameObject> InstantiateReplicaAsync(object key, Vector3 position, Quaternion rotation) {
             var newInstance = Addressables.InstantiateAsync(key, position, rotation, _server.world.transform);
             newInstance.Completed += obj => {
                 var replica = InstantiateReplicaImpl(obj.Result);

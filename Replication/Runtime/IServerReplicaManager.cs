@@ -15,9 +15,9 @@ namespace Cube.Replication {
         GameObject InstantiateReplica(GameObject prefab, Vector3 position);
         GameObject InstantiateReplica(GameObject prefab, Vector3 position, Quaternion rotation);
 
-        AsyncOperationHandle<GameObject> InstantiateReplicaAsync(string key);
-        AsyncOperationHandle<GameObject> InstantiateReplicaAsync(string key, Vector3 position);
-        AsyncOperationHandle<GameObject> InstantiateReplicaAsync(string key, Vector3 position, Quaternion rotation);
+        AsyncOperationHandle<GameObject> InstantiateReplicaAsync(object key);
+        AsyncOperationHandle<GameObject> InstantiateReplicaAsync(object key, Vector3 position);
+        AsyncOperationHandle<GameObject> InstantiateReplicaAsync(object key, Vector3 position, Quaternion rotation);
 
         /// <summary>
         /// Remove the Replica instantly from the manager, without notifying the clients.
