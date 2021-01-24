@@ -5,9 +5,6 @@ using UnityEngine;
 using BitStream = Cube.Transport.BitStream;
 
 namespace Cube.Replication {
-    /// <summary>
-    /// 
-    /// </summary>
     public abstract class ReplicaBehaviour : MonoBehaviour {
         public struct SerializeContext {
             public ReplicaView Observer;
