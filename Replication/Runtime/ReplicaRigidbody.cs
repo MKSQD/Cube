@@ -30,17 +30,18 @@ namespace Cube.Replication {
             if (model == null || !isClient)
                 return;
 
-            history.Add(Time.time + 0.025f, new Pose(transform.position, transform.rotation));
-
             history.Sample(Time.time, out Vector3 pos, out Quaternion rot);
             model.position = pos;
             model.rotation = rot;
         }
 
         void FixedUpdate() {
-            if (isClient && _clientSleeping) {
-                _rigidbody.velocity = Vector3.zero;
-                _rigidbody.angularVelocity = Vector3.zero;
+            if (isClient) {
+                history.Add(Time.time + 0.025f, new Pose(transform.position, transform.rotation));
+                if (_clientSleeping) {
+                    _rigidbody.velocity = Vector3.zero;
+                    _rigidbody.angularVelocity = Vector3.zero;
+                }
             }
         }
 
