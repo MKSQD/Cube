@@ -12,8 +12,6 @@ namespace Cube.Replication {
         [Tooltip("Visual representation of the object to be interpolated (seperate from the physical representation)")]
         public Transform model;
 
-        public TransformHistory history;
-
         Rigidbody _rigidbody;
         bool _clientSleeping = false;
 
@@ -22,22 +20,26 @@ namespace Cube.Replication {
 
         void Awake() {
             _rigidbody = GetComponent<Rigidbody>();
-
-            history = new TransformHistory(25, 500);
         }
 
         void Update() {
             if (model == null || !isClient)
                 return;
 
-            history.Sample(Time.time, out Vector3 pos, out Quaternion rot);
-            model.position = pos;
-            model.rotation = rot;
+#if UNITY_EDITOR
+            if (replica.isSceneReplica)
+                return;
+#endif
+
+            var t = (Time.time - currT) / (replica.settings.DesiredUpdateRateMS * 0.001f);
+            t = Mathf.Clamp01(t);
+
+            model.position = Vector3.Lerp(prevPos, currPos, t);
+            model.rotation = Quaternion.Lerp(prevRot, currRot, t);
         }
 
         void FixedUpdate() {
             if (isClient) {
-                history.Add(Time.time + 0.025f, new Pose(transform.position, transform.rotation));
                 if (_clientSleeping) {
                     _rigidbody.velocity = Vector3.zero;
                     _rigidbody.angularVelocity = Vector3.zero;
@@ -71,15 +73,25 @@ namespace Cube.Replication {
             }
         }
 
+        Vector3 prevPos;
+        Quaternion prevRot = Quaternion.identity;
+        Vector3 currPos;
+        Quaternion currRot = Quaternion.identity;
+        float currT;
+
         public override void Deserialize(BitStream bs) {
-            transform.position = bs.ReadVector3();
+            currT = Time.time;
+            prevPos = currPos;
+            prevRot = currRot;
+
+            currPos = transform.position = bs.ReadVector3();
 
             var euler = new Vector3 {
                 x = bs.ReadLossyFloat(0, 360),
                 y = bs.ReadLossyFloat(0, 360),
                 z = bs.ReadLossyFloat(0, 360)
             };
-            transform.rotation = Quaternion.Euler(euler);
+            currRot = transform.rotation = Quaternion.Euler(euler);
 
             _clientSleeping = bs.ReadBool();
             if (!_clientSleeping) {

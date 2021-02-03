@@ -61,7 +61,7 @@ namespace Cube.Transport {
         public Connection[] GetConnections() {
             var connections = new Connection[_server.ConnectionsCount];
             for (int i = 0; i < connections.Length; ++i) {
-                connections[i] = new Connection((ulong)_server.Connections[0].RemoteUniqueIdentifier);
+                connections[i] = new Connection((ulong)_server.Connections[i].RemoteUniqueIdentifier);
             }
 
             return connections;

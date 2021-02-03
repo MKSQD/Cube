@@ -29,7 +29,7 @@ namespace Cube.Replication.Editor {
             }
 
             if (EditorApplication.isPlaying) {
-                if (GUILayout.Button("Find " + (replica.isClient ? "Server" : "Client") +  " Replica")) {
+                if (GUILayout.Button("Find " + (replica.isClient ? "Server" : "Client") + " Replica")) {
                     ApplyToCorrespondingReplica(replica, cr => EditorGUIUtility.PingObject(cr.transform.gameObject));
                 }
                 if (GUILayout.Button("Select " + (replica.isClient ? "Server" : "Client") + " Replica")) {
@@ -50,18 +50,14 @@ namespace Cube.Replication.Editor {
             };
 
             if (replica.isClient) {
-                foreach (var replicaManager in ServerReplicaManager.all) {
-                    var otherReplica = replicaManager.GetReplicaById(replica.ReplicaId);
-                    if (otherReplica == null)
-                        continue;
-
+                var otherReplica = ServerReplicaManager.Main.GetReplicaById(replica.ReplicaId);
+                if (otherReplica != null) {
                     impl(otherReplica.gameObject);
-                    break;
                 }
             }
 
             if (replica.isServer) {
-                foreach (var replicaManager in ClientReplicaManager.all) {
+                foreach (var replicaManager in ClientReplicaManager.All) {
                     var otherReplica = replicaManager.GetReplicaById(replica.ReplicaId);
                     if (otherReplica == null)
                         continue;

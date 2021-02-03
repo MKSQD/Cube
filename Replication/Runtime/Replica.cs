@@ -103,19 +103,19 @@ namespace Cube.Replication {
                 return false;
 
             if (replicateOnlyToOwner)
-                return view.connection == Owner;
+                return view.Connection == Owner;
 
             return true;
         }
 
         /// [0,1]
-        public virtual float GetPriorityFor(ReplicaView view) {
+        public virtual float GetRelevance(ReplicaView view) {
             Assert.IsNotNull(view);
             Assert.IsTrue(isServer);
 
             var distanceRelevance = 1f;
-            if ((settings.priorityFlags & ReplicaPriorityFlag.IgnorePosition) == 0 && !view.ignoreReplicaPositionsForPriority) {
-                var sqrMaxDist = Mathf.Pow(settings.maxViewDistance, 2);
+            if ((settings.priorityFlags & ReplicaPriorityFlag.IgnorePosition) == 0 && !view.IgnoreReplicaPositionsForPriority) {
+                var sqrMaxDist = Mathf.Pow(settings.MaxViewDistance, 2);
 
                 var sqrDist = Mathf.Pow(transform.position.x - view.transform.position.x, 2)
                     + Mathf.Pow(transform.position.z - view.transform.position.z, 2);

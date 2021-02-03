@@ -62,7 +62,7 @@ namespace Cube.Networking.Tests {
             var view = server.replicaManager.InstantiateReplica(replicaViewPrefab);
 
             var rw = view.GetComponent<ReplicaView>();
-            rw.connection = client.client.connection;
+            rw.Connection = client.client.connection;
 
             server.replicaManager.AddReplicaView(rw);
         }

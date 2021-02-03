@@ -9,31 +9,48 @@ using BitStream = Cube.Transport.BitStream;
 using System.Linq;
 using UnityEngine.AddressableAssets;
 using UnityEngine.ResourceManagement.AsyncOperations;
+using UnityEngine.Serialization;
 
 namespace Cube.Replication {
     [Serializable]
     public class ServerReplicaManagerSettings {
+        [FormerlySerializedAs("MaxBytesPerConnectionPerUpdate")]
         [Range(0, 1500)]
-        public int maxBytesPerConnectionPerUpdate = 1400;
-        [Range(10, 1000)]
-        public float replicaUpdateRateMS = 33; // 30 times per second
+        public int MaxBytesPerConnectionPerUpdate = 1400;
+
+        [FormerlySerializedAs("MaxBytesPerConnectionPerUpdate")]
+        [Range(1000f / 60f, 1000f / 1f)]
+        public float ReplicaUpdateRateMS = 33; // 30 times per second
+        public float ReplicaUpdateRate {
+            get { return ReplicaUpdateRateMS * 0.001f; }
+        }
+
+        [Range(1000f / 60f, 1000f / 0.1f)]
+        public float ReplicaRelevantSetUpdateRateMS = 1000;
+        public float ReplicaRelevantSetUpdateRate {
+            get { return ReplicaRelevantSetUpdateRateMS * 0.001f; }
+        }
+
+        [Tooltip("Min. relevance for a Replica to even be considered for replication")]
+        [Range(0f, 1f)]
+        public float MinRelevance = 0.3f;
     }
 
     public class ServerReplicaManagerStatistics {
         public struct ReplicaTypeInfo {
-            public int numInstances;
-            public int totalBytes;
-            public int numRpcs;
-            public int rpcBytes;
+            public int NumInstances;
+            public int TotalBytes;
+            public int NumRpcs;
+            public int RpcBytes;
         }
 
         public class ReplicaViewInfo {
-            public Dictionary<int, ReplicaTypeInfo> replicaTypeInfos = new Dictionary<int, ReplicaTypeInfo>();
+            public Dictionary<int, ReplicaTypeInfo> ReplicaTypeInfos = new Dictionary<int, ReplicaTypeInfo>();
         }
 
         public struct ReplicaViewInfoPair {
-            public ReplicaView view;
-            public ReplicaViewInfo info;
+            public ReplicaView View;
+            public ReplicaViewInfo Info;
         }
 
         public List<ReplicaViewInfoPair> ViewInfos = new List<ReplicaViewInfoPair>();
@@ -41,34 +58,33 @@ namespace Cube.Replication {
 
     public sealed class ServerReplicaManager : IServerReplicaManager {
 #if UNITY_EDITOR
-        public static List<ServerReplicaManager> all = new List<ServerReplicaManager>();
+        public static ServerReplicaManager Main;
 #endif
 
         const ushort FirstLocalReplicaId = 255; // The first 255 values are reserved for scene Replicas
 
-        ICubeServer _server;
+        ICubeServer server;
 
-        NetworkScene _networkScene;
+        NetworkScene networkScene;
 
         [SerializeField]
-        List<ReplicaView> _replicaViews = new List<ReplicaView>();
+        List<ReplicaView> replicaViews = new List<ReplicaView>();
         public List<ReplicaView> ReplicaViews {
-            get { return _replicaViews; }
+            get { return replicaViews; }
         }
 
-        ServerReplicaManagerSettings _settings;
+        ServerReplicaManagerSettings settings;
 
-        float _nextUpdateTime;
-        float _nextPriorityUpdateTime;
+        double nextUpdateTime;
 
-        ushort _nextLocalReplicaId = FirstLocalReplicaId;
-        Queue<ushort> _freeReplicaIds = new Queue<ushort>();
+        ushort nextLocalReplicaId = FirstLocalReplicaId;
+        Queue<ushort> freeReplicaIds = new Queue<ushort>();
 
-        float _nextReplicaIdRecycleTime = 0;
-        Queue<ushort> _replicaIdRecycleQueue = new Queue<ushort>();
+        float nextReplicaIdRecycleTime = 0;
+        Queue<ushort> replicaIdRecycleQueue = new Queue<ushort>();
 
-        Dictionary<ReplicaId, Replica> _replicasInConstruction = new Dictionary<ReplicaId, Replica>();
-        List<Replica> _replicasInDestruction = new List<Replica>();
+        Dictionary<ReplicaId, Replica> replicasInConstruction = new Dictionary<ReplicaId, Replica>();
+        List<Replica> replicasInDestruction = new List<Replica>();
 
 #if UNITY_EDITOR
         ServerReplicaManagerStatistics _statistic;
@@ -81,17 +97,18 @@ namespace Cube.Replication {
             Assert.IsNotNull(server);
             Assert.IsNotNull(settings);
 
-            _networkScene = new NetworkScene();
+            networkScene = new NetworkScene();
 
-            _server = server;
+            this.server = server;
             server.reactor.AddMessageHandler((byte)MessageId.ReplicaRpc, OnReplicaRpc);
 
-            _settings = settings;
+            this.settings = settings;
 
             SceneManager.sceneLoaded += OnSceneLoaded;
 
 #if UNITY_EDITOR
-            all.Add(this);
+            Assert.IsNull(Main);
+            Main = this;
 #endif
         }
 
@@ -110,21 +127,21 @@ namespace Cube.Replication {
 
             foreach (var replica in sceneReplicas) {
                 replica.ReplicaId = ReplicaId.CreateFromExisting(replica.sceneIdx);
-                replica.server = _server;
-                _networkScene.AddReplica(replica);
+                replica.server = server;
+                networkScene.AddReplica(replica);
             }
         }
 
         public void Reset() {
-            _networkScene.DestroyAll();
+            networkScene.DestroyAll();
 
-            foreach (var idReplicaPair in _replicasInConstruction) {
+            foreach (var idReplicaPair in replicasInConstruction) {
                 UnityEngine.Object.Destroy(idReplicaPair.Value.gameObject);
             }
-            _replicasInConstruction.Clear();
+            replicasInConstruction.Clear();
 
-            _freeReplicaIds.Clear();
-            _nextLocalReplicaId = FirstLocalReplicaId;
+            freeReplicaIds.Clear();
+            nextLocalReplicaId = FirstLocalReplicaId;
         }
 
         public GameObject InstantiateReplica(GameObject prefab) {
@@ -139,7 +156,7 @@ namespace Cube.Replication {
             if (prefab == null)
                 throw new ArgumentNullException("prefab");
 
-            var newInstance = UnityEngine.Object.Instantiate(prefab, position, rotation, _server.world.transform);
+            var newInstance = UnityEngine.Object.Instantiate(prefab, position, rotation, server.world.transform);
             var replica = InstantiateReplicaImpl(newInstance);
             if (replica == null) {
                 Debug.LogError("Prefab <i>" + prefab + "</i> is missing Replica Component", prefab);
@@ -158,7 +175,7 @@ namespace Cube.Replication {
         }
 
         public AsyncOperationHandle<GameObject> InstantiateReplicaAsync(object key, Vector3 position, Quaternion rotation) {
-            var newInstance = Addressables.InstantiateAsync(key, position, rotation, _server.world.transform);
+            var newInstance = Addressables.InstantiateAsync(key, position, rotation, server.world.transform);
             newInstance.Completed += obj => {
                 var replica = InstantiateReplicaImpl(obj.Result);
                 if (replica == null) {
@@ -174,13 +191,13 @@ namespace Cube.Replication {
             if (newReplica == null)
                 return null;
 
-            newReplica.server = _server;
+            newReplica.server = server;
             newReplica.ReplicaId = ReplicaId.Create(this);
             Assert.IsTrue(newReplica.ReplicaId != ReplicaId.Invalid);
             newReplica.TakeOwnership();
 
             // Wait for one frame until Start is called before replicating to clients
-            _replicasInConstruction[newReplica.ReplicaId] = newReplica;
+            replicasInConstruction[newReplica.ReplicaId] = newReplica;
 
             return newReplica;
         }
@@ -194,8 +211,8 @@ namespace Cube.Replication {
             if (replica.ReplicaId == ReplicaId.Invalid)
                 return; // Replica already removed
 
-            _replicasInConstruction.Remove(replica.ReplicaId);
-            _networkScene.RemoveReplica(replica);
+            replicasInConstruction.Remove(replica.ReplicaId);
+            networkScene.RemoveReplica(replica);
 
             if (replica.ReplicaId != ReplicaId.Invalid) {
                 FreeLocalReplicaId(replica.ReplicaId);
@@ -213,103 +230,104 @@ namespace Cube.Replication {
                 return; // Replica already destroyed
 
             // We don't need to send a destroy message if the replica is not yet fully constructed on the server
-            bool alreadyConstructed = !_replicasInConstruction.Remove(replica.ReplicaId);
+            bool alreadyConstructed = !replicasInConstruction.Remove(replica.ReplicaId);
             if (!alreadyConstructed) {
-                _networkScene.RemoveReplica(replica);
+                networkScene.RemoveReplica(replica);
                 replica.ReplicaId = ReplicaId.Invalid;
                 UnityEngine.Object.Destroy(replica.gameObject);
                 return;
             }
 
-            _replicasInDestruction.Add(replica);
+            replicasInDestruction.Add(replica);
         }
 
         public Replica GetReplicaById(ReplicaId id) {
-            return _networkScene.GetReplicaById(id);
+            return networkScene.GetReplicaById(id);
         }
 
         public void Update() {
             RecycleReplicaIdsAfterDelay();
 
-            if (Time.time >= _nextPriorityUpdateTime) {
-                _nextPriorityUpdateTime = Time.time + 1;
+            // Update set of relevant Replicas
+            for (int i = 0; i < replicaViews.Count; ++i) {
+                var replicaView = replicaViews[i];
+                if (replicaView.IsLoadingLevel)
+                    continue;
 
-                for (int i = 0; i < _replicaViews.Count; ++i) {
-                    var replicaView = _replicaViews[i];
-                    if (replicaView.isLoadingLevel)
-                        continue;
-
+                if (Time.timeAsDouble >= replicaView.NextPriorityUpdateTime) {
+                    replicaView.NextPriorityUpdateTime = Time.timeAsDouble + settings.ReplicaRelevantSetUpdateRate;
                     UpdateRelevantReplicas(replicaView);
                 }
             }
 
-            if (Time.time >= _nextUpdateTime) {
-                _nextUpdateTime = Time.time + _settings.replicaUpdateRateMS * 0.001f;
+            // Network tick
+            if (Time.timeAsDouble >= nextUpdateTime) {
+                nextUpdateTime = Time.timeAsDouble + settings.ReplicaUpdateRate;
 
 #if UNITY_EDITOR
                 _statistic = new ServerReplicaManagerStatistics();
 #endif
 
-                for (int i = 0; i < _replicaViews.Count; ++i) {
-                    var replicaView = _replicaViews[i];
-                    if (replicaView.isLoadingLevel)
+                for (int i = 0; i < replicaViews.Count; ++i) {
+                    var replicaView = replicaViews[i];
+                    if (replicaView.IsLoadingLevel)
                         continue;
 
                     UpdateReplicaView(replicaView);
                 }
 
-                foreach (var replica in _networkScene.replicas) {
+                foreach (var replica in networkScene.replicas) {
                     replica.queuedRpcs.Clear();
                 }
 
-                foreach (var idReplicaPair in _replicasInConstruction) {
+                foreach (var idReplicaPair in replicasInConstruction) {
                     var replica = idReplicaPair.Value;
-                    _networkScene.AddReplica(replica);
+                    networkScene.AddReplica(replica);
                 }
-                _replicasInConstruction.Clear();
+                replicasInConstruction.Clear();
             }
 
             // Actually destroy queued Replicas
-            if (_replicasInDestruction.Count > 0) {
+            if (replicasInDestruction.Count > 0) {
                 try {
-                    for (int i = 0; i < _replicaViews.Count; ++i) {
-                        var replicaView = _replicaViews[i];
-                        if (replicaView.isLoadingLevel)
+                    for (int i = 0; i < replicaViews.Count; ++i) {
+                        var replicaView = replicaViews[i];
+                        if (replicaView.IsLoadingLevel)
                             continue;
 
                         SendDestroyedReplicasToReplicaView(replicaView);
                     }
 
-                    foreach (var replica in _replicasInDestruction) {
+                    foreach (var replica in replicasInDestruction) {
                         FreeLocalReplicaId(replica.ReplicaId);
 
-                        _networkScene.RemoveReplica(replica);
+                        networkScene.RemoveReplica(replica);
                         replica.ReplicaId = ReplicaId.Invalid;
                         UnityEngine.Object.Destroy(replica.gameObject);
                     }
                 }
                 finally {
-                    _replicasInDestruction.Clear();
+                    replicasInDestruction.Clear();
                 }
             }
         }
 
         public void ForceReplicaViewRefresh(ReplicaView view) {
-            Assert.IsTrue(!view.isLoadingLevel);
+            Assert.IsTrue(!view.IsLoadingLevel);
 
             UpdateRelevantReplicas(view);
         }
 
         void RecycleReplicaIdsAfterDelay() {
-            if (Time.time < _nextReplicaIdRecycleTime)
+            if (Time.time < nextReplicaIdRecycleTime)
                 return;
 
-            if (_replicaIdRecycleQueue.Count > 0) {
-                var id = _replicaIdRecycleQueue.Dequeue();
-                _freeReplicaIds.Enqueue(id);
+            if (replicaIdRecycleQueue.Count > 0) {
+                var id = replicaIdRecycleQueue.Dequeue();
+                freeReplicaIds.Enqueue(id);
             }
 
-            _nextReplicaIdRecycleTime = Time.time + Constants.serverReplicaIdRecycleTime;
+            nextReplicaIdRecycleTime = Time.time + Constants.ServerReplicaIdRecycleTime;
         }
 
         void UpdateReplicaView(ReplicaView view) {
@@ -317,22 +335,24 @@ namespace Cube.Replication {
 
 #if UNITY_EDITOR
             var perReplicaViewInfo = new ServerReplicaManagerStatistics.ReplicaViewInfo();
-            _statistic.ViewInfos.Add(new ServerReplicaManagerStatistics.ReplicaViewInfoPair { view = view, info = perReplicaViewInfo });
+            _statistic.ViewInfos.Add(new ServerReplicaManagerStatistics.ReplicaViewInfoPair { View = view, Info = perReplicaViewInfo });
 #endif
 
             int bytesSent = 0;
 
-            var sortedIndices = GetSortedRelevantReplicaIndices(view);
+            var sortedIndices = new List<int>();
+            CalculateRelevantReplicaIndices(view, sortedIndices);
+
             var serializeCtx = new ReplicaBehaviour.SerializeContext() {
                 Observer = view
             };
 
             foreach (var currentReplicaIdx in sortedIndices) {
-                var replica = view.relevantReplicas[currentReplicaIdx];
+                var replica = view.RelevantReplicas[currentReplicaIdx];
                 if (replica == null || replica.ReplicaId == ReplicaId.Invalid)
                     continue;
 
-                var updateBs = _server.networkInterface.bitStreamPool.Create();
+                var updateBs = server.networkInterface.bitStreamPool.Create();
                 updateBs.Write((byte)MessageId.ReplicaUpdate);
                 updateBs.Write(replica.isSceneReplica);
                 if (!replica.isSceneReplica) {
@@ -341,81 +361,79 @@ namespace Cube.Replication {
 
                 updateBs.Write(replica.ReplicaId);
 
-                bool isOwner = replica.Owner == view.connection;
+                bool isOwner = replica.Owner == view.Connection;
                 updateBs.Write(isOwner);
 
                 replica.Serialize(updateBs, serializeCtx);
 
-                _server.networkInterface.SendBitStream(updateBs, PacketPriority.Medium, PacketReliability.Unreliable, view.connection);
+                server.networkInterface.SendBitStream(updateBs, PacketPriority.Medium, PacketReliability.Unreliable, view.Connection);
 
                 bytesSent += updateBs.Length;
 
                 // We just sent this Replica, reset its priority
-                view.relevantReplicaPriorityAccumulator[currentReplicaIdx] = 0;
+                view.RelevantReplicaPriorityAccumulator[currentReplicaIdx] = 0;
 
 #if UNITY_EDITOR
                 // Add some profiling info
-                perReplicaViewInfo.replicaTypeInfos.TryGetValue(replica.prefabIdx, out ServerReplicaManagerStatistics.ReplicaTypeInfo replicaTypeInfo);
-                ++replicaTypeInfo.numInstances;
-                replicaTypeInfo.totalBytes += updateBs.Length;
-                replicaTypeInfo.numRpcs += replica.queuedRpcs.Count;
-                replicaTypeInfo.rpcBytes += replica.queuedRpcs.Sum(rpc => rpc.bs.Length);
+                perReplicaViewInfo.ReplicaTypeInfos.TryGetValue(replica.prefabIdx, out ServerReplicaManagerStatistics.ReplicaTypeInfo replicaTypeInfo);
+                ++replicaTypeInfo.NumInstances;
+                replicaTypeInfo.TotalBytes += updateBs.Length;
+                replicaTypeInfo.NumRpcs += replica.queuedRpcs.Count;
+                replicaTypeInfo.RpcBytes += replica.queuedRpcs.Sum(rpc => rpc.bs.Length);
 
-                perReplicaViewInfo.replicaTypeInfos[replica.prefabIdx] = replicaTypeInfo;
+                perReplicaViewInfo.ReplicaTypeInfos[replica.prefabIdx] = replicaTypeInfo;
 #endif
 
-                if (bytesSent >= _settings.maxBytesPerConnectionPerUpdate)
+                if (bytesSent >= settings.MaxBytesPerConnectionPerUpdate)
                     return; // Packet size exhausted
 
                 // Rpcs
                 foreach (var queuedRpc in replica.queuedRpcs) {
-                    if ((queuedRpc.target == RpcTarget.Owner && replica.Owner == view.connection)
+                    if ((queuedRpc.target == RpcTarget.Owner && replica.Owner == view.Connection)
                         || queuedRpc.target == RpcTarget.All
-                        || (queuedRpc.target == RpcTarget.AllClientsExceptOwner && replica.Owner != view.connection)) {
-                        _server.networkInterface.SendBitStream(queuedRpc.bs, PacketPriority.Low, PacketReliability.Unreliable, view.connection);
+                        || (queuedRpc.target == RpcTarget.AllClientsExceptOwner && replica.Owner != view.Connection)) {
+                        server.networkInterface.SendBitStream(queuedRpc.bs, PacketPriority.Low, PacketReliability.Unreliable, view.Connection);
 
                         bytesSent += queuedRpc.bs.Length;
 
-                        if (bytesSent >= _settings.maxBytesPerConnectionPerUpdate)
+                        if (bytesSent >= settings.MaxBytesPerConnectionPerUpdate)
                             return; // Packet size exhausted
                     }
                 }
             }
         }
 
+        /// <summary>
+        /// Build a list of relevant Replicas for this ReplicaView.
+        /// </summary>
         void UpdateRelevantReplicas(ReplicaView view) {
+            if (view.RelevantReplicaPriorityAccumulator == null) {
+                view.RelevantReplicaPriorityAccumulator = new List<float>();
+            }
+            if (view.RelevantReplicas == null) {
+                view.RelevantReplicas = new List<Replica>();
+            }
+
             var oldAccs = new Dictionary<Replica, float>();
-            if (view.relevantReplicaPriorityAccumulator != null) {
-                for (int i = 0; i < view.relevantReplicas.Count; ++i) {
-                    var replica = view.relevantReplicas[i];
-                    if (replica == null)
-                        continue;
+            for (int i = 0; i < view.RelevantReplicas.Count; ++i) {
+                var replica = view.RelevantReplicas[i];
+                if (replica == null)
+                    continue;
 
-                    oldAccs.Add(replica, view.relevantReplicaPriorityAccumulator[i]);
-                }
+                oldAccs.Add(replica, view.RelevantReplicaPriorityAccumulator[i]);
             }
 
-            view.relevantReplicas = GatherRelevantReplicas(_networkScene.replicas, view);
+            GatherRelevantReplicas(networkScene.replicas, view, view.RelevantReplicas);
 
-            if (view.relevantReplicaPriorityAccumulator == null) {
-                view.relevantReplicaPriorityAccumulator = new List<float>();
-            }
-            view.relevantReplicaPriorityAccumulator.Clear();
-
-            for (int i = 0; i < view.relevantReplicas.Count; ++i) {
-                var replica = view.relevantReplicas[i];
-
-                var acc = 0f;
-                oldAccs.TryGetValue(replica, out acc);
-
-                view.relevantReplicaPriorityAccumulator.Add(acc);
+            view.RelevantReplicaPriorityAccumulator.Clear();
+            foreach (var replica in view.RelevantReplicas) {
+                oldAccs.TryGetValue(replica, out float acc);
+                view.RelevantReplicaPriorityAccumulator.Add(acc);
             }
         }
 
-        static List<Replica> GatherRelevantReplicas(ReadOnlyCollection<Replica> replicas, ReplicaView view) {
-            var minPriority = 0.3f;
-
-            var result = new List<Replica>(32);
+        void GatherRelevantReplicas(ReadOnlyCollection<Replica> replicas, ReplicaView view, List<Replica> relevantReplicas) {
+            relevantReplicas.Clear();
             for (int i = 0; i < replicas.Count; ++i) {
                 var replica = replicas[i];
                 if (replica == null)
@@ -424,57 +442,60 @@ namespace Cube.Replication {
                 if (!replica.IsRelevantFor(view))
                     continue;
 
-                var priority = replica.GetPriorityFor(view);
-                if (priority < minPriority)
+                var relevance = replica.GetRelevance(view);
+                if (relevance < settings.MinRelevance)
                     continue;
 
-                result.Add(replica);
+                relevantReplicas.Add(replica);
             }
-
-            return result;
         }
 
-        static void UpdateRelevantReplicaPriorities(ReplicaView view) {
-            if (view.relevantReplicas == null)
-                return;
+        void UpdateRelevantReplicaPriorities(ReplicaView view) {
+            // This function is called with a rate of settings.replicaUpdateRateMS
 
-            for (int i = 0; i < view.relevantReplicas.Count; ++i) {
-                var replica = view.relevantReplicas[i];
+            for (int i = 0; i < view.RelevantReplicas.Count; ++i) {
+                var replica = view.RelevantReplicas[i];
                 if (replica == null)
                     continue;
 
-                var a = replica.GetPriorityFor(view) * (2048 / replica.settings.desiredUpdateRateMs);
-                view.relevantReplicaPriorityAccumulator[i] += a;
+                var relevance = replica.GetRelevance(view);
+                Assert.IsTrue(relevance >= 0 && relevance <= 1);
+
+                var a = (settings.ReplicaUpdateRateMS / replica.settings.DesiredUpdateRateMS) * relevance;
+                view.RelevantReplicaPriorityAccumulator[i] += a;
             }
         }
 
-        static List<int> GetSortedRelevantReplicaIndices(ReplicaView view) {
-            if (view.relevantReplicas == null)
-                return new List<int>();
+        static void CalculateRelevantReplicaIndices(ReplicaView view, List<int> sortedReplicaIndices) {
+            sortedReplicaIndices.Clear();
 
-            var sortedIndices = Enumerable.Range(0, view.relevantReplicas.Count).ToList();
-            sortedIndices.Sort((i1, i2) => (int)((view.relevantReplicaPriorityAccumulator[i2] - view.relevantReplicaPriorityAccumulator[i1]) * 100));
+            for (int i = 0; i < view.RelevantReplicas.Count; ++i) {
+                if (view.RelevantReplicaPriorityAccumulator[i] < 1)
+                    continue;
 
-            return sortedIndices;
+                sortedReplicaIndices.Add(i);
+            }
+
+            sortedReplicaIndices.Sort((i1, i2) => (int)((view.RelevantReplicaPriorityAccumulator[i2] - view.RelevantReplicaPriorityAccumulator[i1]) * 100));
         }
 
         void SendDestroyedReplicasToReplicaView(ReplicaView view) {
-            Assert.IsTrue(_replicasInDestruction.Count > 0);
+            Assert.IsTrue(replicasInDestruction.Count > 0);
 
-            var destroyBs = _server.networkInterface.bitStreamPool.Create();
+            var destroyBs = server.networkInterface.bitStreamPool.Create();
             destroyBs.Write((byte)MessageId.ReplicaDestroy);
 
-            foreach (var replica in _replicasInDestruction) {
-                var wasInterestedInReplica = view.relevantReplicas.Contains(replica);
+            foreach (var replica in replicasInDestruction) {
+                var wasInterestedInReplica = view.RelevantReplicas.Contains(replica);
                 if (!wasInterestedInReplica)
                     continue;
 
                 destroyBs.Write(replica.ReplicaId);
 
                 // Serialize custom destruction data
-                var replicaDestructionBs = _server.networkInterface.bitStreamPool.Create();
+                var replicaDestructionBs = server.networkInterface.bitStreamPool.Create();
                 replica.SerializeDestruction(replicaDestructionBs, new ReplicaBehaviour.SerializeContext() {
-                        Observer = view
+                    Observer = view
                 });
 
                 var absOffset = (ushort)(destroyBs.LengthInBits + 16 + replicaDestructionBs.LengthInBits);
@@ -483,54 +504,54 @@ namespace Cube.Replication {
                 destroyBs.AlignWriteToByteBoundary();
             }
 
-            _server.networkInterface.SendBitStream(destroyBs, PacketPriority.Medium, PacketReliability.Unreliable, view.connection);
+            server.networkInterface.SendBitStream(destroyBs, PacketPriority.Medium, PacketReliability.Unreliable, view.Connection);
         }
 
         public ReplicaView GetReplicaView(Connection connection) {
-            foreach (var replicaView in _replicaViews) {
-                if (replicaView.connection == connection)
+            foreach (var replicaView in replicaViews) {
+                if (replicaView.Connection == connection)
                     return replicaView;
             }
             return null;
         }
 
         public void AddReplicaView(ReplicaView view) {
-            if (_replicaViews.Contains(view))
+            if (replicaViews.Contains(view))
                 return;
 
-            if (view.connection == Connection.Invalid)
+            if (view.Connection == Connection.Invalid)
                 throw new ArgumentException("connection");
 
-            _replicaViews.Add(view);
+            replicaViews.Add(view);
         }
 
         public void RemoveReplicaView(Connection connection) {
-            for (int i = 0; i < _replicaViews.Count; ++i) {
-                if (_replicaViews[i].connection == connection) {
-                    _replicaViews.RemoveAt(i);
+            for (int i = 0; i < replicaViews.Count; ++i) {
+                if (replicaViews[i].Connection == connection) {
+                    replicaViews.RemoveAt(i);
                     return;
                 }
             }
         }
 
         public ushort AllocateLocalReplicaId() {
-            if (_freeReplicaIds.Count > 0)
-                return _freeReplicaIds.Dequeue();
+            if (freeReplicaIds.Count > 0)
+                return freeReplicaIds.Dequeue();
 
-            return _nextLocalReplicaId++;
+            return nextLocalReplicaId++;
         }
 
         public void FreeLocalReplicaId(ReplicaId id) {
-            if (id.data >= _nextLocalReplicaId)
+            if (id.data >= nextLocalReplicaId)
                 return; // Tried to free id after Reset() was called
 
-            _replicaIdRecycleQueue.Enqueue(id.data);
+            replicaIdRecycleQueue.Enqueue(id.data);
         }
 
         void OnReplicaRpc(Connection connection, BitStream bs) {
             var replicaId = bs.ReadReplicaId();
 
-            var replica = _networkScene.GetReplicaById(replicaId);
+            var replica = networkScene.GetReplicaById(replicaId);
             if (replica == null) {
 #if CUBE_DEBUG_REP
                 Debug.LogWarning("Received RPC for invalid Replica <i>" + replicaId + "</i>");

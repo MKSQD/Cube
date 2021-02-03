@@ -14,7 +14,7 @@ namespace Cube.Replication.Editor {
         struct ReplicaDebugInfo {
             public float nextDebugTextUpdateTime;
             public string prorityDescription;
-            public float priority;
+            public float relevance;
             public float finalPriority;
         }
 
@@ -24,11 +24,11 @@ namespace Cube.Replication.Editor {
 
         [DrawGizmo(GizmoType.Active | GizmoType.Selected | GizmoType.NotInSelectionHierarchy | GizmoType.Pickable)]
         static void DrawGizmoForReplica(Replica replica, GizmoType gizmoType) {
-            if (ReplicaView.debug == null || !replica.isServer)
+            if (ReplicaView.Debug == null || !replica.isServer)
                 return;
 
-            if (!Selection.Contains(ReplicaView.debug.gameObject)) {
-                ReplicaView.debug = null;
+            if (!Selection.Contains(ReplicaView.Debug.gameObject)) {
+                ReplicaView.Debug = null;
                 return;
             }
 
@@ -57,20 +57,21 @@ namespace Cube.Replication.Editor {
                 info = new ReplicaDebugInfo();
             }
 
-            var settings = replica.settings ?? defaultReplicaSettings;
-
             if (Time.time >= info.nextDebugTextUpdateTime) {
                 info.nextDebugTextUpdateTime = Time.time + 0.1f;
 
-                info.priority = replica.GetPriorityFor(ReplicaView.debug);
+                info.relevance = replica.GetRelevance(ReplicaView.Debug);
                 
-                var idx = ReplicaView.debug.relevantReplicas.IndexOf(replica);
+                var idx = ReplicaView.Debug.RelevantReplicas.IndexOf(replica);
                 if (idx == -1)
                     return; // Not relevant, exit
 
-                info.finalPriority = ReplicaView.debug.relevantReplicaPriorityAccumulator[idx];
+                info.finalPriority = ReplicaView.Debug.RelevantReplicaPriorityAccumulator[idx];
 
-                info.prorityDescription = string.Format("{0:0.00}/{1:0.00}/{2}", info.finalPriority, info.priority, settings.desiredUpdateRateMs);
+                info.prorityDescription = string.Format("{0:0.00}/{1:0.00}/{2}", 
+                    info.finalPriority, 
+                    info.relevance, 
+                    replica.settings.DesiredUpdateRateMS);
 
                 _debugPriorities[replica] = info;
             }
@@ -79,7 +80,7 @@ namespace Cube.Replication.Editor {
             var screenPoint = Camera.current.WorldToScreenPoint(replica.transform.position);
             var isVisible = screenPoint.x >= 0 && screenPoint.x < Camera.current.pixelWidth
                 && screenPoint.y >= 0 && screenPoint.y < Camera.current.pixelHeight
-                && screenPoint.z < settings.maxViewDistance && screenPoint.z > 0;
+                && screenPoint.z < replica.settings.MaxViewDistance && screenPoint.z > 0;
             if (isVisible) {
                 var styleIdx = Mathf.CeilToInt(info.finalPriority * 0.1f * 10); // Expect priority to be in the range [0, 10]
                 styleIdx = Math.Max(Math.Min(styleIdx, 9), 0);

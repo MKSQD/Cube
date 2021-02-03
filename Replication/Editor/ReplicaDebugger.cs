@@ -1,8 +1,8 @@
 ﻿using UnityEditor;
 using UnityEngine;
 using UnityEditor.IMGUI.Controls;
-using System.Collections.Generic;
 using System;
+using System.Collections.Generic;
 
 namespace Cube.Replication {
     public class ReplicaDebugger : EditorWindow {
@@ -16,7 +16,7 @@ namespace Cube.Replication {
         }
 
         class SimpleTreeView : TreeView {
-            public List<ServerReplicaManagerStatistics> data;
+            public ServerReplicaManagerStatistics Statistics;
 
             public SimpleTreeView(TreeViewState treeViewState, MultiColumnHeader header)
                 : base(treeViewState, header) {
@@ -28,90 +28,85 @@ namespace Cube.Replication {
 
                 var root = new TreeViewItem { id = nextIdx++, depth = -1, displayName = "root" };
 
-                if (data != null && data.Count > 0) {
-                    for (int i = 0; i < data.Count; ++i) {
-                        var statistic = data[i];
-
-                        var serverItem = new SimpleTreeViewItem { id = nextIdx++, displayName = "Server " + i };
-                        root.AddChild(serverItem);
-
-                        foreach (var viewInfoPair in statistic.ViewInfos) {
-                            if (viewInfoPair.view == null)
-                                continue;
-
-                            var replicaViewItem = new SimpleTreeViewItem { id = nextIdx++, displayName = viewInfoPair.view.name };
-                            serverItem.AddChild(replicaViewItem);
-
-                            foreach (var info in viewInfoPair.info.replicaTypeInfos) {
-                                var name = info.Key.ToString();
-
-                                GameObject prefab;
-                                if (NetworkPrefabLookup.instance.TryGetClientPrefabForIndex(info.Key, out prefab)) {
-                                    name = prefab.name;
-                                }
-
-                                var replicaTypeInfo = info.Value;
-                                var infoItem = new SimpleTreeViewItem {
-                                    id = nextIdx++,
-                                    displayName = name,
-                                    instances = replicaTypeInfo.numInstances.ToString(),
-                                    bytesPerInstance = (replicaTypeInfo.totalBytes / (float)replicaTypeInfo.numInstances).ToString(),
-                                    bytesTotal = replicaTypeInfo.totalBytes.ToString(),
-                                    numRpcs = replicaTypeInfo.numRpcs.ToString(),
-                                    rpcBytes = replicaTypeInfo.rpcBytes.ToString()
-                                };
-
-                                replicaViewItem.AddChild(infoItem);
-                            }
-                        }
-                    }
-
-                    SetupDepthsFromParentsAndChildren(root);
-                }
-                else {
-                    var serverItem = new SimpleTreeViewItem { id = nextIdx++, displayName = "Enter play mode" };
+                if (Statistics == null) {
+                    var serverItem = new SimpleTreeViewItem { id = nextIdx++, displayName = "N" };
                     root.AddChild(serverItem);
+                    return root;
                 }
+
+                foreach (var viewInfoPair in Statistics.ViewInfos) {
+                    if (viewInfoPair.View == null)
+                        continue;
+
+                    var replicaViewItem = new SimpleTreeViewItem { id = nextIdx++, displayName = viewInfoPair.View.name };
+                    root.AddChild(replicaViewItem);
+
+                    foreach (var info in viewInfoPair.Info.ReplicaTypeInfos) {
+                        var name = info.Key.ToString();
+
+                        GameObject prefab;
+                        if (NetworkPrefabLookup.instance.TryGetClientPrefabForIndex(info.Key, out prefab)) {
+                            name = prefab.name;
+                        }
+
+                        var replicaTypeInfo = info.Value;
+                        var infoItem = new SimpleTreeViewItem {
+                            id = nextIdx++,
+                            displayName = name,
+                            instances = replicaTypeInfo.NumInstances.ToString(),
+                            bytesPerInstance = (replicaTypeInfo.TotalBytes / (float)replicaTypeInfo.NumInstances).ToString(),
+                            bytesTotal = replicaTypeInfo.TotalBytes.ToString(),
+                            numRpcs = replicaTypeInfo.NumRpcs.ToString(),
+                            rpcBytes = replicaTypeInfo.RpcBytes.ToString()
+                        };
+
+                        replicaViewItem.AddChild(infoItem);
+                    }
+                }
+
+                SetupDepthsFromParentsAndChildren(root);
 
                 return root;
             }
 
-            protected override void RowGUI(RowGUIArgs args) {
-                var item = (SimpleTreeViewItem)args.item;
+        protected override void RowGUI(RowGUIArgs args) {
+            var item = (SimpleTreeViewItem)args.item;
 
-                for (int i = 0; i < args.GetNumVisibleColumns(); ++i) {
-                    CellGUI(args.GetCellRect(i), item, args.GetColumn(i), ref args);
-                }
-            }
-
-            void CellGUI(Rect cellRect, SimpleTreeViewItem item, int column, ref RowGUIArgs args) {
-                CenterRectUsingSingleLineHeight(ref cellRect);
-
-                switch (column) {
-                    case 0: base.RowGUI(args); break;
-                    case 1: GUI.Label(cellRect, item.instances); break;
-                    case 2: GUI.Label(cellRect, item.bytesPerInstance); break;
-                    case 3: GUI.Label(cellRect, item.bytesTotal); break;
-                    case 4: GUI.Label(cellRect, item.numRpcs); break;
-                    case 5: GUI.Label(cellRect, item.rpcBytes); break;
-                }
+            for (int i = 0; i < args.GetNumVisibleColumns(); ++i) {
+                CellGUI(args.GetCellRect(i), item, args.GetColumn(i), ref args);
             }
         }
 
-        SimpleTreeView _simpleTreeView;
-        TreeViewState _treeViewState;
+        void CellGUI(Rect cellRect, SimpleTreeViewItem item, int column, ref RowGUIArgs args) {
+            CenterRectUsingSingleLineHeight(ref cellRect);
 
-        [MenuItem("Cube/Replica Debugger")]
-        public static void ShowWindow() {
-            var window = GetWindow(typeof(ReplicaDebugger));
-            window.titleContent = new GUIContent("Replica Debugger");
+            switch (column) {
+                case 0: base.RowGUI(args); break;
+                case 1: GUI.Label(cellRect, item.instances); break;
+                case 2: GUI.Label(cellRect, item.bytesPerInstance); break;
+                case 3: GUI.Label(cellRect, item.bytesTotal); break;
+                case 4: GUI.Label(cellRect, item.numRpcs); break;
+                case 5: GUI.Label(cellRect, item.rpcBytes); break;
+            }
         }
+    }
 
-        void OnEnable() {
-            if (_simpleTreeView == null) {
-                _treeViewState = new TreeViewState();
+    SimpleTreeView _simpleTreeView;
+    TreeViewState _treeViewState;
 
-                var columns = new MultiColumnHeaderState.Column[6] {
+    [MenuItem("Cube/Replica Debugger")]
+    public static void ShowWindow() {
+        var window = GetWindow(typeof(ReplicaDebugger));
+        window.titleContent = new GUIContent("Replica Debugger");
+    }
+
+    void OnEnable() {
+        if (_simpleTreeView != null)
+            return;
+
+        _treeViewState = new TreeViewState();
+
+        var columns = new MultiColumnHeaderState.Column[6] {
                     new MultiColumnHeaderState.Column() {
                         headerContent = new GUIContent("context"),
                         width = 200
@@ -143,24 +138,18 @@ namespace Cube.Replication {
                     }
                 };
 
-                var header = new MultiColumnHeader(new MultiColumnHeaderState(columns));
-                _simpleTreeView = new SimpleTreeView(_treeViewState, header);
-            }
-        }
-
-        void OnGUI() {
-            if (_simpleTreeView == null)
-                return;
-
-            var statistics = new List<ServerReplicaManagerStatistics>();
-            foreach (var replicaManager in ServerReplicaManager.all) {
-                statistics.Add(replicaManager.Statistics);
-            }
-
-            _simpleTreeView.data = statistics;
-            _simpleTreeView.Reload();
-
-            _simpleTreeView.OnGUI(new Rect(0, 0, position.width, position.height));
-        }
+        var header = new MultiColumnHeader(new MultiColumnHeaderState(columns));
+        _simpleTreeView = new SimpleTreeView(_treeViewState, header);
     }
+
+    void OnGUI() {
+        if (_simpleTreeView == null)
+            return;
+
+        _simpleTreeView.Statistics = ServerReplicaManager.Main.Statistics;
+        _simpleTreeView.Reload();
+
+        _simpleTreeView.OnGUI(new Rect(0, 0, position.width, position.height));
+    }
+}
 }
