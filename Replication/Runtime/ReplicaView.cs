@@ -2,7 +2,6 @@
 using System;
 using Cube.Transport;
 using System.Collections.Generic;
-using UnityEngine.Serialization;
 
 namespace Cube.Replication {
     [Serializable]
@@ -10,7 +9,10 @@ namespace Cube.Replication {
     public class ReplicaView : MonoBehaviour {
         [HideInInspector]
         public Connection Connection;
-        [FormerlySerializedAs("ignoreReplicaPositionsForPriority")]
+
+        /// <summary>
+        /// Ignore Replica positions when calculating relevancy. F.i. RTS game.
+        /// </summary>
         public bool IgnoreReplicaPositionsForPriority = false;
 
         /// <summary>
@@ -18,6 +20,7 @@ namespace Cube.Replication {
         /// </summary>
         public bool IsLoadingLevel;
 
+        [HideInInspector]
         public double NextPriorityUpdateTime;
         public List<Replica> RelevantReplicas;
         public List<float> RelevantReplicaPriorityAccumulator;

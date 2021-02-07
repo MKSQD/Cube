@@ -21,7 +21,7 @@ namespace Cube.Replication.Editor {
             EditorGUILayout.LabelField("Prefab ID", replica.prefabIdx.ToString());
 
             if (EditorApplication.isPlaying) {
-                EditorGUILayout.LabelField("Replica ID", replica.ReplicaId.data.ToString());
+                EditorGUILayout.LabelField("Replica ID", replica.ReplicaId.Data.ToString());
             }
 
             if (replica.isSceneReplica) {

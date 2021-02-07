@@ -12,7 +12,6 @@ namespace Cube.Networking.Editor {
     /// </summary>
     [CreateAssetMenu(menuName = "Cube/BuildSystem/NetworkingBuildConfiguration")]
     public class NetworkingBuildConfiguration : BuildConfiguration {
-
         override public void OnPreProcessBuild() {
             AddressableAssetSettings.BuildPlayerContent();
         }
@@ -20,8 +19,6 @@ namespace Cube.Networking.Editor {
         override public void OnPostProcessBuild(BuildReport report) {
             if (report.summary.result != BuildResult.Succeeded)
                 return;
-
-           
 
             foreach (var assembly in CompilationPipeline.GetAssemblies()) {
                 if ((assembly.flags & AssemblyFlags.EditorAssembly) != 0)

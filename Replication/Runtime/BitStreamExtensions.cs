@@ -3,7 +3,7 @@
 namespace Cube.Replication {
     public static class BitStreamExtensions {
         public static void Write(this BitStream bs, ReplicaId id) {
-            bs.Write(id.data);
+            bs.Write(id.Data);
         }
 
         public static void Read(this BitStream bs, ref ReplicaId val) {

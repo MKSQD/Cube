@@ -78,7 +78,7 @@ namespace Cube.Replication {
             Assert.IsTrue(isServer);
             Assert.IsTrue(owner != Connection.Invalid);
 
-            this.Owner = owner;
+            Owner = owner;
             isOwner = false;
         }
 
@@ -122,7 +122,7 @@ namespace Cube.Replication {
                 if (sqrDist > sqrMaxDist)
                     return 0; // No costly calculations
 
-                distanceRelevance = 1f - sqrDist / sqrMaxDist;
+                distanceRelevance = 1f - Mathf.Pow(sqrDist / sqrMaxDist, 0.8f);
             }
             return distanceRelevance;
         }

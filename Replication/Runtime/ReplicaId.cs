@@ -7,13 +7,13 @@ namespace Cube.Replication {
         public static readonly ReplicaId Invalid = CreateFromExisting(0);
 
         [SerializeField]
-        ushort _data;
-        public ushort data {
-            get { return _data; }
+        ushort data;
+        public ushort Data {
+            get { return data; }
         }
 
         internal ReplicaId(ushort id) {
-            _data = id;
+            data = id;
         }
 
         internal static ReplicaId Create(ServerReplicaManager replicaManager) {
@@ -32,15 +32,15 @@ namespace Cube.Replication {
         }
 
         public override string ToString() {
-            return _data.ToString();
+            return data.ToString();
         }
 
         public bool Equals(ReplicaId other) {
-            return _data == other._data;
+            return data == other.data;
         }
 
         public override int GetHashCode() {
-            return _data;
+            return data;
         }
 
         public static bool operator ==(ReplicaId lhs, ReplicaId rhs) {

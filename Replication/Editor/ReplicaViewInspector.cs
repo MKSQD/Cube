@@ -20,7 +20,6 @@ namespace Cube.Replication.Editor {
 
         static GUIStyle[] _debugTextStyles;
         static Dictionary<Replica, ReplicaDebugInfo> _debugPriorities;
-        static ReplicaSettings defaultReplicaSettings;
 
         [DrawGizmo(GizmoType.Active | GizmoType.Selected | GizmoType.NotInSelectionHierarchy | GizmoType.Pickable)]
         static void DrawGizmoForReplica(Replica replica, GizmoType gizmoType) {
@@ -32,17 +31,13 @@ namespace Cube.Replication.Editor {
                 return;
             }
 
-            if (defaultReplicaSettings == null) {
-                defaultReplicaSettings = CreateInstance<ReplicaSettings>();
-            }
-
             // Setup text stype
             if (_debugTextStyles == null) {
                 _debugTextStyles = new GUIStyle[10];
                 for (int i = 0; i < 10; ++i) {
                     var style = new GUIStyle();
-                    style.fontSize = 8;
-                    style.normal.textColor = Color.Lerp(Color.green, Color.red, i * 0.1f);
+                    style.fontSize = 10;
+                    style.normal.textColor = Color.Lerp(new Color(0, 0.6f, 0, 1), new Color(0.6f, 0, 0, 1), i * 0.1f);
                     _debugTextStyles[i] = style;
                 }
             }

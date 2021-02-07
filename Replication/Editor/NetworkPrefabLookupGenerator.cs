@@ -92,7 +92,7 @@ namespace Cube.Replication {
 
             lookup.prefabs = prefabs.ToArray();
             EditorUtility.SetDirty(lookup);
-            AssetDatabase.SaveAssets();
+            //AssetDatabase.SaveAssets();
         }
 
         static void OnSceneSaving(Scene scene, string path) {

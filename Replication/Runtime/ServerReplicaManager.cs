@@ -33,7 +33,7 @@ namespace Cube.Replication {
 
         [Tooltip("Min. relevance for a Replica to even be considered for replication")]
         [Range(0f, 1f)]
-        public float MinRelevance = 0.3f;
+        public float MinRelevance = 0.15f;
     }
 
     public class ServerReplicaManagerStatistics {
@@ -327,7 +327,8 @@ namespace Cube.Replication {
                 freeReplicaIds.Enqueue(id);
             }
 
-            nextReplicaIdRecycleTime = Time.time + Constants.ServerReplicaIdRecycleTime;
+            var replicaIdRecycleTime = 5;
+            nextReplicaIdRecycleTime = Time.time + replicaIdRecycleTime;
         }
 
         void UpdateReplicaView(ReplicaView view) {
@@ -461,7 +462,7 @@ namespace Cube.Replication {
                 var relevance = replica.GetRelevance(view);
                 Assert.IsTrue(relevance >= 0 && relevance <= 1);
 
-                var a = (settings.ReplicaUpdateRateMS / replica.settings.DesiredUpdateRateMS) * relevance;
+                var a = (settings.ReplicaUpdateRateMS / replica.settings.DesiredUpdateRateMS) * (relevance * relevance);
                 view.RelevantReplicaPriorityAccumulator[i] += a;
             }
         }
@@ -542,10 +543,10 @@ namespace Cube.Replication {
         }
 
         public void FreeLocalReplicaId(ReplicaId id) {
-            if (id.data >= nextLocalReplicaId)
+            if (id.Data >= nextLocalReplicaId)
                 return; // Tried to free id after Reset() was called
 
-            replicaIdRecycleQueue.Enqueue(id.data);
+            replicaIdRecycleQueue.Enqueue(id.Data);
         }
 
         void OnReplicaRpc(Connection connection, BitStream bs) {

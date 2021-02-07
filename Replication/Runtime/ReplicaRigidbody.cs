@@ -12,14 +12,34 @@ namespace Cube.Replication {
         [Tooltip("Visual representation of the object to be interpolated (seperate from the physical representation)")]
         public Transform model;
 
-        Rigidbody _rigidbody;
-        bool _clientSleeping = false;
+        new Rigidbody rigidbody;
+        bool clientSleeping = false;
 
         const float maxVelocity = 16;
         const float maxAngularVelocity = 16;
 
+        double m_InterpolationBackTime = 0.1;
+        double m_ExtrapolationLimit = 0.5;
+
+        // We store twenty states with "playback" information
+        State[] m_BufferedState = new State[20];
+        // Keep track of what slots are used
+        int m_TimestampCount;
+
+        internal struct State {
+            internal double timestamp;
+            internal Vector3 pos;
+            internal Vector3 velocity;
+            internal Quaternion rot;
+            internal Vector3 angularVelocity;
+        }
+
         void Awake() {
-            _rigidbody = GetComponent<Rigidbody>();
+            rigidbody = GetComponent<Rigidbody>();
+        }
+
+        void Start() {
+            m_InterpolationBackTime = replica.settings.DesiredUpdateRate * 2.5f;
         }
 
         void Update() {
@@ -31,18 +51,66 @@ namespace Cube.Replication {
                 return;
 #endif
 
-            var t = (Time.time - currT) / (replica.settings.DesiredUpdateRateMS * 0.001f);
-            t = Mathf.Clamp01(t);
+            UpdateTransform();
+        }
 
-            model.position = Vector3.Lerp(prevPos, currPos, t);
-            model.rotation = Quaternion.Lerp(prevRot, currRot, t);
+        void UpdateTransform() {
+            // This is the target playback time of the rigid body
+            double interpolationTime = Time.timeAsDouble - m_InterpolationBackTime;
+
+            // Use interpolation if the target playback time is present in the buffer
+            if (m_BufferedState[0].timestamp > interpolationTime) {
+                // Go through buffer and find correct state to play back
+                for (int i = 0; i < m_TimestampCount; i++) {
+                    if (m_BufferedState[i].timestamp <= interpolationTime || i == m_TimestampCount - 1) {
+                        // The state one slot newer (<100ms) than the best playback state
+                        State rhs = m_BufferedState[Mathf.Max(i - 1, 0)];
+                        // The best playback state (closest to 100 ms old (default time))
+                        State lhs = m_BufferedState[i];
+
+                        // Use the time between the two slots to determine if interpolation is necessary
+                        double length = rhs.timestamp - lhs.timestamp;
+                        float t = 0.0F;
+                        // As the time difference gets closer to 100 ms t gets closer to 1 in 
+                        // which case rhs is only used
+                        // Example:
+                        // Time is 10.000, so sampleTime is 9.900 
+                        // lhs.time is 9.910 rhs.time is 9.980 length is 0.070
+                        // t is 9.900 - 9.910 / 0.070 = 0.14. So it uses 14% of rhs, 86% of lhs
+                        if (length > 0.0001) {
+                            t = (float)((interpolationTime - lhs.timestamp) / length);
+                        }
+                        //    Debug.Log(t);
+                        // if t=0 => lhs is used directly
+                        transform.localPosition = Vector3.Lerp(lhs.pos, rhs.pos, t);
+                        transform.localRotation = Quaternion.Slerp(lhs.rot, rhs.rot, t);
+                        return;
+                    }
+                }
+            }
+            // Use extrapolation
+            else {
+                State latest = m_BufferedState[0];
+
+                float extrapolationLength = (float)(interpolationTime - latest.timestamp);
+                // Don't extrapolation for more than 500 ms, you would need to do that carefully
+                if (extrapolationLength < m_ExtrapolationLimit) {
+                    float axisLength = extrapolationLength * latest.angularVelocity.magnitude * Mathf.Rad2Deg;
+                    Quaternion angularRotation = Quaternion.AngleAxis(axisLength, latest.angularVelocity);
+
+                    transform.position = latest.pos + latest.velocity * extrapolationLength;
+                    transform.rotation = angularRotation * latest.rot;
+                    rigidbody.velocity = latest.velocity;
+                    rigidbody.angularVelocity = latest.angularVelocity;
+                }
+            }
         }
 
         void FixedUpdate() {
             if (isClient) {
-                if (_clientSleeping) {
-                    _rigidbody.velocity = Vector3.zero;
-                    _rigidbody.angularVelocity = Vector3.zero;
+                if (clientSleeping) {
+                    rigidbody.velocity = Vector3.zero;
+                    rigidbody.angularVelocity = Vector3.zero;
                 }
             }
         }
@@ -58,57 +126,63 @@ namespace Cube.Replication {
             bs.WriteLossyFloat(euler.y, 0, 360);
             bs.WriteLossyFloat(euler.z, 0, 360);
 
-            var sleeping = _rigidbody.IsSleeping();
+            var sleeping = rigidbody.IsSleeping();
             bs.Write(sleeping);
-            if (!sleeping) {
-                var velocity = _rigidbody.velocity;
-                bs.WriteLossyFloat(velocity.x, -maxVelocity, maxVelocity);
-                bs.WriteLossyFloat(velocity.y, -maxVelocity, maxVelocity);
-                bs.WriteLossyFloat(velocity.z, -maxVelocity, maxVelocity);
+            if (sleeping)
+                return;
 
-                var angularVelocity = _rigidbody.angularVelocity;
-                bs.WriteLossyFloat(angularVelocity.x, -maxAngularVelocity, maxAngularVelocity);
-                bs.WriteLossyFloat(angularVelocity.y, -maxAngularVelocity, maxAngularVelocity);
-                bs.WriteLossyFloat(angularVelocity.z, -maxAngularVelocity, maxAngularVelocity);
-            }
+            var velocity = rigidbody.velocity;
+            bs.WriteLossyFloat(velocity.x, -maxVelocity, maxVelocity);
+            bs.WriteLossyFloat(velocity.y, -maxVelocity, maxVelocity);
+            bs.WriteLossyFloat(velocity.z, -maxVelocity, maxVelocity);
+
+            var angularVelocity = rigidbody.angularVelocity;
+            bs.WriteLossyFloat(angularVelocity.x, -maxAngularVelocity, maxAngularVelocity);
+            bs.WriteLossyFloat(angularVelocity.y, -maxAngularVelocity, maxAngularVelocity);
+            bs.WriteLossyFloat(angularVelocity.z, -maxAngularVelocity, maxAngularVelocity);
         }
 
-        Vector3 prevPos;
-        Quaternion prevRot = Quaternion.identity;
-        Vector3 currPos;
-        Quaternion currRot = Quaternion.identity;
-        float currT;
-
         public override void Deserialize(BitStream bs) {
-            currT = Time.time;
-            prevPos = currPos;
-            prevRot = currRot;
-
-            currPos = transform.position = bs.ReadVector3();
+            var position = transform.position = bs.ReadVector3();
 
             var euler = new Vector3 {
                 x = bs.ReadLossyFloat(0, 360),
                 y = bs.ReadLossyFloat(0, 360),
                 z = bs.ReadLossyFloat(0, 360)
             };
-            currRot = transform.rotation = Quaternion.Euler(euler);
+            var rotation = transform.rotation = Quaternion.Euler(euler);
 
-            _clientSleeping = bs.ReadBool();
-            if (!_clientSleeping) {
-                var velocity = new Vector3 {
+            var velocity = Vector3.zero;
+            var angularVelocity = Vector3.zero;
+            clientSleeping = bs.ReadBool();
+            if (clientSleeping) {
+                velocity = new Vector3 {
                     x = bs.ReadLossyFloat(-maxVelocity, maxVelocity),
                     y = bs.ReadLossyFloat(-maxVelocity, maxVelocity),
                     z = bs.ReadLossyFloat(-maxVelocity, maxVelocity)
                 };
-                _rigidbody.velocity = velocity;
-
-                var angularVelocity = new Vector3 {
+                angularVelocity = new Vector3 {
                     x = bs.ReadLossyFloat(-maxAngularVelocity, maxAngularVelocity),
                     y = bs.ReadLossyFloat(-maxAngularVelocity, maxAngularVelocity),
                     z = bs.ReadLossyFloat(-maxAngularVelocity, maxAngularVelocity)
                 };
-                _rigidbody.angularVelocity = angularVelocity;
             }
+
+            // Shift the buffer sideways, deleting state 20
+            for (int i = m_BufferedState.Length - 1; i >= 1; i--) {
+                m_BufferedState[i] = m_BufferedState[i - 1];
+            }
+
+            // Record current state in slot 0
+            State state;
+            state.timestamp = Time.timeAsDouble;
+            state.pos = position;
+            state.velocity = velocity;
+            state.rot = rotation;
+            state.angularVelocity = angularVelocity;
+            m_BufferedState[0] = state;
+
+            m_TimestampCount = Mathf.Min(m_TimestampCount + 1, m_BufferedState.Length);
         }
     }
 }

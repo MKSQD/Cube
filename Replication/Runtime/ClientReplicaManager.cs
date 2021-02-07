@@ -15,11 +15,9 @@ namespace Cube.Replication {
         ICubeClient client;
 
         NetworkScene networkScene;
-
         NetworkPrefabLookup networkPrefabLookup;
-        Dictionary<byte, SceneReplicaWrapper> sceneReplicaLookup;
 
-        float _nextUpdateTime;
+        float nextUpdateTime;
 
         public ClientReplicaManager(ICubeClient client, NetworkPrefabLookup networkPrefabLookup) {
             Assert.IsNotNull(networkPrefabLookup);
@@ -32,7 +30,6 @@ namespace Cube.Replication {
             client.reactor.AddHandler((byte)MessageId.ReplicaDestroy, OnReplicaDestroy);
 
             networkScene = new NetworkScene();
-            sceneReplicaLookup = new Dictionary<byte, SceneReplicaWrapper>();
 
             SceneManager.sceneLoaded += OnSceneLoaded;
 
@@ -76,12 +73,10 @@ namespace Cube.Replication {
         }
 
         public void Update() {
-            if (Time.time < _nextUpdateTime)
+            if (Time.time < nextUpdateTime)
                 return;
 
-            _nextUpdateTime = Time.time + 1;
-
-            var removeTime = Time.time - Constants.ClientReplicaInactiveDestructionTimeSec;
+            nextUpdateTime = Time.time + 1;
 
             var replicas = networkScene.replicas;
             for (int i = 0; i < replicas.Count; ++i) {
@@ -89,7 +84,7 @@ namespace Cube.Replication {
                 if (replica == null || replica.isSceneReplica)
                     continue;
 
-                if (replica.lastUpdateTime <= removeTime) {
+                if (replica.lastUpdateTime < Time.time - replica.settings.DesiredUpdateRate * 30) {
                     // Note we modify the replicas variable implicitly here -> the Replica deletes itself
                     UnityEngine.Object.Destroy(replica.gameObject);
                 }
@@ -136,15 +131,6 @@ namespace Cube.Replication {
                 Debug.LogError("Exception while deserializing Replica " + replica + ":");
                 Debug.LogException(e);
             }
-
-// #if UNITY_EDITOR
-//             var timeDiff = Time.time - replica.lastUpdateTime;
-//             if (timeDiff * 1000 < replica.settings.DesiredUpdateRateMS) {
-//                 Debug.LogWarning("Replica " + replica.gameObject.name + " was updated too fast ("
-//                     + (int)(timeDiff * 1000) + "ms instead of "
-//                     + replica.settings.DesiredUpdateRateMS + "ms)", replica.gameObject);
-//             }
-// #endif
 
             replica.lastUpdateTime = Time.time;
         }
