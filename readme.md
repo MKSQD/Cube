@@ -3,12 +3,13 @@ GameObject based network replication library for [Unity3d](https://unity.com/). 
 
 ## Features
 - Integration with [Unreal-style gameplay framework](https://github.com/NoDogsInc/GameFramework)
-- Server and client in the same editor process
-- Simple, documented API surface
 - Eventual consistency based network model (loosely based on [GDC Vault: I Shot You First! Gameplay Networking in Halo: Reach](http://www.gdcvault.com/play/1014345/I-Shot-You-First-Networking))
-- Full support for ScriptableObjects as rpc arguments
+- Develop server and client at the same time
+- Very simple API
+- RPCs as method calls with automatic argument serialisation (including ScriptableObject, arrays, ...)
 - Client/server prefabs and assets are discovered automatically, no factory functions to implement or lists to manually maintain
-- Transport current based on [Lidgren](https://github.com/lidgren/lidgren-network-gen3); can be replaced easily
+- Transport based on [Lidgren](https://github.com/lidgren/lidgren-network-gen3) but can be replaced easily
+- Tooling included
 
 ## Getting Started
 Clone the git repository into your **Assets** folder.
