@@ -8,6 +8,7 @@ namespace Cube.Networking {
     /// Base class for build configurations
     /// </summary>
     abstract public class BuildConfiguration : ScriptableObject {
+        [Header("Target")]
         /// <summary>Target location</summary>
         public string targetLocation;
 
@@ -20,6 +21,7 @@ namespace Cube.Networking {
         /// <see cref="UnityEditor.BuildTarget"/>
         public BuildTarget buildTarget;
 
+        [Header("Options")]
         /// <see cref="UnityEditor.BuildOptions.Development"/>
         public bool development;
 

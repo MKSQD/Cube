@@ -155,7 +155,7 @@ namespace Cube.Replication {
             var velocity = Vector3.zero;
             var angularVelocity = Vector3.zero;
             clientSleeping = bs.ReadBool();
-            if (clientSleeping) {
+            if (!clientSleeping) {
                 velocity = new Vector3 {
                     x = bs.ReadLossyFloat(-maxVelocity, maxVelocity),
                     y = bs.ReadLossyFloat(-maxVelocity, maxVelocity),

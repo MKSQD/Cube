@@ -42,7 +42,6 @@ namespace Cube.Transport {
                 var bs = networkInterface.Receive(out connection);
                 if (bs == null)
                     break;
-                //#TODO force break after x packets ?
 
                 var messageId = bs.ReadByte();
 

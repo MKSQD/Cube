@@ -35,11 +35,10 @@ namespace Cube.Networking {
             this.world = world;
 
             networkInterface = new LidgrenServerNetworkInterface(port, lagSettings);
+            networkInterface.NewConnectionEstablished += OnNewConnectionEstablished;
+            networkInterface.DisconnectNotification += OnDisconnectNotification;
 
             reactor = new ServerReactor(networkInterface);
-            reactor.AddMessageHandler((byte)MessageId.NewConnectionEstablished, OnNewConnectionEstablished);
-            reactor.AddMessageHandler((byte)MessageId.DisconnectNotification, OnDisconnectNotification);
-
             replicaManager = new ServerReplicaManager(this, replicaManagerSettings);
         }
 
@@ -53,11 +52,11 @@ namespace Cube.Networking {
             networkInterface.Shutdown();
         }
 
-        void OnNewConnectionEstablished(Connection connection, BitStream bs) {
+        void OnNewConnectionEstablished(Connection connection) {
             connections.Add(connection);
         }
 
-        void OnDisconnectNotification(Connection connection, BitStream bs) {
+        void OnDisconnectNotification(Connection connection) {
             connections.Remove(connection);
         }
     }

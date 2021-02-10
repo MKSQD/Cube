@@ -12,6 +12,10 @@ namespace Cube.Transport {
     /// </summary>
     /// <remarks>Available in: Editor/Server</remarks>
     public sealed class LidgrenServerNetworkInterface : IServerNetworkInterface {
+        public Func<BitStream, bool> ApproveConnection { get; set; }
+        public Action<Connection> NewConnectionEstablished { get; set; }
+        public Action<Connection> DisconnectNotification { get; set; }
+
         public BitStreamPool bitStreamPool {
             get;
             internal set;
@@ -30,6 +34,7 @@ namespace Cube.Transport {
                 Port = port,
                 AutoFlushSendQueue = false
             };
+            config.EnableMessageType(NetIncomingMessageType.ConnectionApproval);
 
 #if UNITY_EDITOR
             if (lagSettings.enabled) {
@@ -129,20 +134,35 @@ namespace Cube.Transport {
 
                 case NetIncomingMessageType.StatusChanged: {
                         var status = (NetConnectionStatus)msg.ReadByte();
-                        msg.ReadString();
-
                         if (status == NetConnectionStatus.Connected) {
-                            result = bitStreamPool.Create();
-                            result.Write((byte)MessageId.NewConnectionEstablished);
+                            NewConnectionEstablished(connection);
                         }
-                        if (status == NetConnectionStatus.Disconnected) {
-                            result = bitStreamPool.Create();
-                            result.Write((byte)MessageId.DisconnectNotification);
+                        else if (status == NetConnectionStatus.Disconnected) {
+                            DisconnectNotification(connection);
                         }
                         break;
                     }
                 case NetIncomingMessageType.Data:
                     result = BitStream.CreateWithExistingBuffer(msg.Data, msg.LengthBits);
+                    break;
+
+                case NetIncomingMessageType.ConnectionApproval:
+                    var bs = BitStream.CreateWithExistingBuffer(msg.Data, msg.LengthBits);
+
+                    try {
+                        if (ApproveConnection(bs)) {
+                            Debug.Log("[Server] Connection approved");
+                            msg.SenderConnection.Approve();
+                        }
+                        else {
+                            Debug.Log("[Server] Connection denied");
+                            msg.SenderConnection.Deny();
+                        }
+                    }
+                    catch (Exception e) {
+                        Debug.LogException(e);
+                        msg.SenderConnection.Deny();
+                    }
                     break;
 
                 default:

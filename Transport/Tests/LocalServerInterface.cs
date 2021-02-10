@@ -3,6 +3,10 @@ using System.Collections.Generic;
 
 namespace Cube.Transport.Tests {
     public class LocalServerInterface : IServerNetworkInterface {
+        public Func<BitStream, bool> ApproveConnection { get; set; }
+        public Action<Connection> NewConnectionEstablished { get; set; }
+        public Action<Connection> DisconnectNotification { get; set; }
+
         class Message {
             public Connection connection;
             public BitStream bs;

@@ -1,5 +1,11 @@
+using System;
+
 namespace Cube.Transport {
     public interface IServerNetworkInterface {
+        Func<BitStream, bool> ApproveConnection { get; set; }
+        Action<Connection> NewConnectionEstablished { get; set; }
+        Action<Connection> DisconnectNotification { get; set; }
+
         BitStreamPool bitStreamPool {
             get;
         }

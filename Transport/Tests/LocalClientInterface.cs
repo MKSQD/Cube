@@ -6,9 +6,12 @@ using NUnit.Framework;
 
 namespace Cube.Transport.Tests {
     public class LocalClientInterface : IClientNetworkInterface {
-        BitStreamPool _bitStreamPool = new BitStreamPool();
+        public Action ConnectionRequestAccepted { get; set; }
+        public Action Disconnected { get; set; }
+
         public BitStreamPool bitStreamPool {
-            get { return _bitStreamPool; }
+            internal set;
+            get;
         }
 
         public LocalServerInterface server;
@@ -50,6 +53,10 @@ namespace Cube.Transport.Tests {
         }
         
         public void Connect(string address, ushort port) {
+            throw new Exception("Not required.");
+        }
+
+        public void Connect(string address, ushort port, BitStream hailMessage) {
             throw new Exception("Not required.");
         }
 

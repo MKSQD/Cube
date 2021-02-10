@@ -1,4 +1,5 @@
 ﻿using Lidgren.Network;
+using System;
 using UnityEngine;
 
 namespace Cube.Transport {
@@ -6,13 +7,16 @@ namespace Cube.Transport {
     /// Client implementation with Lidgren.
     /// </summary>
     public class LidgrenClientNetworkInterface : IClientNetworkInterface {
+        public Action ConnectionRequestAccepted { get; set; }
+        public Action Disconnected { get; set; }
+
         public BitStreamPool bitStreamPool {
             get;
             internal set;
         }
 
-        NetClient _client;
-        NetConnection _connection;
+        NetClient client;
+        NetConnection connection;
 
         public LidgrenClientNetworkInterface(SimulatedLagSettings lagSettings) {
             bitStreamPool = new BitStreamPool();
@@ -30,47 +34,57 @@ namespace Cube.Transport {
             }
 #endif
 
-            _client = new NetClient(config);
-            _client.Start();
+            client = new NetClient(config);
+            client.Start();
         }
 
         public float GetRemoteTime(float time) {
-            return (float)_connection.GetRemoteTime(time);
+            return (float)connection.GetRemoteTime(time);
         }
 
         public void Connect(string address, ushort port) {
             Debug.Log("[Client] <b>Connecting</b> to <i>" + address + ":" + port + "</i>");
 
-            _connection = _client.Connect(address, port);
+            connection = client.Connect(address, port);
+        }
+
+        public void Connect(string address, ushort port, BitStream hailMessage) {
+            Debug.Log("[Client] <b>Connecting</b> to <i>" + address + ":" + port + "</i>");
+
+            var msg = client.CreateMessage(hailMessage.Length);
+            msg.Write(hailMessage.data, 0, hailMessage.Length);
+            msg.LengthBits = hailMessage.LengthInBits;
+
+            connection = client.Connect(address, port, msg);
         }
 
         public void Disconnect() {
-            _client.Disconnect("");
+            client.Disconnect("");
         }
 
         public void Update() {
-            _client.FlushSendQueue();
+            client.FlushSendQueue();
             bitStreamPool.FrameReset();
         }
 
         public void Shutdown(uint blockDuration) {
-            _client.Shutdown("bye byte"); //#TODO message ?
+            client.Shutdown("bye byte"); //#TODO message ?
         }
 
         public bool IsConnected() {
-            return _connection != null && _connection.Status == NetConnectionStatus.Connected;
+            return connection != null && connection.Status == NetConnectionStatus.Connected;
         }
 
         public unsafe void Send(BitStream bs, PacketPriority priority, PacketReliability reliablity) {
-            var msg = _client.CreateMessage(bs.Length);
+            var msg = client.CreateMessage(bs.Length);
             msg.Write(bs.data, 0, bs.Length);
             msg.LengthBits = bs.LengthInBits;
 
-            _client.SendMessage(msg, InternalReliabilityToLidgren(reliablity));
+            client.SendMessage(msg, InternalReliabilityToLidgren(reliablity));
         }
 
         public unsafe BitStream Receive() {
-            var msg = _client.ReadMessage();
+            var msg = client.ReadMessage();
             if (msg == null)
                 return null;
 
@@ -96,24 +110,20 @@ namespace Cube.Transport {
                 case NetIncomingMessageType.StatusChanged: {
                         var status = (NetConnectionStatus)msg.ReadByte();
                         if (status == NetConnectionStatus.Connected) {
-                            var bs = bitStreamPool.Create();
-                            bs.Write((byte)MessageId.ConnectionRequestAccepted);
-                            return bs;
+                            ConnectionRequestAccepted();
                         }
                         if (status == NetConnectionStatus.Disconnected) {
-                            var bs = bitStreamPool.Create();
-                            bs.Write((byte)MessageId.ConnectionRequestFailed);
-                            return bs;
+                            Disconnected();
                         }
                         break;
                     }
                 default: {
-                        //Debug.Log("Client - Unhandled type: " + msg.MessageType);
+                        Debug.Log("Client - Unhandled type: " + msg.MessageType);
                         break;
                     }
             }
 
-            _client.Recycle(msg);
+            client.Recycle(msg);
             return null;
         }
 

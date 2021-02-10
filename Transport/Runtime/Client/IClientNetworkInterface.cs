@@ -1,5 +1,10 @@
-﻿namespace Cube.Transport {
+﻿using System;
+
+namespace Cube.Transport {
     public interface IClientNetworkInterface {
+        Action ConnectionRequestAccepted { get; set; }
+        Action Disconnected { get; set; }
+
         BitStreamPool bitStreamPool {
             get;
         }
@@ -8,6 +13,8 @@
         
         /// <exception cref="ClientConnectionAttemptException">Throw on connection error</exception>
         void Connect(string address, ushort port);
+        /// <exception cref="ClientConnectionAttemptException">Throw on connection error</exception>
+        void Connect(string address, ushort port, BitStream hailMessage);
         void Disconnect();
 
         void Update();
