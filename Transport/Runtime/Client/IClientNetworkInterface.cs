@@ -3,7 +3,7 @@
 namespace Cube.Transport {
     public interface IClientNetworkInterface {
         Action ConnectionRequestAccepted { get; set; }
-        Action Disconnected { get; set; }
+        Action<string> Disconnected { get; set; }
 
         BitStreamPool bitStreamPool {
             get;

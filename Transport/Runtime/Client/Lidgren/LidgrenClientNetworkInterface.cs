@@ -8,7 +8,7 @@ namespace Cube.Transport {
     /// </summary>
     public class LidgrenClientNetworkInterface : IClientNetworkInterface {
         public Action ConnectionRequestAccepted { get; set; }
-        public Action Disconnected { get; set; }
+        public Action<string> Disconnected { get; set; }
 
         public BitStreamPool bitStreamPool {
             get;
@@ -113,7 +113,8 @@ namespace Cube.Transport {
                             ConnectionRequestAccepted();
                         }
                         if (status == NetConnectionStatus.Disconnected) {
-                            Disconnected();
+                            var reason = msg.ReadString();
+                            Disconnected(reason);
                         }
                         break;
                     }

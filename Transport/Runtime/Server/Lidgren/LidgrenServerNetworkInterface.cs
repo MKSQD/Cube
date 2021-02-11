@@ -12,7 +12,7 @@ namespace Cube.Transport {
     /// </summary>
     /// <remarks>Available in: Editor/Server</remarks>
     public sealed class LidgrenServerNetworkInterface : IServerNetworkInterface {
-        public Func<BitStream, bool> ApproveConnection { get; set; }
+        public Func<BitStream, ApprovalResult> ApproveConnection { get; set; }
         public Action<Connection> NewConnectionEstablished { get; set; }
         public Action<Connection> DisconnectNotification { get; set; }
 
@@ -150,18 +150,19 @@ namespace Cube.Transport {
                     var bs = BitStream.CreateWithExistingBuffer(msg.Data, msg.LengthBits);
 
                     try {
-                        if (ApproveConnection(bs)) {
+                        var approvalResult = ApproveConnection(bs);
+                        if (approvalResult.Approved) {
                             Debug.Log("[Server] Connection approved");
                             msg.SenderConnection.Approve();
                         }
                         else {
                             Debug.Log("[Server] Connection denied");
-                            msg.SenderConnection.Deny();
+                            msg.SenderConnection.Deny(approvalResult.DenialReason);
                         }
                     }
                     catch (Exception e) {
                         Debug.LogException(e);
-                        msg.SenderConnection.Deny();
+                        msg.SenderConnection.Deny("Approval Error");
                     }
                     break;
 

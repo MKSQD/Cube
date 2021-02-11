@@ -7,7 +7,7 @@ using NUnit.Framework;
 namespace Cube.Transport.Tests {
     public class LocalClientInterface : IClientNetworkInterface {
         public Action ConnectionRequestAccepted { get; set; }
-        public Action Disconnected { get; set; }
+        public Action<string> Disconnected { get; set; }
 
         public BitStreamPool bitStreamPool {
             internal set;
