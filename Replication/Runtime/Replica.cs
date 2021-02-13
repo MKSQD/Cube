@@ -230,7 +230,7 @@ namespace Cube.Replication {
                     WriteValueToBitStream(args[i], bs);
                 }
 
-                client.networkInterface.Send(bs, PacketPriority.Medium, PacketReliability.Unreliable);
+                client.networkInterface.Send(bs, PacketPriority.Immediate, PacketReliability.Unreliable);
             }
 
             if (isServer) {
