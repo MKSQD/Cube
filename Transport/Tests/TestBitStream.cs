@@ -52,13 +52,21 @@ namespace Cube.Transport.Tests {
 
         [Test]
         public void Test_WriteRead_String() {
-            var strings = new string[] { "", "f", "foo", "foooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo" };
+            var strings = new string[] { "",
+                "f", 
+                "foo", 
+                "1.4.0",
+                "foooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo" };
             foreach (var str in strings) {
                 var bs = new BitStream();
-
                 bs.Write(str);
-
                 Assert.AreEqual(bs.ReadString(), str);
+
+                var bs2 = new BitStream();
+                bs.Write(true);
+                bs2.Write(str);
+                bs.ReadBool();
+                Assert.AreEqual(bs2.ReadString(), str);
             }
         }
 

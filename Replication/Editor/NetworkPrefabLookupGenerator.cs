@@ -20,7 +20,7 @@ namespace Cube.Replication {
             GenerateNetworkPrefabLookupImpl();
         }
 
-        [MenuItem("Cube/Internal/GenerateNetworkPrefabLookup")]
+        [MenuItem("Cube/Internal/Force Refresh NetworkPrefab Lookup")]
         static void GenerateNetworkPrefabLookupImpl() {
             var prefabs = new List<GameObject>();
 

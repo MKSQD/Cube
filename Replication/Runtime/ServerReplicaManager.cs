@@ -107,7 +107,6 @@ namespace Cube.Replication {
             SceneManager.sceneLoaded += OnSceneLoaded;
 
 #if UNITY_EDITOR
-            Assert.IsNull(Main);
             Main = this;
 #endif
         }

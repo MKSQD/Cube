@@ -5,25 +5,25 @@ namespace Cube.Replication {
     /// <summary>
     /// Used for runtime lookup of NetworkObject derived ScriptableObject instances in the Assets folder.
     /// </summary>
+    [Serializable]
     public class NetworkObjectLookup : ScriptableObject, IEquatable<NetworkObjectLookup> {
-        static NetworkObjectLookup _instance;
-        public static NetworkObjectLookup instance {
+        static NetworkObjectLookup instance;
+        public static NetworkObjectLookup Instance {
             get {
-                if (_instance == null) {
-                    _instance = Resources.Load<NetworkObjectLookup>("NetworkObjectLookup");
+                if (instance == null) {
+                    instance = Resources.Load<NetworkObjectLookup>("NetworkObjectLookup");
                 }
-                return _instance;
+                return instance;
             }
         }
 
         public NetworkObject[] entries;
 
-        public NetworkObject CreateFromNetworkAssetId(string networkAssetId) {
-            foreach (var entry in entries) {
-                if (entry.networkAssetId == networkAssetId)
-                    return entry;
-            }
-            return null;
+        public NetworkObject CreateFromNetworkAssetId(int networkAssetId) {
+            if (networkAssetId == -1)
+                return null;
+
+            return entries[networkAssetId];
         }
 
         public override bool Equals(object other) {
@@ -39,7 +39,7 @@ namespace Cube.Replication {
                 return false;
 
             for (int i = 0; i < entries.Length; ++i) {
-                if (entries[i] != other.entries[i])
+                if (entries[i].networkAssetId != other.entries[i].networkAssetId)
                     return false;
             }
 

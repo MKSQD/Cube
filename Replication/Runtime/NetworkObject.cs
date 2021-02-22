@@ -1,15 +1,10 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 
 namespace Cube.Replication {
+    [Serializable]
     public class NetworkObject : ScriptableObject {
-        public string networkAssetId;
-
-#if UNITY_EDITOR
-        void OnValidate() {
-            var assetPath = UnityEditor.AssetDatabase.GetAssetPath(this);
-            var assetGuid = UnityEditor.AssetDatabase.AssetPathToGUID(assetPath);
-            networkAssetId = assetGuid;
-        }
-#endif
+        [Tooltip("Used when passing the NetworkObject as an RPC argument")]
+        public int networkAssetId = -1;
     }
 }

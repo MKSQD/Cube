@@ -5,6 +5,7 @@ using UnityEngine;
 
 namespace Cube.Replication {
     public class NetworkObjectLookupGenerator {
+        [MenuItem("Cube/Internal/Force Refresh NetworkObject Lookup")]
         [DidReloadScripts]
         public static void ForceRefreshCode() {
             var networkObjects = new List<NetworkObject>();
@@ -31,7 +32,15 @@ namespace Cube.Replication {
             var oldLookup = AssetDatabase.LoadAssetAtPath<NetworkObjectLookup>(newLookupPath);
             if (lookup == oldLookup)
                 return;
-            
+
+            for (int i = 0; i < networkObjects.Count; ++i) {
+                var networkObject = networkObjects[i];
+                if (networkObject.networkAssetId != i) {
+                    networkObject.networkAssetId = i;
+                    EditorUtility.SetDirty(networkObject);
+                }
+            }
+
             AssetDatabase.CreateAsset(lookup, newLookupPath);
         }
     }

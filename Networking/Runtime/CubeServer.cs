@@ -50,6 +50,10 @@ namespace Cube.Networking {
 
         public void Shutdown() {
             networkInterface.Shutdown();
+
+            replicaManager = null;
+            reactor = null;
+            networkInterface = null;
         }
 
         void OnNewConnectionEstablished(Connection connection) {

@@ -128,8 +128,7 @@ namespace Cube.Replication {
                 replica.Deserialize(bs);
             }
             catch (Exception e) {
-                Debug.LogError("Exception while deserializing Replica " + replica + ":");
-                Debug.LogException(e);
+                Debug.LogException(e, replica.gameObject);
             }
 
             replica.lastUpdateTime = Time.time;

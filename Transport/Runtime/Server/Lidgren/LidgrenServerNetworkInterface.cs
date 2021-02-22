@@ -156,7 +156,7 @@ namespace Cube.Transport {
                             msg.SenderConnection.Approve();
                         }
                         else {
-                            Debug.Log("[Server] Connection denied");
+                            Debug.Log($"[Server] Connection denied ({approvalResult.DenialReason})");
                             msg.SenderConnection.Deny(approvalResult.DenialReason);
                         }
                     }
