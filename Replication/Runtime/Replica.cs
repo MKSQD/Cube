@@ -26,7 +26,7 @@ namespace Cube.Replication {
         public bool replicateOnlyToOwner;
 
         [HideInInspector]
-        public ReplicaId ReplicaId = ReplicaId.Invalid;
+        public ReplicaId Id = ReplicaId.Invalid;
 
         [HideInInspector]
         public ushort prefabIdx;
@@ -179,7 +179,7 @@ namespace Cube.Replication {
 
             byte idx = 0;
             foreach (var rb in _replicaBehaviours) {
-                rb.replica = this;
+                rb.Replica = this;
                 rb.replicaComponentIdx = idx++;
             }
         }
@@ -222,7 +222,7 @@ namespace Cube.Replication {
             if (isClient) {
                 var bs = client.networkInterface.bitStreamPool.Create();
                 bs.Write((byte)MessageId.ReplicaRpc);
-                bs.Write(ReplicaId);
+                bs.Write(Id);
                 bs.Write(componentIdx);
                 bs.Write(methodId);
 
@@ -236,7 +236,7 @@ namespace Cube.Replication {
             if (isServer) {
                 var bs = new BitStream(); // #todo need to pool these instances, but lifetime could be over one frame
                 bs.Write((byte)MessageId.ReplicaRpc);
-                bs.Write(ReplicaId);
+                bs.Write(Id);
                 bs.Write(componentIdx);
                 bs.Write(methodId);
 
@@ -384,7 +384,7 @@ namespace Cube.Replication {
             }
             else if (type == typeof(Replica)) {
                 var replica = (Replica)value;
-                bs.Write(replica.ReplicaId);
+                bs.Write(replica.Id);
             }
             else if (type.IsSubclassOf(typeof(NetworkObject))) {
                 bs.WriteNetworkObject((NetworkObject)value);
@@ -469,7 +469,7 @@ namespace Cube.Replication {
             else if (type == typeof(Replica)) {
                 var id = bs.ReadReplicaId();
 
-                value = replicaManager.GetReplicaById(id);
+                value = replicaManager.GetReplica(id);
                 if (value == null) {
                     Debug.LogWarning("RPC was dropped because Replica (used as argument) was not found: " + id);
                     return false;

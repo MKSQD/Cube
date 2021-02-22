@@ -12,16 +12,16 @@ namespace Cube.Replication {
         }
 
         public void AddReplica(Replica replica) {
-            if (replica.ReplicaId == ReplicaId.Invalid) {
+            if (replica.Id == ReplicaId.Invalid) {
                 Debug.LogError("ReplicaId is invalid (" + (replica.isServer ? "Server" : "Client") + ")");
                 return;
             }
 
-            if (!_replicasById.ContainsKey(replica.ReplicaId)) {
-                _replicasById.Add(replica.ReplicaId, replica);
+            if (!_replicasById.ContainsKey(replica.Id)) {
+                _replicasById.Add(replica.Id, replica);
             }
             else {
-                _replicasById[replica.ReplicaId] = replica;
+                _replicasById[replica.Id] = replica;
             }
             _replicas.Add(replica);
         }
@@ -32,7 +32,7 @@ namespace Cube.Replication {
         /// <param name="replica"></param>
         /// <remarks>Won't do anything if this replica was removed already</remarks>
         public void RemoveReplica(Replica replica) {
-            if (!_replicasById.Remove(replica.ReplicaId))
+            if (!_replicasById.Remove(replica.Id))
                 return;
 
             _replicas.Remove(replica);

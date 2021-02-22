@@ -39,7 +39,7 @@ namespace Cube.Replication {
         }
 
         void Start() {
-            m_InterpolationBackTime = replica.settings.DesiredUpdateRate * 2.5f;
+            m_InterpolationBackTime = Replica.settings.DesiredUpdateRate * 2.5f;
         }
 
         void Update() {
@@ -47,7 +47,7 @@ namespace Cube.Replication {
                 return;
 
 #if UNITY_EDITOR
-            if (replica.isSceneReplica)
+            if (Replica.isSceneReplica)
                 return;
 #endif
 

@@ -59,7 +59,7 @@ namespace Cube.Replication.Editor {
             _sendRpcMethod = ImportMethod(GetMethodDefinitionByName(_replicaType, "SendRpc"));
 
             _replicaComponentIdxProperty = ImportField(GetFieldDefinitionByName(_replicaBehaviourType, "replicaComponentIdx"));
-            _replicaField = ImportField(GetFieldDefinitionByName(_replicaBehaviourType, "replica"));
+            _replicaField = ImportField(GetFieldDefinitionByName(_replicaBehaviourType, "Replica"));
 
             _isServerProperty = GetPropertyDefinitionByName(_replicaBehaviourType, "isServer");
             _isClientProperty = GetPropertyDefinitionByName(_replicaBehaviourType, "isClient");

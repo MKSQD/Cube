@@ -1,6 +1,7 @@
 ﻿using Cube.Transport;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.AddressableAssets;
 using UnityEngine.ResourceManagement.AsyncOperations;
 
 namespace Cube.Replication {
@@ -14,6 +15,11 @@ namespace Cube.Replication {
         GameObject InstantiateReplica(GameObject prefab);
         GameObject InstantiateReplica(GameObject prefab, Vector3 position);
         GameObject InstantiateReplica(GameObject prefab, Vector3 position, Quaternion rotation);
+
+
+        AsyncOperationHandle<GameObject> InstantiateReplicaAsync(AssetReference key);
+        AsyncOperationHandle<GameObject> InstantiateReplicaAsync(AssetReference key, Vector3 position);
+        AsyncOperationHandle<GameObject> InstantiateReplicaAsync(AssetReference key, Vector3 position, Quaternion rotation);
 
         AsyncOperationHandle<GameObject> InstantiateReplicaAsync(object key);
         AsyncOperationHandle<GameObject> InstantiateReplicaAsync(object key, Vector3 position);

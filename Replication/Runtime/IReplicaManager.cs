@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace Cube.Replication {
     public interface IReplicaManager {
-        Replica GetReplicaById(ReplicaId id);
+        Replica GetReplica(ReplicaId id);
 
         void Reset();
     }

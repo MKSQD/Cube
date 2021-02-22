@@ -22,28 +22,28 @@ namespace Cube.Replication {
         }
         
         [HideInInspector]
-        public Replica replica;
+        public Replica Replica;
 
         public static Connection rpcConnection = Connection.Invalid;
 
         public ICubeServer server {
-            get { return replica.server; }
+            get { return Replica.server; }
         }
 
         public ICubeClient client {
-            get { return replica.client; }
+            get { return Replica.client; }
         }
 
         public bool isServer {
-            get { return replica.isServer; }
+            get { return Replica.isServer; }
         }
 
         public bool isClient {
-            get { return replica.isClient; }
+            get { return Replica.isClient; }
         }
 
         public bool isOwner {
-            get { return replica.isOwner; }
+            get { return Replica.isOwner; }
         }
 
         public virtual void Serialize(BitStream bs, SerializeContext ctx) { }

@@ -55,7 +55,7 @@ namespace Cube.Replication {
                 }
 
                 replica.client = client;
-                replica.ReplicaId = ReplicaId.CreateFromExisting(replica.sceneIdx);
+                replica.Id = ReplicaId.CreateFromExisting(replica.sceneIdx);
                 networkScene.AddReplica(replica);
             }
         }
@@ -68,7 +68,7 @@ namespace Cube.Replication {
             networkScene.RemoveReplica(replica);
         }
 
-        public Replica GetReplicaById(ReplicaId id) {
+        public Replica GetReplica(ReplicaId id) {
             return networkScene.GetReplicaById(id);
         }
 
@@ -149,7 +149,7 @@ namespace Cube.Replication {
             }
 
             newReplica.client = client;
-            newReplica.ReplicaId = replicaId;
+            newReplica.Id = replicaId;
 
             return newReplica;
         }

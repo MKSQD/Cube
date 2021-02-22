@@ -125,7 +125,7 @@ namespace Cube.Replication {
             sceneReplicas.Sort((r1, r2) => r1.sceneIdx - r2.sceneIdx);
 
             foreach (var replica in sceneReplicas) {
-                replica.ReplicaId = ReplicaId.CreateFromExisting(replica.sceneIdx);
+                replica.Id = ReplicaId.CreateFromExisting(replica.sceneIdx);
                 replica.server = server;
                 networkScene.AddReplica(replica);
             }
@@ -165,6 +165,18 @@ namespace Cube.Replication {
             return newInstance;
         }
 
+        public AsyncOperationHandle<GameObject> InstantiateReplicaAsync(AssetReference reference) {
+            return InstantiateReplicaAsync(reference.RuntimeKey, Vector3.zero, Quaternion.identity);
+        }
+
+        public AsyncOperationHandle<GameObject> InstantiateReplicaAsync(AssetReference reference, Vector3 position) {
+            return InstantiateReplicaAsync(reference.RuntimeKey, position, Quaternion.identity);
+        }
+
+        public AsyncOperationHandle<GameObject> InstantiateReplicaAsync(AssetReference reference, Vector3 position, Quaternion rotation) {
+            return InstantiateReplicaAsync(reference.RuntimeKey, position, rotation);
+        }
+
         public AsyncOperationHandle<GameObject> InstantiateReplicaAsync(object key) {
             return InstantiateReplicaAsync(key, Vector3.zero, Quaternion.identity);
         }
@@ -191,12 +203,12 @@ namespace Cube.Replication {
                 return null;
 
             newReplica.server = server;
-            newReplica.ReplicaId = ReplicaId.Create(this);
-            Assert.IsTrue(newReplica.ReplicaId != ReplicaId.Invalid);
+            newReplica.Id = ReplicaId.Create(this);
+            Assert.IsTrue(newReplica.Id != ReplicaId.Invalid);
             newReplica.TakeOwnership();
 
             // Wait for one frame until Start is called before replicating to clients
-            replicasInConstruction[newReplica.ReplicaId] = newReplica;
+            replicasInConstruction[newReplica.Id] = newReplica;
 
             return newReplica;
         }
@@ -207,17 +219,17 @@ namespace Cube.Replication {
         /// <param name="replica">The Replica to remove</param>
         /// <remarks>Won't do anything if this replica was removed already</remarks>
         public void RemoveReplica(Replica replica) {
-            if (replica.ReplicaId == ReplicaId.Invalid)
+            if (replica.Id == ReplicaId.Invalid)
                 return; // Replica already removed
 
-            replicasInConstruction.Remove(replica.ReplicaId);
+            replicasInConstruction.Remove(replica.Id);
             networkScene.RemoveReplica(replica);
 
-            if (replica.ReplicaId != ReplicaId.Invalid) {
-                FreeLocalReplicaId(replica.ReplicaId);
+            if (replica.Id != ReplicaId.Invalid) {
+                FreeLocalReplicaId(replica.Id);
             }
 
-            replica.ReplicaId = ReplicaId.Invalid;
+            replica.Id = ReplicaId.Invalid;
         }
 
         /// <summary>
@@ -225,14 +237,14 @@ namespace Cube.Replication {
         /// </summary>
         /// <param name="replica">The Replica to remove</param>
         public void DestroyReplica(Replica replica) {
-            if (replica.ReplicaId == ReplicaId.Invalid)
+            if (replica.Id == ReplicaId.Invalid)
                 return; // Replica already destroyed
 
             // We don't need to send a destroy message if the replica is not yet fully constructed on the server
-            bool alreadyConstructed = !replicasInConstruction.Remove(replica.ReplicaId);
+            bool alreadyConstructed = !replicasInConstruction.Remove(replica.Id);
             if (!alreadyConstructed) {
                 networkScene.RemoveReplica(replica);
-                replica.ReplicaId = ReplicaId.Invalid;
+                replica.Id = ReplicaId.Invalid;
                 UnityEngine.Object.Destroy(replica.gameObject);
                 return;
             }
@@ -240,7 +252,7 @@ namespace Cube.Replication {
             replicasInDestruction.Add(replica);
         }
 
-        public Replica GetReplicaById(ReplicaId id) {
+        public Replica GetReplica(ReplicaId id) {
             return networkScene.GetReplicaById(id);
         }
 
@@ -298,10 +310,10 @@ namespace Cube.Replication {
                     }
 
                     foreach (var replica in replicasInDestruction) {
-                        FreeLocalReplicaId(replica.ReplicaId);
+                        FreeLocalReplicaId(replica.Id);
 
                         networkScene.RemoveReplica(replica);
-                        replica.ReplicaId = ReplicaId.Invalid;
+                        replica.Id = ReplicaId.Invalid;
                         UnityEngine.Object.Destroy(replica.gameObject);
                     }
                 }
@@ -349,7 +361,7 @@ namespace Cube.Replication {
 
             foreach (var currentReplicaIdx in sortedIndices) {
                 var replica = view.RelevantReplicas[currentReplicaIdx];
-                if (replica == null || replica.ReplicaId == ReplicaId.Invalid)
+                if (replica == null || replica.Id == ReplicaId.Invalid)
                     continue;
 
                 var updateBs = server.networkInterface.bitStreamPool.Create();
@@ -359,7 +371,7 @@ namespace Cube.Replication {
                     updateBs.Write(replica.prefabIdx);
                 }
 
-                updateBs.Write(replica.ReplicaId);
+                updateBs.Write(replica.Id);
 
                 bool isOwner = replica.Owner == view.Connection;
                 updateBs.Write(isOwner);
@@ -490,7 +502,7 @@ namespace Cube.Replication {
                 if (!wasInterestedInReplica)
                     continue;
 
-                destroyBs.Write(replica.ReplicaId);
+                destroyBs.Write(replica.Id);
 
                 // Serialize custom destruction data
                 var replicaDestructionBs = server.networkInterface.bitStreamPool.Create();

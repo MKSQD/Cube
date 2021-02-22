@@ -21,7 +21,7 @@ namespace Cube.Replication.Editor {
             EditorGUILayout.LabelField("Prefab ID", replica.prefabIdx.ToString());
 
             if (EditorApplication.isPlaying) {
-                EditorGUILayout.LabelField("Replica ID", replica.ReplicaId.Data.ToString());
+                EditorGUILayout.LabelField("Replica ID", replica.Id.Data.ToString());
             }
 
             if (replica.isSceneReplica) {
@@ -42,7 +42,7 @@ namespace Cube.Replication.Editor {
             Action<GameObject> impl = (go) => {
                 var correspondingReplicas = go.GetComponentsInChildren<Replica>();
                 foreach (var correspondingReplica in correspondingReplicas) {
-                    if (correspondingReplica.ReplicaId == replica.ReplicaId) {
+                    if (correspondingReplica.Id == replica.Id) {
                         func(correspondingReplica);
                         break;
                     }
@@ -50,7 +50,7 @@ namespace Cube.Replication.Editor {
             };
 
             if (replica.isClient) {
-                var otherReplica = ServerReplicaManager.Main.GetReplicaById(replica.ReplicaId);
+                var otherReplica = ServerReplicaManager.Main.GetReplica(replica.Id);
                 if (otherReplica != null) {
                     impl(otherReplica.gameObject);
                 }
@@ -58,7 +58,7 @@ namespace Cube.Replication.Editor {
 
             if (replica.isServer) {
                 foreach (var replicaManager in ClientReplicaManager.All) {
-                    var otherReplica = replicaManager.GetReplicaById(replica.ReplicaId);
+                    var otherReplica = replicaManager.GetReplica(replica.Id);
                     if (otherReplica == null)
                         continue;
 
