@@ -1,41 +1,16 @@
-﻿using UnityEngine;
-using UnityEngine.Assertions;
-using System.Collections.Generic;
-using System;
-using System.Collections.ObjectModel;
-using UnityEngine.SceneManagement;
-using Cube.Transport;
-using BitStream = Cube.Transport.BitStream;
+﻿using System;
 using System.Linq;
+using System.Collections.ObjectModel;
+using System.Collections.Generic;
+using UnityEngine.SceneManagement;
+using UnityEngine;
+using UnityEngine.Assertions;
 using UnityEngine.AddressableAssets;
 using UnityEngine.ResourceManagement.AsyncOperations;
-using UnityEngine.Serialization;
+using Cube.Transport;
+using BitStream = Cube.Transport.BitStream;
 
 namespace Cube.Replication {
-    [Serializable]
-    public class ServerReplicaManagerSettings {
-        [FormerlySerializedAs("MaxBytesPerConnectionPerUpdate")]
-        [Range(0, 1500)]
-        public int MaxBytesPerConnectionPerUpdate = 1400;
-
-        [FormerlySerializedAs("MaxBytesPerConnectionPerUpdate")]
-        [Range(1000f / 60f, 1000f / 1f)]
-        public float ReplicaUpdateRateMS = 33; // 30 times per second
-        public float ReplicaUpdateRate {
-            get { return ReplicaUpdateRateMS * 0.001f; }
-        }
-
-        [Range(1000f / 60f, 1000f / 0.1f)]
-        public float ReplicaRelevantSetUpdateRateMS = 1000;
-        public float ReplicaRelevantSetUpdateRate {
-            get { return ReplicaRelevantSetUpdateRateMS * 0.001f; }
-        }
-
-        [Tooltip("Min. relevance for a Replica to even be considered for replication")]
-        [Range(0f, 1f)]
-        public float MinRelevance = 0.15f;
-    }
-
     public class ServerReplicaManagerStatistics {
         public struct ReplicaTypeInfo {
             public int NumInstances;
@@ -63,9 +38,8 @@ namespace Cube.Replication {
 
         const ushort FirstLocalReplicaId = 255; // The first 255 values are reserved for scene Replicas
 
-        ICubeServer server;
-
-        NetworkScene networkScene;
+        readonly ICubeServer server;
+        readonly NetworkScene networkScene;
 
         [SerializeField]
         List<ReplicaView> replicaViews = new List<ReplicaView>();
@@ -73,15 +47,15 @@ namespace Cube.Replication {
             get { return replicaViews; }
         }
 
-        ServerReplicaManagerSettings settings;
+        readonly ServerReplicaManagerSettings settings;
 
         double nextUpdateTime;
 
         ushort nextLocalReplicaId = FirstLocalReplicaId;
-        Queue<ushort> freeReplicaIds = new Queue<ushort>();
+        readonly Queue<ushort> freeReplicaIds = new Queue<ushort>();
 
         float nextReplicaIdRecycleTime = 0;
-        Queue<ushort> replicaIdRecycleQueue = new Queue<ushort>();
+        readonly Queue<ushort> replicaIdRecycleQueue = new Queue<ushort>();
 
         Dictionary<ReplicaId, Replica> replicasInConstruction = new Dictionary<ReplicaId, Replica>();
         List<Replica> replicasInDestruction = new List<Replica>();
@@ -359,10 +333,19 @@ namespace Cube.Replication {
                 Observer = view
             };
 
+            int numSentLowRelevance = 0;
             foreach (var currentReplicaIdx in sortedIndices) {
                 var replica = view.RelevantReplicas[currentReplicaIdx];
                 if (replica == null || replica.Id == ReplicaId.Invalid)
                     continue;
+
+                var relevance = replica.GetRelevance(view); // #todo COSTLY
+                if (relevance <= settings.LowRelevance) {
+                    if (numSentLowRelevance > settings.MaxLowRelevancePerPacket)
+                        continue;
+
+                    ++numSentLowRelevance;
+                }
 
                 var updateBs = server.networkInterface.bitStreamPool.Create();
                 updateBs.Write((byte)MessageId.ReplicaUpdate);
@@ -380,7 +363,6 @@ namespace Cube.Replication {
 
                 server.networkInterface.SendBitStream(updateBs, PacketPriority.Medium, PacketReliability.Unreliable, view.Connection);
 
-                bytesSent += updateBs.Length;
 
                 // We just sent this Replica, reset its priority
                 view.RelevantReplicaPriorityAccumulator[currentReplicaIdx] = 0;
@@ -396,21 +378,23 @@ namespace Cube.Replication {
                 perReplicaViewInfo.ReplicaTypeInfos[replica.prefabIdx] = replicaTypeInfo;
 #endif
 
+                bytesSent += updateBs.Length;
                 if (bytesSent >= settings.MaxBytesPerConnectionPerUpdate)
                     return; // Packet size exhausted
 
                 // Rpcs
                 foreach (var queuedRpc in replica.queuedRpcs) {
-                    if ((queuedRpc.target == RpcTarget.Owner && replica.Owner == view.Connection)
+                    var isRpcRelevant = (queuedRpc.target == RpcTarget.Owner && replica.Owner == view.Connection)
                         || queuedRpc.target == RpcTarget.All
-                        || (queuedRpc.target == RpcTarget.AllClientsExceptOwner && replica.Owner != view.Connection)) {
-                        server.networkInterface.SendBitStream(queuedRpc.bs, PacketPriority.Low, PacketReliability.Unreliable, view.Connection);
+                        || (queuedRpc.target == RpcTarget.AllClientsExceptOwner && replica.Owner != view.Connection);
+                    if (!isRpcRelevant)
+                        continue;
 
-                        bytesSent += queuedRpc.bs.Length;
+                    server.networkInterface.SendBitStream(queuedRpc.bs, PacketPriority.Low, PacketReliability.Unreliable, view.Connection);
 
-                        if (bytesSent >= settings.MaxBytesPerConnectionPerUpdate)
-                            return; // Packet size exhausted
-                    }
+                    bytesSent += queuedRpc.bs.Length;
+                    if (bytesSent >= settings.MaxBytesPerConnectionPerUpdate)
+                        return; // Packet size exhausted
                 }
             }
         }
@@ -483,7 +467,7 @@ namespace Cube.Replication {
 
             for (int i = 0; i < view.RelevantReplicas.Count; ++i) {
                 if (view.RelevantReplicaPriorityAccumulator[i] < 1)
-                    continue;
+                    continue; // < 1 means we are still not over the DesiredUpdateRate interval
 
                 sortedReplicaIndices.Add(i);
             }
