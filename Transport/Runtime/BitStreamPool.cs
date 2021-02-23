@@ -7,7 +7,7 @@ namespace Cube.Transport {
 
         public BitStream Create() {
             if (_current == _pool.Count) {
-                for (int i = 0; i < 8; ++i)
+                for (int i = 0; i < 32; ++i)
                     _pool.Add(new BitStream());
             }
 
