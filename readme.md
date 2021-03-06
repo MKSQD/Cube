@@ -2,6 +2,7 @@
 GameObject based network replication library for [Unity3d](https://unity.com/). Simple network protocol based on eventual consistency.
 
 ![Transport Debugger](Docs/TransportDebugger.png)
+![Replication Settings](Docs/ReplicationSettings.png)
 
 ## Features
 - Integration with [Unreal-style gameplay framework](https://github.com/NoDogsInc/GameFramework)
