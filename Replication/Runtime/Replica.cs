@@ -152,7 +152,16 @@ namespace Cube.Replication {
 
         public void Serialize(BitStream bs, ReplicaBehaviour.SerializeContext ctx) {
             foreach (var component in _replicaBehaviours) {
+#if UNITY_EDITOR
+                TransportDebugger.BeginScope(component.ToString());
+                var startSize = bs.LengthInBits;
+#endif
+
                 component.Serialize(bs, ctx);
+
+#if UNITY_EDITOR
+                TransportDebugger.EndScope(bs.LengthInBits - startSize);
+#endif
             }
         }
 
@@ -220,7 +229,7 @@ namespace Cube.Replication {
 
         public void SendRpc(byte methodId, byte componentIdx, RpcTarget target, params object[] args) {
             if (isClient) {
-                var bs = client.networkInterface.bitStreamPool.Create();
+                var bs = BitStreamPool.Create();
                 bs.Write((byte)MessageId.ReplicaRpc);
                 bs.Write(Id);
                 bs.Write(componentIdx);

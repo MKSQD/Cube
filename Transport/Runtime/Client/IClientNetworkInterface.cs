@@ -5,10 +5,6 @@ namespace Cube.Transport {
         Action ConnectionRequestAccepted { get; set; }
         Action<string> Disconnected { get; set; }
 
-        BitStreamPool bitStreamPool {
-            get;
-        }
-        
         float GetRemoteTime(float time);
         
         /// <exception cref="ClientConnectionAttemptException">Throw on connection error</exception>

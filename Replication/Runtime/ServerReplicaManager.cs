@@ -11,26 +11,6 @@ using Cube.Transport;
 using BitStream = Cube.Transport.BitStream;
 
 namespace Cube.Replication {
-    public class ServerReplicaManagerStatistics {
-        public struct ReplicaTypeInfo {
-            public int NumInstances;
-            public int TotalBytes;
-            public int NumRpcs;
-            public int RpcBytes;
-        }
-
-        public class ReplicaViewInfo {
-            public Dictionary<int, ReplicaTypeInfo> ReplicaTypeInfos = new Dictionary<int, ReplicaTypeInfo>();
-        }
-
-        public struct ReplicaViewInfoPair {
-            public ReplicaView View;
-            public ReplicaViewInfo Info;
-        }
-
-        public List<ReplicaViewInfoPair> ViewInfos = new List<ReplicaViewInfoPair>();
-    }
-
     public sealed class ServerReplicaManager : IServerReplicaManager {
 #if UNITY_EDITOR
         public static ServerReplicaManager Main;
@@ -59,13 +39,6 @@ namespace Cube.Replication {
 
         Dictionary<ReplicaId, Replica> replicasInConstruction = new Dictionary<ReplicaId, Replica>();
         List<Replica> replicasInDestruction = new List<Replica>();
-
-#if UNITY_EDITOR
-        ServerReplicaManagerStatistics _statistic;
-        public ServerReplicaManagerStatistics Statistics {
-            get { return _statistic; }
-        }
-#endif
 
         public ServerReplicaManager(ICubeServer server, ServerReplicaManagerSettings settings) {
             Assert.IsNotNull(server);
@@ -249,16 +222,20 @@ namespace Cube.Replication {
             if (Time.timeAsDouble >= nextUpdateTime) {
                 nextUpdateTime = Time.timeAsDouble + settings.ReplicaUpdateRate;
 
-#if UNITY_EDITOR
-                _statistic = new ServerReplicaManagerStatistics();
-#endif
-
                 for (int i = 0; i < replicaViews.Count; ++i) {
                     var replicaView = replicaViews[i];
                     if (replicaView.IsLoadingLevel)
                         continue;
 
+#if UNITY_EDITOR
+                    TransportDebugger.BeginScope("Update " + replicaView.name);
+#endif
+
                     UpdateReplicaView(replicaView);
+
+#if UNITY_EDITOR
+                    TransportDebugger.EndScope();
+#endif
                 }
 
                 foreach (var replica in networkScene.replicas) {
@@ -319,11 +296,6 @@ namespace Cube.Replication {
         void UpdateReplicaView(ReplicaView view) {
             UpdateRelevantReplicaPriorities(view);
 
-#if UNITY_EDITOR
-            var perReplicaViewInfo = new ServerReplicaManagerStatistics.ReplicaViewInfo();
-            _statistic.ViewInfos.Add(new ServerReplicaManagerStatistics.ReplicaViewInfoPair { View = view, Info = perReplicaViewInfo });
-#endif
-
             int bytesSent = 0;
 
             var sortedIndices = new List<int>();
@@ -347,7 +319,11 @@ namespace Cube.Replication {
                     ++numSentLowRelevance;
                 }
 
-                var updateBs = server.networkInterface.bitStreamPool.Create();
+#if UNITY_EDITOR
+                TransportDebugger.BeginScope("Update Replica " + replica.name);
+#endif
+
+                var updateBs = BitStreamPool.Create();
                 updateBs.Write((byte)MessageId.ReplicaUpdate);
                 updateBs.Write(replica.isSceneReplica);
                 if (!replica.isSceneReplica) {
@@ -361,22 +337,15 @@ namespace Cube.Replication {
 
                 replica.Serialize(updateBs, serializeCtx);
 
+#if UNITY_EDITOR
+                TransportDebugger.EndScope(updateBs.LengthInBits);
+#endif
+
                 server.networkInterface.SendBitStream(updateBs, PacketPriority.Medium, PacketReliability.Unreliable, view.Connection);
 
 
                 // We just sent this Replica, reset its priority
                 view.RelevantReplicaPriorityAccumulator[currentReplicaIdx] = 0;
-
-#if UNITY_EDITOR
-                // Add some profiling info
-                perReplicaViewInfo.ReplicaTypeInfos.TryGetValue(replica.prefabIdx, out ServerReplicaManagerStatistics.ReplicaTypeInfo replicaTypeInfo);
-                ++replicaTypeInfo.NumInstances;
-                replicaTypeInfo.TotalBytes += updateBs.Length;
-                replicaTypeInfo.NumRpcs += replica.queuedRpcs.Count;
-                replicaTypeInfo.RpcBytes += replica.queuedRpcs.Sum(rpc => rpc.bs.Length);
-
-                perReplicaViewInfo.ReplicaTypeInfos[replica.prefabIdx] = replicaTypeInfo;
-#endif
 
                 bytesSent += updateBs.Length;
                 if (bytesSent >= settings.MaxBytesPerConnectionPerUpdate)
@@ -389,8 +358,15 @@ namespace Cube.Replication {
                         || (queuedRpc.target == RpcTarget.AllClientsExceptOwner && replica.Owner != view.Connection);
                     if (!isRpcRelevant)
                         continue;
+#if UNITY_EDITOR
+                    TransportDebugger.BeginScope("Replica RPC " + queuedRpc.target);
+#endif
 
                     server.networkInterface.SendBitStream(queuedRpc.bs, PacketPriority.Low, PacketReliability.Unreliable, view.Connection);
+
+#if UNITY_EDITOR
+                    TransportDebugger.EndScope(queuedRpc.bs.LengthInBits);
+#endif
 
                     bytesSent += queuedRpc.bs.Length;
                     if (bytesSent >= settings.MaxBytesPerConnectionPerUpdate)
@@ -478,7 +454,11 @@ namespace Cube.Replication {
         void SendDestroyedReplicasToReplicaView(ReplicaView view) {
             Assert.IsTrue(replicasInDestruction.Count > 0);
 
-            var destroyBs = server.networkInterface.bitStreamPool.Create();
+#if UNITY_EDITOR
+            TransportDebugger.BeginScope("ReplicaDestroy");
+#endif
+
+            var destroyBs = BitStreamPool.Create();
             destroyBs.Write((byte)MessageId.ReplicaDestroy);
 
             foreach (var replica in replicasInDestruction) {
@@ -489,7 +469,7 @@ namespace Cube.Replication {
                 destroyBs.Write(replica.Id);
 
                 // Serialize custom destruction data
-                var replicaDestructionBs = server.networkInterface.bitStreamPool.Create();
+                var replicaDestructionBs = BitStreamPool.Create();
                 replica.SerializeDestruction(replicaDestructionBs, new ReplicaBehaviour.SerializeContext() {
                     Observer = view
                 });
@@ -499,6 +479,10 @@ namespace Cube.Replication {
                 destroyBs.Write(replicaDestructionBs);
                 destroyBs.AlignWriteToByteBoundary();
             }
+
+#if UNITY_EDITOR
+            TransportDebugger.EndScope(destroyBs.LengthInBits);
+#endif
 
             server.networkInterface.SendBitStream(destroyBs, PacketPriority.Medium, PacketReliability.Unreliable, view.Connection);
         }

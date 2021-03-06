@@ -131,7 +131,7 @@ namespace Cube.Replication.Editor {
             if (typeDefinition.IsEnum)
                 fieldType = GetEnumUnderlyingType(typeDefinition);
 
-            MethodReference result = null;
+            MethodReference result;
             if (write)
                 _bitStreamWrite.TryGetValue(fieldType.Name, out result);
             else

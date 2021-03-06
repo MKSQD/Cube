@@ -10,17 +10,10 @@ namespace Cube.Transport {
         public Action ConnectionRequestAccepted { get; set; }
         public Action<string> Disconnected { get; set; }
 
-        public BitStreamPool bitStreamPool {
-            get;
-            internal set;
-        }
-
         NetClient client;
         NetConnection connection;
 
         public LidgrenClientNetworkInterface(SimulatedLagSettings lagSettings) {
-            bitStreamPool = new BitStreamPool();
-
             var config = new NetPeerConfiguration("Cube") {
                 AutoFlushSendQueue = false
             };
@@ -64,7 +57,7 @@ namespace Cube.Transport {
 
         public void Update() {
             client.FlushSendQueue();
-            bitStreamPool.FrameReset();
+            BitStreamPool.FrameReset();
         }
 
         public void Shutdown(uint blockDuration) {

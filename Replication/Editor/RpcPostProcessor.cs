@@ -44,6 +44,9 @@ namespace Cube.Replication.Editor {
 
         public RpcPostProcessor(ApplicationType app, ModuleDefinition module)
             : base(app, module) {
+            var watch = new System.Diagnostics.Stopwatch();
+            watch.Start();
+
             var unityEngineAssembly = module.AssemblyResolver.Resolve(new AssemblyNameReference("UnityEngine.CoreModule", new Version()));
             if (unityEngineAssembly == null)
                 Debug.LogError("RPC Patcher: Cannot resolve 'UnityEngine'");
@@ -131,7 +134,7 @@ namespace Cube.Replication.Editor {
                 if (method.IsConstructor || !method.HasBody)
                     continue;
 
-                if (!HasAttribute("Cube.Replication.ReplicaRpcAttribute", method))
+                if (!method.HasCustomAttributes || !HasAttribute("Cube.Replication.ReplicaRpcAttribute", method))
                     continue;
 
                 if (nextRpcMethodId == byte.MaxValue) {
@@ -359,13 +362,8 @@ namespace Cube.Replication.Editor {
             }
 
             foreach (var param in method.Parameters) {
-                if (param.IsOut) {
-                    error = "Rpc methods does not support out parameters";
-                    return false;
-                }
-
-                if (param.ParameterType.IsByReference) {
-                    error = "Rpc methods does not support ref parameters";
+                if (param.IsOut || param.ParameterType.IsByReference) {
+                    error = "Rpc methods does not support out or ref parameters";
                     return false;
                 }
 

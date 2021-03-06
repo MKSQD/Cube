@@ -5,6 +5,7 @@ using System.Reflection;
 using Mono.Cecil;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.Profiling;
 
 #if UNITY_EDITOR
 namespace Cube.Replication.Editor {

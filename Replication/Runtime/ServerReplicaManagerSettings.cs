@@ -27,6 +27,7 @@ namespace Cube.Replication {
         public float LowRelevance = 0.3f;
 
         [Tooltip("Max number of low relevance Replicas (see LowRelevance) that can be included in a packet")]
+        [Range(1, 40)]
         public int MaxLowRelevancePerPacket = 3;
     }
 }

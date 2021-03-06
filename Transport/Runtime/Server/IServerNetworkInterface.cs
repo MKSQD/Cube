@@ -11,10 +11,6 @@ namespace Cube.Transport {
         Action<Connection> NewConnectionEstablished { get; set; }
         Action<Connection> DisconnectNotification { get; set; }
 
-        BitStreamPool bitStreamPool {
-            get;
-        }
-
         bool isRunning {
             get;
         }

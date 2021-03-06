@@ -64,11 +64,7 @@ namespace Cube.Replication {
         }
 
         protected TypeDefinition GetTypeDefinitionByName(ModuleDefinition module, string typeName) {
-            var typeDefinition = module.Types.FirstOrDefault(x => x.FullName == typeName);
-            if (typeDefinition == null)
-                throw new Exception("Type '" + typeName + "' not found in module '" + module + "'");
-            
-            return typeDefinition;
+            return module.GetType(typeName);
         }
 
         protected MethodDefinition GetMethodDefinitionByName(TypeDefinition type, string methodName) {

@@ -22,7 +22,7 @@ namespace Cube.Replication {
         double m_ExtrapolationLimit = 0.5;
 
         // We store twenty states with "playback" information
-        State[] m_BufferedState = new State[20];
+        State[] m_BufferedState = new State[10];
         // Keep track of what slots are used
         int m_TimestampCount;
 

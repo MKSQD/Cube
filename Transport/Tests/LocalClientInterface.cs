@@ -9,11 +9,6 @@ namespace Cube.Transport.Tests {
         public Action ConnectionRequestAccepted { get; set; }
         public Action<string> Disconnected { get; set; }
 
-        public BitStreamPool bitStreamPool {
-            internal set;
-            get;
-        }
-
         public LocalServerInterface server;
         public Connection connection = Connection.Invalid;
 
@@ -35,7 +30,7 @@ namespace Cube.Transport.Tests {
         }
 
         public void Update() {
-            bitStreamPool.FrameReset();
+            BitStreamPool.FrameReset();
         }
 
         public BitStream Receive() {

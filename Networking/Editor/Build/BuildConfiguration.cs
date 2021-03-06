@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEditor;
 using UnityEditor.Build.Reporting;
+using System.Linq;
 
 namespace Cube.Networking {
 
@@ -28,12 +29,6 @@ namespace Cube.Networking {
         /// <see cref="UnityEditor.BuildOptions.AutoRunPlayer"/>
         public bool autoRunPlayer;
 
-        /// <summary>
-        /// The scenes to be included in the build. If empty, the currently open scene will
-        //  be built. Paths are relative to the project folder (Assets/MyLevels/MyScene.unity).
-        /// </summary>
-        public SceneReference[] scenes;
-
         /// <remarks>
         /// Throw Exception to cancel build.
         /// </remarks>
@@ -52,10 +47,10 @@ namespace Cube.Networking {
                 locationPathName = targetLocation + "/" + targetName + ".exe",   //#TODO check + validate path
 
                 //BuildPlayer expects paths relative to the project folder.
-                scenes = SceneReference.ToStringArray(scenes)
+                scenes = EditorBuildSettings.scenes.Select(scene => scene.path).ToArray()
             };
-            for (int i = 0; i < options.scenes.Length; i++)
-                options.scenes[i] = "Assets/" + options.scenes[i] + ".unity";
+//             for (int i = 0; i < options.scenes.Length; i++)
+//                 options.scenes[i] = "Assets/" + options.scenes[i] + ".unity";
 
             return options;
         }

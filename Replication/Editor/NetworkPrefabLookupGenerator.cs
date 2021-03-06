@@ -2,18 +2,16 @@
 using System.Collections.Generic;
 using System.Text;
 using UnityEditor;
-using UnityEditor.Callbacks;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
 namespace Cube.Replication {
-    public class NetworkPrefabLookupGenerator {
+    public class NetworkPrefabLookupGenerator : AssetPostprocessor {
         const string CLIENT_PREFAB_PREFIX = "Client_";
         const string SERVER_PREFAB_PREFIX = "Server_";
 
-        [DidReloadScripts]
-        public static void GenerateNetworkPrefabLookup() {
+        static void OnPostprocessAllAssets(string[] importedAssets, string[] deletedAssets, string[] movedAssets, string[] movedFromAssetPaths) {
             EditorSceneManager.sceneSaving -= OnSceneSaving;
             EditorSceneManager.sceneSaving += OnSceneSaving;
 
@@ -90,9 +88,11 @@ namespace Cube.Replication {
             }
             ////////////////
 
-            lookup.prefabs = prefabs.ToArray();
-            EditorUtility.SetDirty(lookup);
-            //AssetDatabase.SaveAssets();
+            var newPrefabs = prefabs.ToArray();
+            if (!lookup.prefabs.Equals(newPrefabs)) {
+                lookup.prefabs = newPrefabs;
+                EditorUtility.SetDirty(lookup);
+            }
         }
 
         static void OnSceneSaving(Scene scene, string path) {
@@ -103,7 +103,7 @@ namespace Cube.Replication {
                 }
             }
 
-            sceneReplicas.Sort((r1, r2) => r1.GetInstanceID() - r2.GetInstanceID()); // Mostly stable so sceneIdxs don't change so often
+            sceneReplicas.Sort((r1, r2) => r1.GetInstanceID() - r2.GetInstanceID()); // Mostly stable so scene indices don't change so often
 
             var usedIdxs = new HashSet<byte>();
             foreach (var replica in sceneReplicas) {

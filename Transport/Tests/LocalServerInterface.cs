@@ -17,14 +17,7 @@ namespace Cube.Transport.Tests {
 
         Queue<Message> messageQueue = new Queue<Message>();
 
-        BitStreamPool _bitStreamPool = new BitStreamPool();
-        public BitStreamPool bitStreamPool {
-            get { return _bitStreamPool; }
-        }
-
-        public bool isRunning {
-            get { return true; }
-        }
+        public bool isRunning => true;
 
         public Connection[] GetConnections() {
             var connections = new Connection[clients.Count];
@@ -36,7 +29,7 @@ namespace Cube.Transport.Tests {
         }
 
         public void Update() {
-            bitStreamPool.FrameReset();
+            BitStreamPool.FrameReset();
         }
 
         public BitStream Receive(out Connection connection) {

@@ -16,11 +16,6 @@ namespace Cube.Transport {
         public Action<Connection> NewConnectionEstablished { get; set; }
         public Action<Connection> DisconnectNotification { get; set; }
 
-        public BitStreamPool bitStreamPool {
-            get;
-            internal set;
-        }
-
         public bool isRunning {
             get { return _server.Status == NetPeerStatus.Running; }
         }
@@ -28,8 +23,6 @@ namespace Cube.Transport {
         NetServer _server;
 
         public LidgrenServerNetworkInterface(ushort port, SimulatedLagSettings lagSettings) {
-            bitStreamPool = new BitStreamPool();
-
             var config = new NetPeerConfiguration("Cube") {
                 Port = port,
                 AutoFlushSendQueue = false
@@ -60,7 +53,17 @@ namespace Cube.Transport {
 
         public void Update() {
             _server.FlushSendQueue();
-            bitStreamPool.FrameReset();
+            BitStreamPool.FrameReset();
+
+#if UNITY_EDITOR
+            TransportDebugger.CycleFrame();
+
+            TransportDebugger.ReportStatistic("Sent Bytes/s", ((int)(_server.Statistics.SentBytes / Time.time)).ToString());
+            TransportDebugger.ReportStatistic("Received Bytes/s", ((int)(_server.Statistics.ReceivedBytes / Time.time)).ToString());
+            
+            TransportDebugger.ReportStatistic("# Sent", _server.Statistics.SentPackets.ToString());
+            TransportDebugger.ReportStatistic("# Received", _server.Statistics.ReceivedPackets.ToString());
+#endif
         }
 
         public Connection[] GetConnections() {
