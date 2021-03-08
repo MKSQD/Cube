@@ -1,18 +1,18 @@
 # Cube
-GameObject based network replication library for [Unity3d](https://unity.com/). Simple network protocol based on eventual consistency.
+GameObject based network replication library for [Unity3d](https://unity.com/). Simple network protocol based on eventual consistency (which means nothing is sent reliable and bandwidth is scalable).
 
 ![Transport Debugger](Docs/TransportDebugger.png)
 ![Replication Settings](Docs/ReplicationSettings.png)
 
 ## Features
-- Integration with [Unreal-style gameplay framework](https://github.com/NoDogsInc/GameFramework)
 - Eventual consistency based network model (loosely based on [GDC Vault: I Shot You First! Gameplay Networking in Halo: Reach](http://www.gdcvault.com/play/1014345/I-Shot-You-First-Networking))
 - Develop server and client at the same time
 - Very simple API
 - RPCs as method calls with automatic argument serialisation (including ScriptableObject, arrays, ...)
 - Client/server prefabs and assets are discovered automatically, no factory functions to implement or lists to manually maintain
 - Transport based on [Lidgren](https://github.com/lidgren/lidgren-network-gen3) but can be replaced easily
-- Tooling included
+- Tooling
+- Integration with [Unreal-style gameplay framework](https://github.com/NoDogsInc/GameFramework)
 
 ## Getting Started
 Clone the git repository into your **Assets** folder.
