@@ -113,18 +113,30 @@ namespace Cube.Replication {
             Assert.IsNotNull(view);
             Assert.IsTrue(isServer);
 
-            var distanceRelevance = 1f;
-            if ((settings.priorityFlags & ReplicaPriorityFlag.IgnorePosition) == 0 && !view.IgnoreReplicaPositionsForPriority) {
-                var sqrMaxDist = Mathf.Pow(settings.MaxViewDistance, 2);
+            if (Owner == view.Connection)
+                return 1;
 
-                var sqrDist = Mathf.Pow(transform.position.x - view.transform.position.x, 2)
-                    + Mathf.Pow(transform.position.z - view.transform.position.z, 2);
-                if (sqrDist > sqrMaxDist)
-                    return 0; // No costly calculations
+            var usePosition = (settings.priorityFlags & ReplicaPriorityFlag.IgnorePosition) == 0
+                && !view.IgnoreReplicaPositionsForPriority;
+            if (!usePosition)
+                return 1;
 
-                distanceRelevance = 1f - Mathf.Pow(sqrDist / sqrMaxDist, 0.8f);
-            }
-            return distanceRelevance;
+            var diff = new Vector2(transform.position.x - view.transform.position.x,
+                transform.position.z - view.transform.position.z);
+
+            var sqrMaxDist = Mathf.Pow(settings.MaxViewDistance, 2);
+            var sqrMagnitude = diff.sqrMagnitude;
+            if (sqrMagnitude > sqrMaxDist)
+                return 0; // No costly calculations
+
+            var distanceRelevance = 1f - Mathf.Pow(sqrMagnitude / sqrMaxDist, 0.8f);
+
+
+            var dotRelevance = Vector2.Dot(new Vector2(view.transform.forward.x, view.transform.forward.z).normalized,
+                diff.normalized);
+            dotRelevance = Mathf.Max(dotRelevance, 0.5f);
+
+            return distanceRelevance * dotRelevance;
         }
 
         /// <summary>
