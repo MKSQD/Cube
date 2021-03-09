@@ -1,5 +1,11 @@
 # Cube
-GameObject based network replication library for [Unity3d](https://unity.com/). Simple network protocol based on eventual consistency (which means nothing is sent reliable and bandwidth is scalable).
+GameObject based network replication library for [Unity3d](https://unity.com/). Simple network protocol based on eventual consistency (which means nothing is sent reliable, replication uses aggressive priorization and bandwidth is completely scalable).
+
+- _Unreliable packets only sounds wasteful_
+- Think of it like backed shadowmaps vs realtime shadows. If it fits your bandwith/cpu budget you can get several advantages by using this model. Note that this kind of network model is mainly useful for dynamic worlds, static elements such a buildings would benefit some being replicated in a seperate way (which you should do anyway)
+
+- _Why not use UNet, Mirror, ..._
+- Years ago UNet had interesting kinks which we didn't like. The Halo/Tribes network model sounded interesting and it has been simple and hassle free to use. The core of this library has not changed over the years through it has been optimized and tweaked and more tooling has been added.
 
 ![Transport Debugger](Docs/TransportDebugger.png)
 ![Replication Settings](Docs/ReplicationSettings.png)
