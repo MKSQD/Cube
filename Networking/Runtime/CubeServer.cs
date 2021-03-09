@@ -1,7 +1,6 @@
 using Cube.Replication;
 using Cube.Transport;
 using System.Collections.Generic;
-using BitStream = Cube.Transport.BitStream;
 
 namespace Cube.Networking {
     public class CubeServer : ICubeServer {
@@ -9,32 +8,28 @@ namespace Cube.Networking {
             get;
             internal set;
         }
-
-        public IServerReactor reactor {
+        public ServerReactor reactor {
             get;
             internal set;
         }
-
         public IServerReplicaManager replicaManager {
             get;
             internal set;
         }
-
         public IWorld world {
             get;
             internal set;
         }
-
         public List<Connection> connections {
             get;
             internal set;
         }
 
-        public CubeServer(ushort port, IWorld world, SimulatedLagSettings lagSettings, ServerReplicaManagerSettings replicaManagerSettings) {
+        public CubeServer(IWorld world, IServerNetworkInterface networkInterface, ServerReplicaManagerSettings replicaManagerSettings) {
             connections = new List<Connection>();
             this.world = world;
 
-            networkInterface = new LidgrenServerNetworkInterface(port, lagSettings);
+            this.networkInterface = networkInterface;
             networkInterface.NewConnectionEstablished += OnNewConnectionEstablished;
             networkInterface.DisconnectNotification += OnDisconnectNotification;
 

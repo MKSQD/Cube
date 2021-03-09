@@ -3,11 +3,9 @@ using System.Collections.Generic;
 using UnityEngine;
 
 namespace Cube.Transport {
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <remarks>Available in: Editor/Client</remarks>
-    public class ClientReactor : IClientReactor {
+    public delegate void ClientMessageHandler(BitStream bs);
+
+    public class ClientReactor {
         IClientNetworkInterface _networkInterface;
         public IClientNetworkInterface networkInterface {
             get { return _networkInterface; }

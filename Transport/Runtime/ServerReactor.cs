@@ -2,11 +2,9 @@
 using UnityEngine;
 
 namespace Cube.Transport {
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <remarks>Available in: Editor/Server</remarks>
-    public class ServerReactor : IServerReactor {
+    public delegate void ServerMessageHandler(Connection connection, BitStream bs);
+
+    public class ServerReactor {
         public IServerNetworkInterface networkInterface {
             get;
             internal set;
