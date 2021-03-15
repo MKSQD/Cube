@@ -487,6 +487,8 @@ namespace Cube.Replication {
                 destroyBs.AlignWriteToByteBoundary();
             }
 
+            destroyBs.Write(ReplicaId.Invalid);
+
 #if UNITY_EDITOR
             TransportDebugger.EndScope(destroyBs.LengthInBits);
 #endif

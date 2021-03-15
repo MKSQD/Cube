@@ -3,51 +3,41 @@ using System.Collections.Generic;
 
 namespace Cube.Transport.Tests {
     public class LocalServerInterface : IServerNetworkInterface {
-        public Func<BitStream, ApprovalResult> ApproveConnection { get; set; }
-        public Action<Connection> NewConnectionEstablished { get; set; }
-        public Action<Connection> DisconnectNotification { get; set; }
-
         class Message {
             public Connection connection;
             public BitStream bs;
         }
 
-        ulong nextConnectionId = 0;
+        public Func<BitStream, ApprovalResult> ApproveConnection { get; set; }
+        public Action<Connection> NewConnectionEstablished { get; set; }
+        public Action NetworkError { get; set; }
+        public Action<Connection> DisconnectNotification { get; set; }
+        public Action<BitStream, Connection> ReceivedPacket { get; set; }
+
         public List<LocalClientInterface> clients = new List<LocalClientInterface>();
 
-        Queue<Message> messageQueue = new Queue<Message>();
+        ulong nextConnectionId = 0;
+        readonly Queue<Message> messageQueue = new Queue<Message>();
 
-        public bool isRunning => true;
-
-        public Connection[] GetConnections() {
-            var connections = new Connection[clients.Count];
-
-            for (int i = 0; i < connections.Length; i++)
-                connections[i] = clients[i].connection;
-
-            return connections;
-        }
+        public bool IsRunning => true;
 
         public void Update() {
+            ReceiveMessages();
             BitStreamPool.FrameReset();
         }
 
-        public BitStream Receive(out Connection connection) {
-            connection = Connection.Invalid;
-
-            if (messageQueue.Count == 0)
-                return null;
-
-            var msg = messageQueue.Dequeue();
-            connection = msg.connection;
-            return msg.bs;
+        void ReceiveMessages() {
+            while (messageQueue.Count > 0) {
+                var msg = messageQueue.Dequeue();
+                ReceivedPacket.Invoke(msg.bs, msg.connection);
+            }
         }
 
         public void SendBitStream(BitStream bs, PacketPriority priority, PacketReliability reliablity, Connection connection, int sequenceChannel) {
             LocalClientInterface targetClient = null;
 
             foreach (var client in clients) {
-                if(client.connection == connection) {
+                if (client.connection == connection) {
                     targetClient = client;
                     break;
                 }
@@ -73,7 +63,7 @@ namespace Cube.Transport.Tests {
             throw new Exception("Not required.");
         }
 
-#region TestInterface
+        #region TestInterface
 
         public void AddClient(LocalClientInterface client) {
             client.connection = new Connection(nextConnectionId);
@@ -89,7 +79,7 @@ namespace Cube.Transport.Tests {
             messageQueue.Enqueue(message);
         }
 
-#endregion
+        #endregion
 
     }
 }

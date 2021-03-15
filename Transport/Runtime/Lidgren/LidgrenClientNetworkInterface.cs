@@ -3,12 +3,13 @@ using System;
 using UnityEngine;
 
 namespace Cube.Transport {
-    /// <summary>
-    /// Client implementation with Lidgren.
-    /// </summary>
     public class LidgrenClientNetworkInterface : IClientNetworkInterface {
         public Action ConnectionRequestAccepted { get; set; }
         public Action<string> Disconnected { get; set; }
+        public Action NetworkError { get; set; }
+        public Action<BitStream> ReceivedPacket { get; set; }
+
+        public bool IsConnected => connection != null && connection.Status == NetConnectionStatus.Connected;
 
         NetClient client;
         NetConnection connection;
@@ -45,7 +46,7 @@ namespace Cube.Transport {
             Debug.Log("[Client] <b>Connecting</b> to <i>" + address + ":" + port + "</i>");
 
             var msg = client.CreateMessage(hailMessage.Length);
-            msg.Write(hailMessage.data, 0, hailMessage.Length);
+            msg.Write(hailMessage.Data, 0, hailMessage.Length);
             msg.LengthBits = hailMessage.LengthInBits;
 
             connection = client.Connect(address, port, msg);
@@ -56,6 +57,7 @@ namespace Cube.Transport {
         }
 
         public void Update() {
+            ReceiveMessages();
             client.FlushSendQueue();
             BitStreamPool.FrameReset();
         }
@@ -64,72 +66,77 @@ namespace Cube.Transport {
             client.Shutdown("bye byte"); //#TODO message ?
         }
 
-        public bool IsConnected() {
-            return connection != null && connection.Status == NetConnectionStatus.Connected;
-        }
-
-        public unsafe void Send(BitStream bs, PacketPriority priority, PacketReliability reliablity) {
+        public void Send(BitStream bs, PacketPriority priority, PacketReliability reliablity) {
             var msg = client.CreateMessage(bs.Length);
-            msg.Write(bs.data, 0, bs.Length);
+            msg.Write(bs.Data, 0, bs.Length);
             msg.LengthBits = bs.LengthInBits;
-
-            client.SendMessage(msg, InternalReliabilityToLidgren(reliablity));
+            client.SendMessage(msg, GetReliability(reliablity));
         }
 
-        public unsafe BitStream Receive() {
-            var msg = client.ReadMessage();
-            if (msg == null)
-                return null;
+        void ReceiveMessages() {
+            while(true) {
+                var msg = client.ReadMessage();
+                if (msg == null)
+                    break;
 
-            switch (msg.MessageType) {
-                case NetIncomingMessageType.VerboseDebugMessage:
-                case NetIncomingMessageType.DebugMessage:
+                switch (msg.MessageType) {
+                    case NetIncomingMessageType.VerboseDebugMessage:
+                    case NetIncomingMessageType.DebugMessage:
 #if CUBE_DEBUG_TRA
                     Debug.Log(msg.ReadString());
 #endif
-                    break;
-
-                case NetIncomingMessageType.WarningMessage:
-                    Debug.LogWarning(msg.ReadString());
-                    break;
-
-                case NetIncomingMessageType.ErrorMessage:
-                    Debug.LogError(msg.ReadString());
-                    break;
-
-                case NetIncomingMessageType.Data:
-                    return BitStream.CreateWithExistingBuffer(msg.Data, msg.LengthBits);
-
-                case NetIncomingMessageType.StatusChanged: {
-                        var status = (NetConnectionStatus)msg.ReadByte();
-                        if (status == NetConnectionStatus.Connected) {
-                            ConnectionRequestAccepted();
-                        }
-                        if (status == NetConnectionStatus.Disconnected) {
-                            var reason = msg.ReadString();
-                            Disconnected(reason);
-                        }
                         break;
-                    }
-                default: {
-                        Debug.Log("Client - Unhandled type: " + msg.MessageType);
+
+                    case NetIncomingMessageType.WarningMessage:
+                        Debug.LogWarning(msg.ReadString());
                         break;
-                    }
+
+                    case NetIncomingMessageType.ErrorMessage:
+                        Debug.LogError(msg.ReadString());
+                        NetworkError();
+                        break;
+
+                    case NetIncomingMessageType.Data: {
+                            var bs = BitStream.CreateWithExistingBuffer(msg.Data, 0, msg.LengthBits);
+
+                            var p = bs.Position;
+                            var id = bs.ReadByte();
+                            bs.Position = p;
+                            Debug.Log(">> " + msg.DeliveryMethod + " " + id + " len=" + bs.Length + " " + bs);
+
+                            ReceivedPacket(bs);
+                            break;
+                        }
+                    case NetIncomingMessageType.StatusChanged: {
+                            var status = (NetConnectionStatus)msg.ReadByte();
+                            if (status == NetConnectionStatus.Connected) {
+                                ConnectionRequestAccepted();
+                            }
+                            if (status == NetConnectionStatus.Disconnected) {
+                                var reason = msg.ReadString();
+                                Disconnected(reason);
+                            }
+                            break;
+                        }
+                    default: {
+                            Debug.Log("[Client] Unhandled type: " + msg.MessageType);
+                            break;
+                        }
+                }
+
+                client.Recycle(msg);
             }
-
-            client.Recycle(msg);
-            return null;
         }
 
-        NetDeliveryMethod InternalReliabilityToLidgren(PacketReliability reliability) {
-            switch (reliability) {
-                case PacketReliability.Unreliable: return NetDeliveryMethod.Unreliable;
-                case PacketReliability.UnreliableSequenced: return NetDeliveryMethod.UnreliableSequenced;
-                case PacketReliability.Reliable: return NetDeliveryMethod.ReliableUnordered;
-                case PacketReliability.ReliableOrdered: return NetDeliveryMethod.ReliableOrdered;
-                case PacketReliability.ReliableSequenced: return NetDeliveryMethod.ReliableSequenced;
-            }
-            return NetDeliveryMethod.Unknown;
+        static NetDeliveryMethod GetReliability(PacketReliability reliability) {
+            return reliability switch {
+                PacketReliability.Unreliable => NetDeliveryMethod.Unreliable,
+                PacketReliability.UnreliableSequenced => NetDeliveryMethod.UnreliableSequenced,
+                PacketReliability.ReliableUnordered => NetDeliveryMethod.ReliableUnordered,
+                PacketReliability.ReliableOrdered => NetDeliveryMethod.ReliableOrdered,
+                PacketReliability.ReliableSequenced => NetDeliveryMethod.ReliableSequenced,
+                _ => throw new ArgumentException("reliability"),
+            };
         }
     }
 }

@@ -169,8 +169,11 @@ namespace Cube.Replication {
         }
 
         void OnReplicaDestroy(BitStream bs) {
-            while (!bs.IsExhausted) {
+            while (true) {
                 var replicaId = bs.ReadReplicaId();
+                if (replicaId == ReplicaId.Invalid)
+                    break;
+
                 var absOffset = bs.ReadUShort();
 
                 var replica = networkScene.GetReplicaById(replicaId);

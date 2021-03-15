@@ -63,10 +63,18 @@ namespace Cube.Transport.Tests {
                 Assert.AreEqual(bs.ReadString(), str);
 
                 var bs2 = new BitStream();
-                bs.Write(true);
+                bs2.Write(true);
                 bs2.Write(str);
-                bs.ReadBool();
+                bs2.ReadBool();
                 Assert.AreEqual(bs2.ReadString(), str);
+
+                var bs3 = new BitStream();
+                bs3.Write(true);
+                bs3.Write(true);
+                bs3.Write(str);
+                bs3.ReadBool();
+                bs3.ReadBool();
+                Assert.AreEqual(bs3.ReadString(), str);
             }
         }
 

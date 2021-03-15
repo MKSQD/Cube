@@ -1,52 +1,51 @@
 ﻿using System;
 using System.Collections.Generic;
-using UnityEngine;
-using UnityEngine.TestTools;
-using NUnit.Framework;
 
 namespace Cube.Transport.Tests {
     public class LocalClientInterface : IClientNetworkInterface {
         public Action ConnectionRequestAccepted { get; set; }
         public Action<string> Disconnected { get; set; }
+        public Action NetworkError { get; set; }
+        public Action<BitStream> ReceivedPacket { get; set; }
 
         public LocalServerInterface server;
         public Connection connection = Connection.Invalid;
 
-        Queue<BitStream> messageQueue = new Queue<BitStream>();
+        public bool IsConnected => connection != Connection.Invalid;
 
-        public LocalClientInterface() {}
+        readonly Queue<BitStream> messageQueue = new Queue<BitStream>();
+
+
+        public LocalClientInterface() { }
 
         public LocalClientInterface(LocalServerInterface server) {
             this.server = server;
             this.server.AddClient(this);
         }
-        
+
         public float GetRemoteTime(float time) {
             throw new NotImplementedException();
         }
 
-        public bool IsConnected() {
-            return connection != Connection.Invalid;
-        }
-
         public void Update() {
+            ReceiveMessages();
             BitStreamPool.FrameReset();
         }
 
-        public BitStream Receive() {
-            if (messageQueue.Count == 0)
-                return null;
-
-            return messageQueue.Dequeue();
+        void ReceiveMessages() {
+            while (messageQueue.Count > 0) {
+                var bs = messageQueue.Dequeue();
+                ReceivedPacket(bs);
+            }
         }
 
         public void Send(BitStream bs, PacketPriority priority, PacketReliability reliablity) {
-            if (!IsConnected())
+            if (!IsConnected)
                 throw new Exception("Not connected.");
 
             server.EnqueueMessage(connection, bs);
         }
-        
+
         public void Connect(string address, ushort port) {
             throw new Exception("Not required.");
         }
@@ -63,7 +62,7 @@ namespace Cube.Transport.Tests {
             throw new Exception("Not required.");
         }
 
-#region TestInterface
+        #region TestInterface
 
         public void EnqueueMessage(BitStream bs) {
             messageQueue.Enqueue(bs);
@@ -74,7 +73,7 @@ namespace Cube.Transport.Tests {
             this.server.AddClient(this);
         }
 
-#endregion
+        #endregion
 
     }
 }

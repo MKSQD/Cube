@@ -5,87 +5,103 @@ using UnityEngine.Assertions;
 
 namespace Cube.Transport {
     public class BitStream {
-        byte[] _data;
-        public byte[] data {
-            get { return _data; }
-        }
+        byte[] data;
+        int numBitsUsed = 0;
+        int readBitOffset = 0;
 
-        int _numberOfBitsUsed = 0;
-        int _readBitOffset = 0;
+        public byte[] Data {
+            get { return data; }
+        }
 
         /// <summary>
         /// Current write position in bits.
         /// </summary>
         public int LengthInBits {
-            get { return _numberOfBitsUsed; }
+            get { return numBitsUsed; }
         }
 
         public int Length {
-            get { return BitsToBytes(_numberOfBitsUsed); }
+            get { return BitsToBytes(numBitsUsed); }
         }
 
         /// <summary>
         /// Have we read all of its content?
         /// </summary>
-        public bool IsExhausted {
-            get {
-                return _readBitOffset >= _numberOfBitsUsed;
-            }
-        }
+        public bool IsExhausted => readBitOffset >= numBitsUsed;
 
-        int Capacity {
-            get { return _data.Length; }
-        }
+        int Capacity => data.Length;
 
         /// <summary>
         /// Current read position in bits.
         /// </summary>
         public int Position {
-            get { return _readBitOffset; }
+            get { return readBitOffset; }
             set {
-                if (value > _numberOfBitsUsed)
+                if (value > numBitsUsed)
                     throw new IndexOutOfRangeException();
 
-                _readBitOffset = value;
+                readBitOffset = value;
             }
         }
 
-        public BitStream() : this(64) { }
-
-        public BitStream(int lengthInBytes) {
-            _data = new byte[lengthInBytes];
+        public BitStream(int lengthInBytes = 64) {
+            data = new byte[lengthInBytes];
         }
 
-        BitStream(byte[] buffer, int lengthInBits) {
-            _data = buffer;
-            _numberOfBitsUsed = lengthInBits;
+        BitStream(byte[] buffer, int offsetInBits, int lengthInBits) {
+            data = buffer;
+            readBitOffset = offsetInBits;
+            numBitsUsed = lengthInBits;
         }
 
-        public static BitStream CreateWithExistingBuffer(byte[] data, int lengthInBits) {
-            return new BitStream(data, lengthInBits);
+        public static BitStream CreateWithExistingBuffer(byte[] data, int offsetInBits, int lengthInBits) {
+            Assert.IsTrue(lengthInBits <= data.Length * 8);
+            Assert.IsTrue(offsetInBits <= data.Length * 8, $"Offset {offsetInBits} over {data.Length * 8}");
+            return new BitStream(data, offsetInBits, lengthInBits);
+        }
+
+        public override string ToString() {
+            static string HexStr(byte[] data, int offset, int len, bool space = false) {
+                char[] hexchar = new char[] { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
+
+                int i = 0, k = 2;
+                if (space) k++;
+                var c = new char[len * k];
+                while (i < len) {
+                    byte d = data[offset + i];
+                    c[i * k] = hexchar[d / 0x10];
+                    c[i * k + 1] = hexchar[d % 0x10];
+                    if (space && i < len - 1) c[i * k + 2] = ' ';
+                    i++;
+                }
+                return new string(c, 0, c.Length - 1);
+            }
+
+            var str = "{" + HexStr(Data, 0, Length, true) + "}";
+            return str;
         }
 
         public void Reset() {
-            _numberOfBitsUsed = 0;
-            _readBitOffset = 0;
+            numBitsUsed = 0;
+            readBitOffset = 0;
         }
 
         public void ResetWithBuffer(byte[] data, int lengthInBits) {
             var lengthInBytes = BitsToBytes(lengthInBits);
             if (lengthInBytes > Capacity) {
-                Array.Resize(ref _data, lengthInBytes);
+                Array.Resize(ref data, lengthInBytes);
             }
 
-            Array.Copy(data, 0, _data, 0, lengthInBytes);
-            _numberOfBitsUsed = lengthInBits;
+            Array.Copy(data, 0, data, 0, lengthInBytes);
+            numBitsUsed = lengthInBits;
         }
 
         public void AlignWriteToByteBoundary() {
-            _numberOfBitsUsed += 8 - (((_numberOfBitsUsed - 1) & 7) + 1);
+            numBitsUsed += 8 - (((numBitsUsed - 1) & 7) + 1);
         }
 
         public void AlignReadToByteBoundary() {
-            _readBitOffset += 8 - (((_readBitOffset - 1) & 7) + 1);
+            readBitOffset += 8 - (((readBitOffset - 1) & 7) + 1);
         }
 
 
@@ -278,12 +294,9 @@ namespace Cube.Transport {
 
 
         public unsafe void Write(string val) {
-            // alt: 16bit ushort
-
             var chars = val.ToCharArray();
 
             if (chars.Length <= 32) {
-                Write(true);
                 Write(true);
                 WriteIntInRange(chars.Length, 0, 32);
             }
@@ -306,18 +319,20 @@ namespace Cube.Transport {
         }
 
         public unsafe string ReadString() {
-            var under32 = ReadBool();
-            var under256 = ReadBool();
-
             var length = 0;
+
+            var under32 = ReadBool();
             if (under32) {
                 length = ReadIntInRange(0, 32);
             }
-            else if (under256) {
-                length = ReadIntInRange(0, 256);
-            }
             else {
-                length = ReadUShort();
+                var under256 = ReadBool();
+                if (under256) {
+                    length = ReadIntInRange(0, 256);
+                }
+                else {
+                    length = ReadUShort();
+                }
             }
 
             if (length == 0)
@@ -523,18 +538,15 @@ namespace Cube.Transport {
         }
 
         public unsafe int Read(byte* buffer, int count) {
-            if (count <= 0)
-                return -1;
+            Assert.IsTrue(count > 0);
+            Assert.IsTrue(readBitOffset + count <= numBitsUsed);
 
-            if (_readBitOffset + count > _numberOfBitsUsed)
-                throw new IndexOutOfRangeException("Read over end: " + (_readBitOffset + count) + " > " + _numberOfBitsUsed);
-
-            var readOffsetMod8 = _readBitOffset & 7;
-            if ((_readBitOffset & 7) == 0 && (count & 7) == 0) {
-                fixed (byte* data = &_data[0]) {
-                    memcpy(buffer, data + (_readBitOffset >> 3), count >> 3);
+            var readOffsetMod8 = readBitOffset & 7;
+            if ((readBitOffset & 7) == 0 && (count & 7) == 0) {
+                fixed (byte* Data = &data[0]) {
+                    memcpy(buffer, Data + (readBitOffset >> 3), count >> 3);
                 }
-                _readBitOffset += count;
+                readBitOffset += count;
                 return count;
             }
 
@@ -542,24 +554,24 @@ namespace Cube.Transport {
 
             int read = 0;
             while (count > 0) {
-                buffer[read >> 3] |= (byte)(_data[_readBitOffset >> 3] << readOffsetMod8);
+                buffer[read >> 3] |= (byte)(data[readBitOffset >> 3] << readOffsetMod8);
 
                 if (readOffsetMod8 > 0 && count > (8 - readOffsetMod8))
-                    buffer[read >> 3] |= (byte)(_data[(_readBitOffset >> 3) + 1] >> (8 - readOffsetMod8));
+                    buffer[read >> 3] |= (byte)(data[(readBitOffset >> 3) + 1] >> (8 - readOffsetMod8));
 
                 if (count >= 8) {
                     count -= 8;
-                    _readBitOffset += 8;
+                    readBitOffset += 8;
                     read += 8;
                 }
                 else {
                     int neg = count - 8;
                     if (neg < 0) {
                         buffer[read >> 3] >>= -neg;
-                        _readBitOffset += 8 + neg;
+                        readBitOffset += 8 + neg;
                     }
                     else {
-                        _readBitOffset += 8;
+                        readBitOffset += 8;
                     }
                     read += count;
                     count = 0;
@@ -581,58 +593,58 @@ namespace Cube.Transport {
 
             Resize(numBits);
 
-            if ((other.Position & 7) == 0 && (_numberOfBitsUsed & 7) == 0) {
+            if ((other.Position & 7) == 0 && (numBitsUsed & 7) == 0) {
                 int readOffsetBytes = other.Position / 8;
                 int numBytes = numBits / 8;
 
-                fixed (byte* data = &_data[0]) {
-                    fixed (byte* otherData = &other._data[0]) {
-                        memcpy(data + (_numberOfBitsUsed >> 3), otherData + readOffsetBytes, numBytes);
+                fixed (byte* Data = &data[0]) {
+                    fixed (byte* otherData = &other.data[0]) {
+                        memcpy(Data + (numBitsUsed >> 3), otherData + readOffsetBytes, numBytes);
                     }
                 }
 
                 numBits -= BytesToBits(numBytes);
                 other.Position = BytesToBits(numBytes + readOffsetBytes);
-                _numberOfBitsUsed += BytesToBits(numBytes);
+                numBitsUsed += BytesToBits(numBytes);
             }
 
             int numberOfBitsUsedMod8 = 0;
             while (numBits-- > 0 && other.Position + 1 <= other.LengthInBits) {
-                numberOfBitsUsedMod8 = _numberOfBitsUsed & 7;
+                numberOfBitsUsedMod8 = numBitsUsed & 7;
                 if (numberOfBitsUsedMod8 == 0) {
                     // New byte
-                    if ((other._data[other.Position >> 3] & (0x80 >> (other.Position & 7))) != 0) {
+                    if ((other.data[other.Position >> 3] & (0x80 >> (other.Position & 7))) != 0) {
                         // Write 1
-                        data[_numberOfBitsUsed >> 3] = 0x80;
+                        Data[numBitsUsed >> 3] = 0x80;
                     }
                     else {
                         // Write 0
-                        data[_numberOfBitsUsed >> 3] = 0;
+                        Data[numBitsUsed >> 3] = 0;
                     }
                 }
                 else {
                     // Existing byte
-                    if ((other._data[other.Position >> 3] & (0x80 >> (other.Position & 7))) != 0) {
+                    if ((other.data[other.Position >> 3] & (0x80 >> (other.Position & 7))) != 0) {
                         // Set bit to 1
-                        data[_numberOfBitsUsed >> 3] |= (byte)(0x80 >> (numberOfBitsUsedMod8));
+                        Data[numBitsUsed >> 3] |= (byte)(0x80 >> (numberOfBitsUsedMod8));
                     }
                 }
 
                 other.Position++;
-                _numberOfBitsUsed++;
+                numBitsUsed++;
             }
         }
 
         public unsafe void Write(byte* inByteArray, int numberOfBitsToWrite) {
             Resize(numberOfBitsToWrite);
 
-            int numberOfBitsUsedMod8 = (int)(_numberOfBitsUsed & 7);
+            int numberOfBitsUsedMod8 = (int)(numBitsUsed & 7);
 
             if (numberOfBitsUsedMod8 == 0 && (numberOfBitsToWrite & 7) == 0) {
-                fixed (byte* data = &_data[0]) {
-                    memcpy(data + (_numberOfBitsUsed >> 3), inByteArray, numberOfBitsToWrite >> 3);
+                fixed (byte* Data = &data[0]) {
+                    memcpy(Data + (numBitsUsed >> 3), inByteArray, numberOfBitsToWrite >> 3);
                 }
-                _numberOfBitsUsed += numberOfBitsToWrite;
+                numBitsUsed += numberOfBitsToWrite;
                 return;
             }
 
@@ -646,21 +658,21 @@ namespace Cube.Transport {
                     dataByte <<= 8 - numberOfBitsToWrite;
 
                 if (numberOfBitsUsedMod8 == 0) {
-                    _data[_numberOfBitsUsed >> 3] = dataByte;
+                    data[numBitsUsed >> 3] = dataByte;
                 }
                 else {
-                    _data[_numberOfBitsUsed >> 3] |= (byte)(dataByte >> numberOfBitsUsedMod8);
+                    data[numBitsUsed >> 3] |= (byte)(dataByte >> numberOfBitsUsedMod8);
 
                     if (8 - (numberOfBitsUsedMod8) < 8 && 8 - (numberOfBitsUsedMod8) < numberOfBitsToWrite)
-                        _data[(_numberOfBitsUsed >> 3) + 1] = (byte)(dataByte << (8 - numberOfBitsUsedMod8));
+                        data[(numBitsUsed >> 3) + 1] = (byte)(dataByte << (8 - numberOfBitsUsedMod8));
                 }
 
                 if (numberOfBitsToWrite >= 8) {
-                    _numberOfBitsUsed += 8;
+                    numBitsUsed += 8;
                     numberOfBitsToWrite -= 8;
                 }
                 else {
-                    _numberOfBitsUsed += numberOfBitsToWrite;
+                    numBitsUsed += numberOfBitsToWrite;
                     numberOfBitsToWrite = 0;
                 }
             }
@@ -669,26 +681,26 @@ namespace Cube.Transport {
         void Write0() {
             Resize(1);
 
-            int numberOfBitsMod8 = _numberOfBitsUsed & 7;
+            int numberOfBitsMod8 = numBitsUsed & 7;
             if (numberOfBitsMod8 == 0) {
-                _data[_numberOfBitsUsed >> 3] = 0;
+                data[numBitsUsed >> 3] = 0;
             }
 
-            ++_numberOfBitsUsed;
+            ++numBitsUsed;
         }
 
         void Write1() {
             Resize(1);
 
-            int numberOfBitsMod8 = _numberOfBitsUsed & 7;
+            int numberOfBitsMod8 = numBitsUsed & 7;
             if (numberOfBitsMod8 == 0) {
-                _data[_numberOfBitsUsed >> 3] = 0x80;
+                data[numBitsUsed >> 3] = 0x80;
             }
             else {
-                _data[_numberOfBitsUsed >> 3] |= (byte)(0x80 >> (numberOfBitsMod8));
+                data[numBitsUsed >> 3] |= (byte)(0x80 >> (numberOfBitsMod8));
             }
 
-            ++_numberOfBitsUsed;
+            ++numBitsUsed;
         }
 
         public static float NormaliseFloat(float val, float precision = 0.1f) {
@@ -697,21 +709,13 @@ namespace Cube.Transport {
             return temp * precision;
         }
 
-        public override string ToString() {
-            var buffer = new byte[Length];
-            Array.Copy(_data, buffer, Length);
-
-            var s = BitConverter.ToString(buffer).Replace("-", " ");
-            return "{bits = " + LengthInBits + ", offset = " + Position + ", data = " + s + "}";
-        }
-
         void Resize(int numberOfBitsToWrite) {
             if (numberOfBitsToWrite == 0)
                 return;
 
-            int newNumberOfBytesAllocated = BitsToBytes(_numberOfBitsUsed + numberOfBitsToWrite) + 128;
-            if (_data.Length < newNumberOfBytesAllocated) {
-                Array.Resize(ref _data, newNumberOfBytesAllocated);
+            int newNumberOfBytesAllocated = BitsToBytes(numBitsUsed + numberOfBitsToWrite) + 128;
+            if (data.Length < newNumberOfBytesAllocated) {
+                Array.Resize(ref data, newNumberOfBytesAllocated);
             }
         }
 

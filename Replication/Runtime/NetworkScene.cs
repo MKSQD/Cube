@@ -39,8 +39,7 @@ namespace Cube.Replication {
         }
 
         public Replica GetReplicaById(ReplicaId id) {
-            Replica replica;
-            _replicasById.TryGetValue(id, out replica);
+            _replicasById.TryGetValue(id, out Replica replica);
             return replica;
         }
 

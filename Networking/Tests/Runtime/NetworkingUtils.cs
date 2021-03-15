@@ -68,10 +68,10 @@ namespace Cube.Networking.Tests {
         }
 
         public static void UpdateServerAndClient(ServerObjects server, ClientObjects client) {
-            server.reactor.Update();
+            server.server.Update();
             server.replicaManager.Update();
 
-            client.reactor.Update();
+            client.client.Update();
             client.replicaManager.Update();
         }
 

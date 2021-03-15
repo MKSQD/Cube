@@ -14,8 +14,34 @@ namespace Cube.Transport {
         Dictionary<byte, List<ClientMessageHandler>> _handlers;
 
         public ClientReactor(IClientNetworkInterface networkInterface) {
-            _networkInterface = networkInterface;
             _handlers = new Dictionary<byte, List<ClientMessageHandler>>();
+
+            _networkInterface = networkInterface;
+
+            networkInterface.ReceivedPacket += OnReceivedPacket;
+        }
+
+        void OnReceivedPacket(BitStream bs) {
+            var messageId = bs.ReadByte();
+
+            List<ClientMessageHandler> handlers;
+            if (!_handlers.TryGetValue(messageId, out handlers) || handlers.Count == 0) {
+                Debug.LogWarning("[Client] Received unknown packet " + messageId);
+                return;
+            }
+
+            foreach (var handler in handlers) {
+                var pos = bs.Position;
+
+                try {
+                    handler(bs);
+                }
+                catch (Exception e) {
+                    Debug.LogException(e);
+                }
+
+                bs.Position = pos;
+            }
         }
 
         public void AddHandler(byte id, ClientMessageHandler handler) {
@@ -34,35 +60,6 @@ namespace Cube.Transport {
                 return;
 
             existingHandlers.Remove(handler);
-        }
-
-        public void Update() {
-            while (true) {
-                var bs = _networkInterface.Receive();
-                if (bs == null)
-                    break;
-
-                var messageId = bs.ReadByte();
-
-                List<ClientMessageHandler> handlers;
-                if (!_handlers.TryGetValue(messageId, out handlers) || handlers.Count == 0) {
-                    Debug.LogWarning("Received unknown packet " + messageId);
-                    continue;
-                }
-
-                foreach (var handler in handlers) {
-                    var pos = bs.Position;
-
-                    try {
-                        handler(bs);
-                    }
-                    catch (Exception e) {
-                        Debug.LogException(e);
-                    }
-
-                    bs.Position = pos;
-                }
-            }
         }
     }
 }

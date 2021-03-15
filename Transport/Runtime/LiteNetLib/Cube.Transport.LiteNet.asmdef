@@ -1,0 +1,16 @@
+{
+    "name": "Cube.Transport.LiteNet",
+    "rootNamespace": "",
+    "references": [
+        "GUID:1858bd356409951469f540b4d678840d"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

@@ -28,7 +28,6 @@ namespace Cube.Networking {
         }
         
         public void Update() {
-            reactor.Update();
             replicaManager.Update();
             networkInterface.Update();
         }

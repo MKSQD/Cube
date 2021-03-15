@@ -7,18 +7,15 @@ namespace Cube.Transport {
     public class ConnectionNotFoundException : Exception {
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <remarks>Available in: Editor/Server</remarks>
     public sealed class LidgrenServerNetworkInterface : IServerNetworkInterface {
         public Func<BitStream, ApprovalResult> ApproveConnection { get; set; }
         public Action<Connection> NewConnectionEstablished { get; set; }
+        public Action NetworkError { get; set; }
         public Action<Connection> DisconnectNotification { get; set; }
+        public Action<BitStream, Connection> ReceivedPacket { get; set; }
 
-        public bool isRunning {
-            get { return _server.Status == NetPeerStatus.Running; }
-        }
+        public bool IsRunning => _server.Status == NetPeerStatus.Running;
+
 
         NetServer _server;
 
@@ -52,6 +49,7 @@ namespace Cube.Transport {
         }
 
         public void Update() {
+            ReceiveMessages();
             _server.FlushSendQueue();
             BitStreamPool.FrameReset();
 
@@ -60,41 +58,109 @@ namespace Cube.Transport {
 
             TransportDebugger.ReportStatistic("Sent Bytes/s", ((int)(_server.Statistics.SentBytes / Time.time)).ToString());
             TransportDebugger.ReportStatistic("Received Bytes/s", ((int)(_server.Statistics.ReceivedBytes / Time.time)).ToString());
-            
+
             TransportDebugger.ReportStatistic("# Sent", _server.Statistics.SentPackets.ToString());
             TransportDebugger.ReportStatistic("# Received", _server.Statistics.ReceivedPackets.ToString());
 #endif
         }
 
-        public Connection[] GetConnections() {
-            var connections = new Connection[_server.ConnectionsCount];
-            for (int i = 0; i < connections.Length; ++i) {
-                connections[i] = new Connection((ulong)_server.Connections[i].RemoteUniqueIdentifier);
-            }
+        void ReceiveMessages() {
+            while (true) {
+                var msg = _server.ReadMessage();
+                if (msg == null)
+                    break;
 
-            return connections;
+                var connection = Connection.Invalid;
+                if (msg.SenderConnection != null) {
+                    connection = new Connection((ulong)msg.SenderConnection.RemoteUniqueIdentifier);
+                }
+
+                switch (msg.MessageType) {
+                    case NetIncomingMessageType.VerboseDebugMessage:
+                    case NetIncomingMessageType.DebugMessage:
+#if CUBE_DEBUG_TRA
+                    Debug.Log(msg.ReadString());
+#endif
+                        break;
+
+                    case NetIncomingMessageType.WarningMessage:
+                        Debug.LogWarning(msg.ReadString());
+                        break;
+
+                    case NetIncomingMessageType.ErrorMessage:
+                        Debug.LogError(msg.ReadString());
+                        NetworkError();
+                        break;
+
+                    case NetIncomingMessageType.StatusChanged: {
+                            var status = (NetConnectionStatus)msg.ReadByte();
+                            if (status == NetConnectionStatus.Connected) {
+                                NewConnectionEstablished(connection);
+                            }
+                            else if (status == NetConnectionStatus.Disconnected) {
+                                DisconnectNotification(connection);
+                            }
+                            break;
+                        }
+                    case NetIncomingMessageType.Data: {
+                            var bs = BitStream.CreateWithExistingBuffer(msg.Data, 0, msg.LengthBits);
+                            ReceivedPacket(bs, connection);
+                            break;
+                        }
+                    case NetIncomingMessageType.ConnectionApproval: {
+                            var bs = BitStream.CreateWithExistingBuffer(msg.Data, 0, msg.LengthBits);
+
+                            try {
+                                var approvalResult = ApproveConnection(bs);
+                                if (approvalResult.Approved) {
+                                    Debug.Log("[Server] Connection approved");
+                                    msg.SenderConnection.Approve();
+                                }
+                                else {
+                                    Debug.Log($"[Server] Connection denied ({approvalResult.DenialReason})");
+                                    msg.SenderConnection.Deny(approvalResult.DenialReason);
+                                }
+                            }
+                            catch (Exception e) {
+                                Debug.LogException(e);
+                                msg.SenderConnection.Deny("Approval Error");
+                            }
+                            break;
+                        }
+
+                    default:
+                        Debug.Log("[Server] Unhandled type: " + msg.MessageType);
+                        break;
+                }
+
+                _server.Recycle(msg);
+            }
         }
 
         public void SendBitStream(BitStream bs, PacketPriority priority, PacketReliability reliablity, Connection connection, int sequenceChannel) {
+            Debug.Log("<< " + reliablity + " " + bs.ReadByte() + " len=" + bs.Length + " " + bs);
+
             Assert.IsTrue(connection != Connection.Invalid);
 
             var msg = _server.CreateMessage(bs.Length);
-            msg.Write(bs.data, 0, bs.Length);
+            msg.Write(bs.Data, 0, bs.Length);
             msg.LengthBits = bs.LengthInBits;
 
             var netConnection = GetNetConnection(connection);
-            _server.SendMessage(msg, netConnection, LidgrenToInternalReliability(reliablity), sequenceChannel);
+            _server.SendMessage(msg, netConnection, GetReliability(reliablity), sequenceChannel);
         }
 
         public void BroadcastBitStream(BitStream bs, PacketPriority priority, PacketReliability reliablity, int sequenceChannel) {
+            Debug.Log("<< " + reliablity + " " + bs.ReadByte() + " len=" + bs.Length + " " + bs);
+
             if (_server.Connections.Count == 0)
                 return;
 
             var msg = _server.CreateMessage(bs.Length);
-            msg.Write(bs.data, 0, bs.Length);
+            msg.Write(bs.Data, 0, bs.Length);
             msg.LengthBits = bs.LengthInBits;
 
-            _server.SendMessage(msg, _server.Connections, LidgrenToInternalReliability(reliablity), sequenceChannel);
+            _server.SendMessage(msg, _server.Connections, GetReliability(reliablity), sequenceChannel);
         }
 
         NetConnection GetNetConnection(Connection connection) {
@@ -106,88 +172,15 @@ namespace Cube.Transport {
             throw new ConnectionNotFoundException();
         }
 
-        public BitStream Receive(out Connection connection) {
-            connection = Connection.Invalid;
-
-            var msg = _server.ReadMessage();
-            if (msg == null)
-                return null;
-
-            if (msg.SenderConnection != null) {
-                connection = new Connection((ulong)msg.SenderConnection.RemoteUniqueIdentifier);
-            }
-
-            BitStream result = null;
-
-            switch (msg.MessageType) {
-                case NetIncomingMessageType.VerboseDebugMessage:
-                case NetIncomingMessageType.DebugMessage:
-#if CUBE_DEBUG_TRA
-                    Debug.Log(msg.ReadString());
-#endif
-                    break;
-
-                case NetIncomingMessageType.WarningMessage:
-                    Debug.LogWarning(msg.ReadString());
-                    break;
-
-                case NetIncomingMessageType.ErrorMessage:
-                    Debug.LogError(msg.ReadString());
-                    break;
-
-                case NetIncomingMessageType.StatusChanged: {
-                        var status = (NetConnectionStatus)msg.ReadByte();
-                        if (status == NetConnectionStatus.Connected) {
-                            NewConnectionEstablished(connection);
-                        }
-                        else if (status == NetConnectionStatus.Disconnected) {
-                            DisconnectNotification(connection);
-                        }
-                        break;
-                    }
-                case NetIncomingMessageType.Data:
-                    result = BitStream.CreateWithExistingBuffer(msg.Data, msg.LengthBits);
-                    break;
-
-                case NetIncomingMessageType.ConnectionApproval:
-                    var bs = BitStream.CreateWithExistingBuffer(msg.Data, msg.LengthBits);
-
-                    try {
-                        var approvalResult = ApproveConnection(bs);
-                        if (approvalResult.Approved) {
-                            Debug.Log("[Server] Connection approved");
-                            msg.SenderConnection.Approve();
-                        }
-                        else {
-                            Debug.Log($"[Server] Connection denied ({approvalResult.DenialReason})");
-                            msg.SenderConnection.Deny(approvalResult.DenialReason);
-                        }
-                    }
-                    catch (Exception e) {
-                        Debug.LogException(e);
-                        msg.SenderConnection.Deny("Approval Error");
-                    }
-                    break;
-
-                default:
-                    Debug.Log("[Server] Unhandled type: " + msg.MessageType);
-                    break;
-            }
-
-            _server.Recycle(msg);
-
-            return result;
-        }
-
-        NetDeliveryMethod LidgrenToInternalReliability(PacketReliability reliability) {
-            switch (reliability) {
-                case PacketReliability.Unreliable: return NetDeliveryMethod.Unreliable;
-                case PacketReliability.UnreliableSequenced: return NetDeliveryMethod.UnreliableSequenced;
-                case PacketReliability.Reliable: return NetDeliveryMethod.ReliableUnordered;
-                case PacketReliability.ReliableOrdered: return NetDeliveryMethod.ReliableOrdered;
-                case PacketReliability.ReliableSequenced: return NetDeliveryMethod.ReliableSequenced;
-                default: return NetDeliveryMethod.Unknown;
-            }
+        static NetDeliveryMethod GetReliability(PacketReliability reliability) {
+            return reliability switch {
+                PacketReliability.Unreliable => NetDeliveryMethod.Unreliable,
+                PacketReliability.UnreliableSequenced => NetDeliveryMethod.UnreliableSequenced,
+                PacketReliability.ReliableUnordered => NetDeliveryMethod.ReliableUnordered,
+                PacketReliability.ReliableOrdered => NetDeliveryMethod.ReliableOrdered,
+                PacketReliability.ReliableSequenced => NetDeliveryMethod.ReliableSequenced,
+                _ => throw new ArgumentException("reliability"),
+            };
         }
     }
 }

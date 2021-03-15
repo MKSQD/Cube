@@ -16,7 +16,7 @@ namespace Cube.Transport.Tests {
             message.Write((byte)1);
             client.EnqueueMessage(message);
 
-            reactor.Update();
+            client.Update();
 
             Assert.IsTrue(messageHandlerCalled);
         }
@@ -35,7 +35,7 @@ namespace Cube.Transport.Tests {
             message.Write((byte)1);
             server.EnqueueMessage(Connection.Invalid, message);
 
-            reactor.Update();
+            server.Update();
 
             Assert.IsTrue(messageHandlerCalled);
         }

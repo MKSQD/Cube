@@ -4,6 +4,10 @@ namespace Cube.Transport {
     public interface IClientNetworkInterface {
         Action ConnectionRequestAccepted { get; set; }
         Action<string> Disconnected { get; set; }
+        Action NetworkError { get; set; }
+        Action<BitStream> ReceivedPacket { get; set; }
+
+        bool IsConnected { get; }
 
         float GetRemoteTime(float time);
         
@@ -17,10 +21,7 @@ namespace Cube.Transport {
 
         void Shutdown(uint blockDuration);
 
-        bool IsConnected();
-
         unsafe void Send(BitStream bs, PacketPriority priority, PacketReliability reliablity);
-        unsafe BitStream Receive();
     }
 }
 
