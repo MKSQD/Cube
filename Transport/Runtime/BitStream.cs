@@ -438,7 +438,7 @@ namespace Cube.Transport {
             const float maximum = +1f / 1.414214f;
             const float delta = maximum - minimum;
             const uint maxIntegerValue = (1 << 10) - 1; // 10 bits
-            const float maxIntegerValueF = (float)maxIntegerValue;
+            const float maxIntegerValueF = maxIntegerValue;
             float normalizedValue;
             uint integerValue;
 
@@ -680,12 +680,6 @@ namespace Cube.Transport {
 
         void Write0() {
             Resize(1);
-
-            int numberOfBitsMod8 = numBitsUsed & 7;
-            if (numberOfBitsMod8 == 0) {
-                data[numBitsUsed >> 3] = 0;
-            }
-
             ++numBitsUsed;
         }
 
@@ -724,7 +718,7 @@ namespace Cube.Transport {
         }
 
         static int BitsToBytes(int bits) {
-            return (int)((bits >> 3) + ((bits & 7) == 0 ? 0 : 1));
+            return (bits >> 3) + ((bits & 7) == 0 ? 0 : 1);
         }
 
         int ComputeRequiredFloatBits(float min, float max, float precision) {

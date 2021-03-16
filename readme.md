@@ -128,7 +128,3 @@ public class TestReplica : ReplicaBehaviour {
     }
 }
 ```
-
-## Todo
-- Add validation/changed callbacks to ReplicaVars
-- Improve documentation (doh)

@@ -33,24 +33,13 @@ namespace Cube.Replication {
         [HideInInspector]
         public byte sceneIdx;
 
-        public bool isSceneReplica {
-            get { return sceneIdx != 0; }
-        }
+        public bool isSceneReplica => sceneIdx != 0;
 
         public ICubeServer server;
         public ICubeClient client;
 
-        public bool isServer {
-            get {
-                return server != null;
-            }
-        }
-
-        public bool isClient {
-            get {
-                return client != null;
-            }
-        }
+        public bool isServer => server != null;
+        public bool isClient => client != null;
 
         public Connection Owner {
             get;
@@ -228,49 +217,24 @@ namespace Cube.Replication {
             if (_applicationQuitting)
                 return;
 
-            if (isServer)
+            if (isServer) {
                 server.replicaManager.RemoveReplica(this);
-
-            if (isClient)
+            }
+            if (isClient) {
                 client.replicaManager.RemoveReplica(this);
+            }
         }
 
         void OnApplicationQuit() {
             _applicationQuitting = true;
         }
 
-        public void SendRpc(byte methodId, byte componentIdx, RpcTarget target, params object[] args) {
-            if (isClient) {
-                var bs = BitStreamPool.Create();
-                bs.Write((byte)MessageId.ReplicaRpc);
-                bs.Write(Id);
-                bs.Write(componentIdx);
-                bs.Write(methodId);
-
-                for (int i = 0; i < args.Length; ++i) {
-                    WriteValueToBitStream(args[i], bs);
-                }
-
-                client.networkInterface.Send(bs, PacketPriority.Immediate, PacketReliability.Unreliable);
-            }
-
-            if (isServer) {
-                var bs = new BitStream(); // #todo need to pool these instances, but lifetime could be over one frame
-                bs.Write((byte)MessageId.ReplicaRpc);
-                bs.Write(Id);
-                bs.Write(componentIdx);
-                bs.Write(methodId);
-
-                for (int i = 0; i < args.Length; ++i) {
-                    WriteValueToBitStream(args[i], bs);
-                }
-
-                var qrpc = new QueuedRpc() {
-                    bs = bs,
-                    target = target
-                };
-                queuedRpcs.Add(qrpc);
-            }
+        public void QueueServerRpc(BitStream bs, RpcTarget target) {
+            var qrpc = new QueuedRpc() {
+                bs = bs,
+                target = target
+            };
+            queuedRpcs.Add(qrpc);
         }
 
         public void CallRpcServer(Connection connection, BitStream bs, IReplicaManager replicaManager) {
@@ -280,9 +244,7 @@ namespace Cube.Replication {
                 var methodId = bs.ReadByte();
 
                 var component = _replicaBehaviours[componentIdx];
-
-                MethodInfo methodInfo;
-                if (!component.rpcMethods.TryGetValue(methodId, out methodInfo)) {
+                if (!component.rpcMethods.TryGetValue(methodId, out MethodInfo methodInfo)) {
                     Debug.LogError("Cannot find RPC method with id " + methodId + " in " + component + " on " + (component.isServer ? "server" : "client") + ".");
                     return;
                 }
@@ -335,90 +297,6 @@ namespace Cube.Replication {
             }
 
             methodInfo.Invoke(component, args);
-        }
-
-        static void WriteValueToBitStream(object value, BitStream bs) {
-            //TODO double, param object[]
-
-            var type = value.GetType();
-
-            if (type.IsEnum)
-                type = Enum.GetUnderlyingType(type);
-
-            if (type.IsArray) {
-                var arrayValue = (Array)value;
-
-                var arrayLength = (byte)arrayValue.Length;
-                if (arrayValue.Length > 255) {
-                    Debug.LogError("Array size may not be larger than 255");
-                    arrayLength = 255;
-                }
-                bs.Write(arrayLength);
-                for (byte i = 0; i < arrayLength; ++i) {
-                    WriteValueToBitStream(arrayValue.GetValue(i), bs);
-                }
-                return;
-            }
-
-            if (type == typeof(bool)) {
-                bs.Write((bool)value);
-            }
-            else if (type == typeof(byte)) {
-                bs.Write((byte)value);
-            }
-            else if (type == typeof(ushort)) {
-                bs.Write((ushort)value);
-            }
-            else if (type == typeof(int)) {
-                bs.Write((int)value);
-            }
-            else if (type == typeof(uint)) {
-                bs.Write((uint)value);
-            }
-            else if (type == typeof(long)) {
-                bs.Write((long)value);
-            }
-            else if (type == typeof(ulong)) {
-                bs.Write((ulong)value);
-            }
-            else if (type == typeof(float)) {
-                bs.Write((float)value);
-            }
-            else if (type == typeof(string)) {
-                bs.Write((string)value);
-            }
-            else if (type == typeof(Connection)) {
-                bs.Write((Connection)value);
-            }
-            else if (type == typeof(Vector2)) {
-                bs.Write((Vector2)value);
-            }
-            else if (type == typeof(Vector3)) {
-                bs.Write((Vector3)value);
-            }
-            else if (type == typeof(Quaternion)) {
-                bs.Write((Quaternion)value);
-            }
-            else if (type == typeof(ReplicaId)) {
-                var replicaId = (ReplicaId)value;
-                bs.Write(replicaId);
-            }
-            else if (type == typeof(Replica)) {
-                var replica = (Replica)value;
-                bs.Write(replica.Id);
-            }
-            else if (type.IsSubclassOf(typeof(NetworkObject))) {
-                bs.WriteNetworkObject((NetworkObject)value);
-            }
-            else {
-                var obj = value as ISerializable;
-                if (obj != null) {
-                    obj.Serialize(bs);
-                }
-                else {
-                    Debug.LogError("Cannot serialize rpc argument of type " + value.GetType());
-                }
-            }
         }
 
         static bool TryReadParameterFromBitStream(Type type, BitStream bs, IReplicaManager replicaManager, out object value) {

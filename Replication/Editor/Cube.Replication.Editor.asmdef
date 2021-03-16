@@ -1,9 +1,10 @@
 {
     "name": "Cube.Replication.Editor",
+    "rootNamespace": "",
     "references": [
-        "Cube.Replication"
+        "Cube.Replication",
+        "Cube.Transport"
     ],
-    "optionalUnityReferences": [],
     "includePlatforms": [
         "Editor"
     ],
@@ -12,5 +13,7 @@
     "overrideReferences": false,
     "precompiledReferences": [],
     "autoReferenced": true,
-    "defineConstraints": []
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
 }

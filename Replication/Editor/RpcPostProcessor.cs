@@ -15,6 +15,7 @@ namespace Cube.Replication.Editor {
 
         TypeDefinition _replicaBehaviourType;
         TypeDefinition _replicaType;
+        FieldReference replicaIdField;
 
         TypeReference _voidTypeReference;
         TypeReference _objectTypeReference;
@@ -26,48 +27,76 @@ namespace Cube.Replication.Editor {
         MethodReference _debugLogErrorMethod;
         MethodReference _dictionaryAddMethod;
 
-        MethodReference _sendRpcMethod;
-        FieldReference _replicaComponentIdxProperty;
-        FieldReference _replicaField;
+        MethodReference queueServerRpcMethod;
+        FieldReference replicaComponentIdxField;
+        FieldReference replicaField;
 
         PropertyDefinition _isServerProperty;
         PropertyDefinition _isClientProperty;
+        PropertyDefinition clientProperty;
+
+        PropertyDefinition networkInterfaceProperty;
 
         FieldReference _replicaBehaviourRpcMap;
 
         TypeDefinition _rpcTargetType;
-        int _rpcTargetServerValue;
-        int _rpcTargetOwnerValue;
-        int _rpcTargetAllValue;
+
+        TypeDefinition bitStreamType;
+        MethodReference bitStreamCTorMethod;
+        Dictionary<string, MethodReference> bitStreamWrite = new Dictionary<string, MethodReference>();
+        Dictionary<string, MethodReference> bitStreamRead = new Dictionary<string, MethodReference>();
+
+        MethodReference clientNetworkInterfaceSendMethod;
 
         Dictionary<string, byte> _processedTypes = new Dictionary<string, byte>();
 
         public RpcPostProcessor(ApplicationType app, ModuleDefinition module)
             : base(app, module) {
-            var watch = new System.Diagnostics.Stopwatch();
-            watch.Start();
+            var unityEngineAssembly = ResolveAssembly("UnityEngine.CoreModule");
+            var replicationAssembly = ResolveAssembly("Cube.Replication");
+            var transportAssembly = ResolveAssembly("Cube.Transport");
 
-            var unityEngineAssembly = module.AssemblyResolver.Resolve(new AssemblyNameReference("UnityEngine.CoreModule", new Version()));
-            if (unityEngineAssembly == null)
-                Debug.LogError("RPC Patcher: Cannot resolve 'UnityEngine'");
+            var clientNetworkInterfaceType = GetTypeDefinitionByName(transportAssembly, "Cube.Transport.IClientNetworkInterface");
+            clientNetworkInterfaceSendMethod = Import(GetMethodDefinitionByName(clientNetworkInterfaceType, "Send"));
 
-            var networkingReplicaAssembly = ResolveAssembly("Cube.Replication");
+            bitStreamType = GetTypeDefinitionByName(transportAssembly, "Cube.Transport.BitStream");
+            bitStreamCTorMethod = Import(GetMethodDefinitionByName(bitStreamType, ".ctor"));
 
-            _replicaBehaviourType = GetTypeDefinitionByName(networkingReplicaAssembly.MainModule, "Cube.Replication.ReplicaBehaviour");
-            _replicaType = GetTypeDefinitionByName(networkingReplicaAssembly.MainModule, "Cube.Replication.Replica");
+            foreach (var writeMethod in Import(GetMethodDefinitionsByName(bitStreamType, "Write"))) {
+                bitStreamWrite[writeMethod.Parameters[0].ParameterType.Name] = writeMethod;
+            }
+            foreach (var readMethod in Import(GetMethodDefinitionsByName(bitStreamType, "Read"))) {
+                bitStreamRead[readMethod.Parameters[0].ParameterType.Name] = readMethod;
+            }
 
-            var debugType = GetTypeDefinitionByName(unityEngineAssembly.MainModule, "UnityEngine.Debug");
-            _debugLogErrorMethod = ImportMethod(GetMethodDefinitionByName(debugType, "LogError"));
+            var bitStreamExtensionsType = GetTypeDefinitionByName(replicationAssembly, "Cube.Replication.BitStreamExtensions");
+            foreach (var writeMethod in Import(GetMethodDefinitionsByName(bitStreamExtensionsType, "Write"))) {
+                bitStreamWrite[writeMethod.Parameters[1].ParameterType.Name] = writeMethod;
+            }
+            foreach (var readMethod in Import(GetMethodDefinitionsByName(bitStreamExtensionsType, "Read"))) {
+                bitStreamRead[readMethod.Parameters[1].ParameterType.Name] = readMethod;
+            }
 
-            _sendRpcMethod = ImportMethod(GetMethodDefinitionByName(_replicaType, "SendRpc"));
+            _replicaBehaviourType = GetTypeDefinitionByName(replicationAssembly, "Cube.Replication.ReplicaBehaviour");
+            _replicaType = GetTypeDefinitionByName(replicationAssembly, "Cube.Replication.Replica");
+            replicaIdField = Import(GetFieldDefinitionByName(_replicaType, "Id"));
 
-            _replicaComponentIdxProperty = ImportField(GetFieldDefinitionByName(_replicaBehaviourType, "replicaComponentIdx"));
-            _replicaField = ImportField(GetFieldDefinitionByName(_replicaBehaviourType, "Replica"));
+            var debugType = GetTypeDefinitionByName(unityEngineAssembly, "UnityEngine.Debug");
+            _debugLogErrorMethod = Import(GetMethodDefinitionByName(debugType, "LogError"));
+
+            queueServerRpcMethod = Import(GetMethodDefinitionByName(_replicaType, "QueueServerRpc"));
+
+            replicaComponentIdxField = Import(GetFieldDefinitionByName(_replicaBehaviourType, "replicaComponentIdx"));
+            replicaField = Import(GetFieldDefinitionByName(_replicaBehaviourType, "Replica"));
 
             _isServerProperty = GetPropertyDefinitionByName(_replicaBehaviourType, "isServer");
             _isClientProperty = GetPropertyDefinitionByName(_replicaBehaviourType, "isClient");
+            clientProperty = GetPropertyDefinitionByName(_replicaBehaviourType, "client");
 
-            _replicaBehaviourRpcMap = ImportField(GetFieldDefinitionByName(_replicaBehaviourType, "_rpcMethods"));
+            var cubeClientType = GetTypeDefinitionByName(replicationAssembly, "Cube.Replication.ICubeClient");
+            networkInterfaceProperty = GetPropertyDefinitionByName(cubeClientType, "networkInterface");
+
+            _replicaBehaviourRpcMap = Import(GetFieldDefinitionByName(_replicaBehaviourType, "_rpcMethods"));
 
             _voidTypeReference = module.TypeSystem.Void;
             _objectTypeReference = module.TypeSystem.Object;
@@ -84,10 +113,7 @@ namespace Cube.Replication.Editor {
 
             _dictionaryAddMethod = module.Assembly.MainModule.ImportReference(typeof(Dictionary<byte, string>).GetMethod("Add"));
 
-            _rpcTargetType = GetTypeDefinitionByName(networkingReplicaAssembly.MainModule, "Cube.Replication.RpcTarget");
-            _rpcTargetServerValue = GetEnumValueByName(_rpcTargetType, "Server");
-            _rpcTargetOwnerValue = GetEnumValueByName(_rpcTargetType, "Owner");
-            _rpcTargetAllValue = GetEnumValueByName(_rpcTargetType, "All");
+            _rpcTargetType = GetTypeDefinitionByName(replicationAssembly, "Cube.Replication.RpcTarget");
         }
 
         public override void Process(ModuleDefinition module) {
@@ -138,7 +164,7 @@ namespace Cube.Replication.Editor {
                     continue;
 
                 if (nextRpcMethodId == byte.MaxValue) {
-                    Debug.LogError("Reached max RPC method count (" + nextRpcMethodId + ") for type: " + type.FullName + "!");
+                    Debug.LogError($"Reached max RPC method count {nextRpcMethodId} for type {type.FullName}!");
                     break;
                 }
 
@@ -148,7 +174,7 @@ namespace Cube.Replication.Editor {
                 CopyMethodBody(method, implMethod);
                 ClearMethodBody(method);
 
-                if (InjectSendRpcInstructions(type, nextRpcMethodId, method, implMethod)) {
+                if (InjectSendRpcInstructions(nextRpcMethodId, method, implMethod)) {
                     rpcMethods.Add(nextRpcMethodId, method);
                 }
 
@@ -248,82 +274,148 @@ namespace Cube.Replication.Editor {
             return newMethod;
         }
 
-        bool InjectSendRpcInstructions(TypeDefinition type, byte methodId, MethodDefinition method, MethodDefinition implMethod) {
-            string error;
-            if (IsRpcMethodValid(method, out error)) {
-                InjectValidSendRpcInstructions(methodId, method, implMethod);
-                //Utilities.LogWarning("RPC method patched \"" + method.FullName + "\"");
-            }
-            else {
+        bool InjectSendRpcInstructions(byte methodId, MethodDefinition method, MethodDefinition implMethod) {
+            if (!IsRpcMethodValid(method, out string error)) {
                 InjectInvalidRpcInstructions(method, error);
                 Debug.LogError("RPC method error \"" + method.FullName + "\": " + error);
                 return false;
             }
+            InjectValidSendRpcInstructions(methodId, method, implMethod);
+            //Utilities.LogWarning("RPC method patched \"" + method.FullName + "\"");
             return true;
         }
 
         void InjectValidSendRpcInstructions(int methodId, MethodDefinition method, MethodDefinition implMethod) {
-            var il = method.Body.GetILProcessor();
+            method.Body.Variables.Clear();
+            method.Body.Variables.Add(new VariableDefinition(Import(bitStreamType)));
 
-            var rpcTarget = (int)GetAttributeByName("Cube.Replication.ReplicaRpcAttribute", method.CustomAttributes).ConstructorArguments[0].Value;
+            var rpcTarget = (RpcTarget)GetAttributeByName("Cube.Replication.ReplicaRpcAttribute", method.CustomAttributes).ConstructorArguments[0].Value;
 
             // target validation
             string error;
-            MethodDefinition meth;
-            if (rpcTarget == _rpcTargetServerValue) {
+            MethodDefinition serverOrClientGetMethod;
+            if (rpcTarget == RpcTarget.Server) {
                 error = "Cannot call RPC method \"" + method.FullName + "\" on server";
-                meth = _isClientProperty.GetMethod;
+                serverOrClientGetMethod = _isClientProperty.GetMethod;
             }
             else {
                 error = "Cannot call RPC method \"" + method.FullName + "\" on client";
-                meth = _isServerProperty.GetMethod;
+                serverOrClientGetMethod = _isServerProperty.GetMethod;
             }
+
+            var il = method.Body.GetILProcessor();
 
             // Check isClient/isServer
             var ok = il.Create(OpCodes.Nop);
-            il.Append(il.Create(OpCodes.Ldarg_0));
-            il.Append(il.Create(OpCodes.Call, ImportMethod(meth)));
-            il.Append(il.Create(OpCodes.Ldc_I4_0));
-            il.Append(il.Create(OpCodes.Ceq));
-            il.Append(il.Create(OpCodes.Brfalse_S, ok));
-            il.Append(il.Create(OpCodes.Ldstr, error));
-            il.Append(il.Create(OpCodes.Call, _debugLogErrorMethod));
-            il.Append(il.Create(OpCodes.Ret));
+            il.Emit(OpCodes.Ldarg_0);
+            il.Emit(OpCodes.Call, Import(serverOrClientGetMethod));
+            il.Emit(OpCodes.Ldc_I4_0);
+            il.Emit(OpCodes.Ceq);
+            il.Emit(OpCodes.Brfalse_S, ok);
+            il.Emit(OpCodes.Ldstr, error);
+            il.Emit(OpCodes.Call, _debugLogErrorMethod);
+            il.Emit(OpCodes.Ret);
             il.Append(ok);
 
 
-            //
-            il.Append(il.Create(OpCodes.Ldarg_0));
-            il.Append(il.Create(OpCodes.Ldfld, _replicaField));
+            // BitStream bitStream = new BitStream();
+            il.Emit(OpCodes.Ldc_I4, 64);
+            il.Emit(OpCodes.Newobj, bitStreamCTorMethod);
+            il.Emit(OpCodes.Stloc_0);
 
-            il.Append(il.Create(OpCodes.Ldc_I4, methodId));
 
-            il.Append(il.Create(OpCodes.Ldarg_0));
-            il.Append(il.Create(OpCodes.Ldfld, _replicaComponentIdxProperty));
+            // bitStream.Write((byte)Cube.Transport.MessageId.ReplicaRpc);
+            il.Emit(OpCodes.Ldloc_0);
+            il.Emit(OpCodes.Ldc_I4, 1);
+            il.Emit(OpCodes.Callvirt, bitStreamWrite["Byte"]);
 
-            il.Append(il.Create(OpCodes.Ldc_I4, rpcTarget));
+            // BitStreamExtensions.Write(bitStream, Replica.Id);
+            il.Emit(OpCodes.Ldloc_0);
+            il.Emit(OpCodes.Ldarg_0);
+            il.Emit(OpCodes.Ldfld, replicaField);
+            il.Emit(OpCodes.Ldfld, replicaIdField);
+            il.Emit(OpCodes.Call, bitStreamWrite["ReplicaId"]);
 
-            il.Append(il.Create(OpCodes.Ldc_I4_S, (sbyte)method.Parameters.Count));
-            il.Append(il.Create(OpCodes.Newarr, _objectTypeReference));
+            // bitStream.Write(replicaComponentIdx);
+            il.Emit(OpCodes.Ldloc_0);
+            il.Emit(OpCodes.Ldarg_0);
+            il.Emit(OpCodes.Ldfld, replicaComponentIdxField);
+            il.Emit(OpCodes.Callvirt, bitStreamWrite["Byte"]);
 
-            foreach (var param in method.Parameters) {
-                il.Append(il.Create(OpCodes.Dup));
-                il.Append(il.Create(OpCodes.Ldc_I4_S, (sbyte)param.Index));
-                il.Append(il.Create(OpCodes.Ldarg_S, (byte)(param.Index + 1)));
-                il.Append(il.Create(OpCodes.Box, param.ParameterType));
-                il.Append(il.Create(OpCodes.Stelem_Ref));
-            }
+            // bitStream.Write((byte)methodId);
+            il.Emit(OpCodes.Ldloc_0);
+            il.Emit(OpCodes.Ldc_I4, methodId);
+            il.Emit(OpCodes.Callvirt, bitStreamWrite["Byte"]);
 
-            il.Append(il.Create(OpCodes.Call, _sendRpcMethod));
+            // bitStream.Write(...);
+            for (int i = 0; i < method.Parameters.Count; ++i) { // 0 == this
+                var param = method.Parameters[i];
 
-            if (rpcTarget == _rpcTargetAllValue) {
-                for (int i = 0; i < method.Parameters.Count + 1; ++i) { // +1 for implicit this
-                    il.Append(il.Create(OpCodes.Ldarg_S, (byte)i));
+                MethodReference result;
+
+                var typeDef = param.ParameterType.Resolve();
+
+                var isReplica = param.ParameterType.Name == "Replica";
+                if (isReplica) {
+                    result = bitStreamWrite["ReplicaId"];
                 }
-                il.Append(il.Create(OpCodes.Call, implMethod));
+                else if (TypeInheritsFrom(typeDef, "Cube.Replication.NetworkObject")) {
+                    result = bitStreamWrite["NetworkObject"];
+                }
+                else {
+                    if (typeDef.IsEnum) {
+                        typeDef = GetEnumUnderlyingType(typeDef).Resolve();
+                    }
+
+                    try {
+                        result = bitStreamWrite[typeDef.Name];
+                    }
+                    catch (KeyNotFoundException) {
+                        Debug.LogError($"Rpc argument of type {typeDef.Name} not supported ({method})");
+                        return;
+                    }
+                }
+
+                il.Emit(OpCodes.Ldloc_0);
+                il.Emit(OpCodes.Ldarg, i + 1);
+                if (isReplica) {
+                    il.Emit(OpCodes.Ldfld, replicaIdField);
+                }
+                il.Emit(OpCodes.Callvirt, result);
             }
 
-            il.Append(il.Create(OpCodes.Ret));
+            if (rpcTarget == RpcTarget.Server) {
+                // base.client.networkInterface.Send(bitStream, PacketPriority.Immediate, PacketReliability.Unreliable);
+                il.Emit(OpCodes.Ldarg_0);
+                il.Emit(OpCodes.Call, Import(clientProperty.GetMethod));
+                il.Emit(OpCodes.Callvirt, Import(networkInterfaceProperty.GetMethod));
+
+                il.Emit(OpCodes.Ldloc_0);
+                il.Emit(OpCodes.Ldc_I4_0);
+                il.Emit(OpCodes.Ldc_I4_0);
+                il.Emit(OpCodes.Callvirt, clientNetworkInterfaceSendMethod);
+            }
+            else {
+                // Replica.QueueServerRpc(bitStream, RpcTarget.Owner);
+                il.Emit(OpCodes.Ldarg_0);
+                il.Emit(OpCodes.Ldfld, replicaField);
+                il.Emit(OpCodes.Ldloc_0);
+                il.Emit(OpCodes.Ldc_I4, (int)rpcTarget);
+                il.Emit(OpCodes.Callvirt, queueServerRpcMethod);
+            }
+
+            il.Emit(OpCodes.Ret);
+        }
+
+        public static TypeReference GetEnumUnderlyingType(TypeDefinition self) {
+            var fields = self.Fields;
+            for (int i = 0; i < fields.Count; i++) {
+                FieldDefinition fieldDefinition = fields[i];
+                if (!fieldDefinition.IsStatic) {
+                    return fieldDefinition.FieldType;
+                }
+            }
+            throw new ArgumentException();
         }
 
         void InjectInvalidRpcInstructions(MethodDefinition method, string error) {

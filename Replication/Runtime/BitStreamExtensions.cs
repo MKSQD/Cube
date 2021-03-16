@@ -15,6 +15,9 @@ namespace Cube.Replication {
             return ReplicaId.CreateFromExisting(id);
         }
 
+        public static void Write(this BitStream bs, NetworkObject networkObject) {
+            WriteNetworkObject(bs, networkObject);
+        }
 
         public static void WriteNetworkObject(this BitStream bs, NetworkObject networkObject) {
             var max = NetworkObjectLookup.Instance.entries.Length;

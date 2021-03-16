@@ -85,11 +85,8 @@ namespace Cube.Replication.Editor {
                             return; // Skip assemblies not referencing Cube.Replication
 
                         var rpcProcessor = new RpcPostProcessor(appType, assembly.MainModule);
-                        //var varProcessor = new VarPostProcessor(appType, assembly.MainModule);
-
                         foreach (var module in assembly.Modules) {
                             rpcProcessor.Process(module);
-                            //varProcessor.Process(module);
                         }
 
                         assembly.Write(writerParameters);

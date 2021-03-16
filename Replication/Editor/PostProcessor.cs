@@ -34,33 +34,28 @@ namespace Cube.Replication {
 
         public abstract void Process(ModuleDefinition module);
 
-        protected TypeReference ImportType(TypeDefinition type) {
-            if (type == null)
-                throw new ArgumentNullException("type");
-
-            try {
-                return mainModule.ImportReference(type);
-            }
-            catch (Exception e) {
-                Debug.LogError(type);
-                throw e;
-            }
+        protected TypeReference Import(TypeDefinition type) {
+            return mainModule.ImportReference(type);
         }
 
-        protected MethodReference ImportMethod(MethodDefinition method) {
+        protected MethodReference Import(MethodDefinition method) {
             return mainModule.ImportReference(method);
         }
 
-        protected List<MethodReference> ImportMethods(IEnumerable<MethodDefinition> methods) {
+        protected List<MethodReference> Import(IEnumerable<MethodDefinition> methods) {
             var results = new List<MethodReference>();
             foreach (var method in methods) {
-                results.Add(ImportMethod(method));
+                results.Add(Import(method));
             }
             return results;
         }
 
-        protected FieldReference ImportField(FieldDefinition field) {
+        protected FieldReference Import(FieldDefinition field) {
             return mainModule.ImportReference(field);
+        }
+
+        protected TypeDefinition GetTypeDefinitionByName(AssemblyDefinition assembly, string typeName) {
+            return GetTypeDefinitionByName(assembly.MainModule, typeName);
         }
 
         protected TypeDefinition GetTypeDefinitionByName(ModuleDefinition module, string typeName) {
