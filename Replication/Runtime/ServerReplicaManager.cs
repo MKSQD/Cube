@@ -323,7 +323,7 @@ namespace Cube.Replication {
                 TransportDebugger.BeginScope("Update Replica " + replica.name);
 #endif
 
-                var updateBs = BitStreamPool.Create();
+                var updateBs = new BitStream();
                 updateBs.Write((byte)MessageId.ReplicaUpdate);
                 updateBs.Write(replica.isSceneReplica);
                 if (!replica.isSceneReplica) {
@@ -341,12 +341,10 @@ namespace Cube.Replication {
                 TransportDebugger.EndScope(updateBs.LengthInBits);
 #endif
 
-                if (updateBs.LengthInBits > 0) {
-                    server.networkInterface.SendBitStream(updateBs, 
-                        PacketPriority.Medium, 
-                        PacketReliability.Unreliable,
-                        view.Connection);
-                }
+                server.networkInterface.SendBitStream(updateBs,
+                    PacketPriority.Medium,
+                    PacketReliability.Unreliable,
+                    view.Connection);
 
                 // We just sent this Replica, reset its priority
                 view.RelevantReplicaPriorityAccumulator[currentReplicaIdx] = 0;

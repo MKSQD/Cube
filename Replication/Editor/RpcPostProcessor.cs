@@ -39,8 +39,6 @@ namespace Cube.Replication.Editor {
 
         FieldReference _replicaBehaviourRpcMap;
 
-        TypeDefinition _rpcTargetType;
-
         TypeDefinition bitStreamType;
         MethodReference bitStreamCTorMethod;
         Dictionary<string, MethodReference> bitStreamWrite = new Dictionary<string, MethodReference>();
@@ -112,8 +110,6 @@ namespace Cube.Replication.Editor {
                     }));
 
             _dictionaryAddMethod = module.Assembly.MainModule.ImportReference(typeof(Dictionary<byte, string>).GetMethod("Add"));
-
-            _rpcTargetType = GetTypeDefinitionByName(replicationAssembly, "Cube.Replication.RpcTarget");
         }
 
         public override void Process(ModuleDefinition module) {
@@ -147,7 +143,6 @@ namespace Cube.Replication.Editor {
             if (TypeInheritsFrom(type, "Cube.Replication.ReplicaBehaviour")) {
                 var baseType = ResolveTypeReference(type.BaseType);
 
-                // #TODO classes from other modules (filter "tmp.Module.path" in "Application.dataPath" ?)
                 if (baseType.FullName != "Cube.Replication.ReplicaBehaviour" && baseType.Module.Name == module.Name) {
                     ProcessType(baseType, module);
                     nextRpcMethodId = _processedTypes[baseType.FullName];

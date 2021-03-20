@@ -114,7 +114,9 @@ namespace Cube.Replication {
             }
 
             var isOwner = bs.ReadBool();
-            replica.ClientUpdateOwnership(isOwner);
+            if (isOwner != replica.isOwner) {
+                replica.ClientUpdateOwnership(isOwner);
+            }
 
             // Hack: 
             // In the editor client and service scene Replica is the same instance. So we don't do

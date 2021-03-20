@@ -184,6 +184,10 @@ namespace Cube.Transport {
             if (simpleTreeView == null)
                 return;
 
+            if (CurrentFrame == null) {
+                CurrentFrame = new Frame();
+            }
+
             activeDebugger = this;
 
             tab = GUILayout.Toolbar(tab, new string[] { "Frames", "Statistics" });
@@ -195,7 +199,7 @@ namespace Cube.Transport {
                     break;
 
                 case 1:
-                    foreach(var pair in Statistics) {
+                    foreach (var pair in Statistics) {
                         GUILayout.Label(pair.Key + ": " + pair.Value);
                     }
                     Repaint();

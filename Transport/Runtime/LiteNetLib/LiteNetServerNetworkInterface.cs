@@ -36,6 +36,17 @@ namespace Cube.Transport {
 
         public void Update() {
             server.PollEvents();
+            BitStreamPool.FrameReset();
+            
+#if UNITY_EDITOR
+            TransportDebugger.CycleFrame();
+
+            TransportDebugger.ReportStatistic("Sent Bytes/s", ((int)(server.Statistics.BytesSent / Time.time)).ToString());
+            TransportDebugger.ReportStatistic("Received Bytes/s", ((int)(server.Statistics.BytesReceived / Time.time)).ToString());
+
+            TransportDebugger.ReportStatistic("# Sent", server.Statistics.PacketsSent.ToString());
+            TransportDebugger.ReportStatistic("# Received", server.Statistics.PacketsReceived.ToString());
+#endif
         }
 
         public void OnPeerConnected(NetPeer peer) {

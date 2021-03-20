@@ -79,9 +79,7 @@ namespace Cube.Replication {
         }
 
         public void ClientUpdateOwnership(bool owned) {
-            if (owned == isOwner)
-                return;
-
+            Assert.IsTrue(owned != isOwner);
             isOwner = owned;
         }
 
