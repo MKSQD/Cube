@@ -182,9 +182,7 @@ namespace Cube.Replication {
 
         protected void ClearMethodBody(MethodDefinition method) {
             var il = method.Body.GetILProcessor();
-            for (int i = method.Body.Instructions.Count - 1; i >= 0; i--) {
-                il.Remove(method.Body.Instructions[i]);
-            }
+            method.Body.Instructions.Clear();
         }
 
         protected AssemblyDefinition ResolveAssembly(string name) {

@@ -37,6 +37,7 @@ namespace Cube.Replication {
 
         public ICubeServer server;
         public ICubeClient client;
+        public IReplicaManager ReplicaManager => server != null ? (IReplicaManager)server.replicaManager : client.replicaManager;
 
         public bool isServer => server != null;
         public bool isClient => client != null;
@@ -46,7 +47,7 @@ namespace Cube.Replication {
             internal set;
         }
 
-        public bool isOwner {
+        public bool IsOwner {
             get;
             internal set;
         }
@@ -68,19 +69,19 @@ namespace Cube.Replication {
             Assert.IsTrue(owner != Connection.Invalid);
 
             Owner = owner;
-            isOwner = false;
+            IsOwner = false;
         }
 
         public void TakeOwnership() {
             Assert.IsTrue(isServer);
 
             Owner = Connection.Invalid;
-            isOwner = true;
+            IsOwner = true;
         }
 
         public void ClientUpdateOwnership(bool owned) {
-            Assert.IsTrue(owned != isOwner);
-            isOwner = owned;
+            Assert.IsTrue(owned != IsOwner);
+            IsOwner = owned;
         }
 
         public bool IsRelevantFor(ReplicaView view) {
@@ -215,11 +216,11 @@ namespace Cube.Replication {
             if (_applicationQuitting)
                 return;
 
-            if (isServer) {
-                server.replicaManager.RemoveReplica(this);
-            }
             if (isClient) {
                 client.replicaManager.RemoveReplica(this);
+            }
+            if (isServer) {
+                server.replicaManager.RemoveReplica(this);
             }
         }
 
@@ -235,158 +236,30 @@ namespace Cube.Replication {
             queuedRpcs.Add(qrpc);
         }
 
-        public void CallRpcServer(Connection connection, BitStream bs, IReplicaManager replicaManager) {
-            var replicaOwnedByCaller = Owner == connection;
-            if (!replicaOwnedByCaller) {
-                var componentIdx = bs.ReadByte();
-                var methodId = bs.ReadByte();
-
-                var component = _replicaBehaviours[componentIdx];
-                if (!component.rpcMethods.TryGetValue(methodId, out MethodInfo methodInfo)) {
-                    Debug.LogError("Cannot find RPC method with id " + methodId + " in " + component + " on " + (component.isServer ? "server" : "client") + ".");
-                    return;
-                }
-
-#if CUBE_DEBUG_REP
-                var ownerStr = Owner != Connection.Invalid ? Owner.ToString() : "Server";
-                Debug.LogWarning("Got Replica RPC from non-owning client. Replica=" + gameObject.name + " Method=" + methodInfo.Name + " Client=" + connection + " Owner=" + ownerStr, gameObject);
-#endif
+        public void CallRpcServer(Connection connection, BitStream bs) {
+            var isReplicaOwnedByCaller = Owner == connection;
+            if (!isReplicaOwnedByCaller)
                 return;
-            }
 
             ReplicaBehaviour.rpcConnection = connection;
             try {
-                CallRpcImpl(connection, bs, replicaManager);
+                var componentIdx = bs.ReadByte();
+                var methodId = bs.ReadByte();
+
+                var replicaBehaviour = _replicaBehaviours[componentIdx];
+                replicaBehaviour.DispatchRpc(methodId, bs);
             }
             finally {
                 ReplicaBehaviour.rpcConnection = Connection.Invalid;
             }
         }
 
-        public void CallRpcClient(BitStream bs, IReplicaManager replicaManager) {
-            CallRpcImpl(Connection.Invalid, bs, replicaManager);
-        }
-
-        void CallRpcImpl(Connection connection, BitStream bs, IReplicaManager replicaManager) {
-            // #todo expose connection; maybe require first RPC arg to be ReplicaRpcContext?
-
+        public void CallRpcClient(BitStream bs) {
             var componentIdx = bs.ReadByte();
             var methodId = bs.ReadByte();
 
-            var component = _replicaBehaviours[componentIdx];
-
-            MethodInfo methodInfo;
-            if (!component.rpcMethods.TryGetValue(methodId, out methodInfo)) {
-                Debug.LogError("Cannot find rpc method with id " + methodId + " in " + component + " on " + (component.isServer ? "server" : "client") + ".");
-                return;
-            }
-
-            var methodParameters = methodInfo.GetParameters();
-            var args = new object[methodParameters.Length];
-
-            for (int i = 0; i < args.Length; i++) {
-                var paramType = methodParameters[i].ParameterType;
-                if (!TryReadParameterFromBitStream(paramType, bs, replicaManager, out args[i])) {
-                    Debug.LogWarning("Dropped Replica RPC method=" + methodInfo.Name, this);
-                    Debug.LogWarning("Method Idx = " + methodId);
-                    Debug.LogWarning("componentIdx = " + componentIdx);
-                    return;
-                }
-            }
-
-            methodInfo.Invoke(component, args);
-        }
-
-        static bool TryReadParameterFromBitStream(Type type, BitStream bs, IReplicaManager replicaManager, out object value) {
-            // #TODO double, param object[]
-
-            if (type.IsEnum) {
-                type = Enum.GetUnderlyingType(type);
-            }
-
-            if (type.IsArray) {
-                var length = bs.ReadByte();
-
-                var newArray = (Array)Activator.CreateInstance(type, new object[] { (int)length });
-                for (byte i = 0; i < length; ++i) {
-                    if (!TryReadParameterFromBitStream(type.GetElementType(), bs, replicaManager, out object elementValue)) {
-                        value = null;
-                        return false;
-                    }
-
-                    newArray.SetValue(elementValue, i);
-                }
-
-                value = newArray;
-                return true;
-            }
-
-            if (type == typeof(bool)) {
-                value = bs.ReadBool();
-            }
-            else if (type == typeof(byte)) {
-                value = bs.ReadByte();
-            }
-            else if (type == typeof(ushort)) {
-                value = bs.ReadUShort();
-            }
-            else if (type == typeof(int)) {
-                value = bs.ReadInt();
-            }
-            else if (type == typeof(uint)) {
-                value = bs.ReadUInt();
-            }
-            else if (type == typeof(long)) {
-                value = bs.ReadLong();
-            }
-            else if (type == typeof(ulong)) {
-                value = bs.ReadULong();
-            }
-            else if (type == typeof(float)) {
-                value = bs.ReadFloat();
-            }
-            else if (type == typeof(string)) {
-                value = bs.ReadString();
-            }
-            else if (type == typeof(Connection)) {
-                value = bs.ReadConnection();
-            }
-            else if (type == typeof(Vector2)) {
-                value = bs.ReadVector2();
-            }
-            else if (type == typeof(Vector3)) {
-                value = bs.ReadVector3();
-            }
-            else if (type == typeof(Quaternion)) {
-                value = bs.ReadQuaternion();
-            }
-            else if (type == typeof(ReplicaId)) {
-                value = bs.ReadReplicaId();
-            }
-            else if (type == typeof(Replica)) {
-                var id = bs.ReadReplicaId();
-
-                value = replicaManager.GetReplica(id);
-                if (value == null) {
-                    Debug.LogWarning("RPC was dropped because Replica (used as argument) was not found: " + id);
-                    return false;
-                }
-            }
-            else if (type.IsSubclassOf(typeof(NetworkObject))) {
-                value = bs.ReadNetworkObject<NetworkObject>();
-            }
-            else {
-                var obj = Activator.CreateInstance(type) as ISerializable;
-                if (obj != null) {
-                    obj.Deserialize(bs);
-                    value = obj;
-                }
-                else {
-                    value = null;
-                    Debug.LogError("Cannot deserialize rpc argument of type " + type);
-                }
-            }
-            return true;
+            var replicaBehaviour = _replicaBehaviours[componentIdx];
+            replicaBehaviour.DispatchRpc(methodId, bs);
         }
     }
 }

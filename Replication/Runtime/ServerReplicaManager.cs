@@ -546,7 +546,7 @@ namespace Cube.Replication {
                 return;
             }
 
-            replica.CallRpcServer(connection, bs, this);
+            replica.CallRpcServer(connection, bs);
         }
     }
 }

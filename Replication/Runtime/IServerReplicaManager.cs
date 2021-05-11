@@ -26,13 +26,6 @@ namespace Cube.Replication {
         AsyncOperationHandle<GameObject> InstantiateReplicaAsync(object key, Vector3 position, Quaternion rotation);
 
         /// <summary>
-        /// Remove the Replica instantly from the manager, without notifying the clients.
-        /// </summary>
-        /// <param name="replica">The Replica to remove</param>
-        /// <remarks>Won't do anything if this replica was removed already</remarks>
-        void RemoveReplica(Replica replica);
-
-        /// <summary>
         /// Remove the Replica instantly from the manager, destroys the gameobject and send a destroy message to the clients on the next update.
         /// </summary>
         /// <param name="replica">The Replica to remove</param>

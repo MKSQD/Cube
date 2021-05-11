@@ -101,9 +101,9 @@ namespace Cube.Replication.Editor {
                 }
 
                 watch.Stop();
-#if CUBE_DEBUG_REP
+//#if CUBE_DEBUG_REP
                 Debug.Log("RPC Patcher finished after " + watch.ElapsedMilliseconds + "ms (assembly = " + assemblyPath + ", appType = " + appType.ToString() + ")");
-#endif
+//#endif
             }
         }
     }

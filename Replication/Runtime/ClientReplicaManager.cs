@@ -114,7 +114,7 @@ namespace Cube.Replication {
             }
 
             var isOwner = bs.ReadBool();
-            if (isOwner != replica.isOwner) {
+            if (isOwner != replica.IsOwner) {
                 replica.ClientUpdateOwnership(isOwner);
             }
 
@@ -167,7 +167,7 @@ namespace Cube.Replication {
                 return;
             }
 
-            replica.CallRpcClient(bs, this);
+            replica.CallRpcClient(bs);
         }
 
         void OnReplicaDestroy(BitStream bs) {

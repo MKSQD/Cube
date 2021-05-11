@@ -8,6 +8,8 @@ using UnityEditor.Compilation;
 namespace Cube.Replication.Editor {
     [InitializeOnLoad]
     public static class OnAssemblyReload {
+        static CachedAssemblyResolver resolver;
+
         static OnAssemblyReload() {
             CompilationPipeline.assemblyCompilationFinished -= OnCompilationFinished;
             CompilationPipeline.assemblyCompilationFinished += OnCompilationFinished;
@@ -17,13 +19,14 @@ namespace Cube.Replication.Editor {
             if (BuildPipeline.isBuildingPlayer)
                 return;
 
-            var unityAssemblyPath = Path.GetDirectoryName(EditorApplication.applicationPath);
-            if (unityAssemblyPath.Length == 0 || !Directory.Exists(unityAssemblyPath)) {
-                Debug.LogError("Unity3d assembly path not found (" + unityAssemblyPath + ")");
-                return;
-            }
+            if (resolver == null) {
+                var unityAssemblyPath = Path.GetDirectoryName(EditorApplication.applicationPath);
+                if (unityAssemblyPath.Length == 0 || !Directory.Exists(unityAssemblyPath)) {
+                    Debug.LogError("Unity3d assembly path not found (" + unityAssemblyPath + ")");
+                    return;
+                }
 
-            var searchPathList = new List<string> {
+                var searchPathList = new List<string> {
                 unityAssemblyPath + "/Data/Managed",
                 unityAssemblyPath + "/Data/Managed/UnityEngine",
                 unityAssemblyPath + "/Data/NetStandard/ref/2.0.0",
@@ -34,12 +37,13 @@ namespace Cube.Replication.Editor {
                 Application.dataPath + "/../Library/ScriptAssemblies"
             };
 
-            var assemblyCache = new CachedAssemblyResolver();
-            foreach (var path in searchPathList) {
-                assemblyCache.AddSearchDirectory(path);
+                resolver = new CachedAssemblyResolver();
+                foreach (var path in searchPathList) {
+                    resolver.AddSearchDirectory(path);
+                }
             }
 
-            AssemblyPostProcessor.Start(assemblyPath, assemblyCache);
+            AssemblyPostProcessor.Start(assemblyPath, resolver);
         }
     }
 }
