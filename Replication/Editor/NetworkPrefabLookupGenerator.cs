@@ -78,12 +78,11 @@ namespace Cube.Replication {
             }
 
             //GetOrCreateLookup()
-            var path = "Assets/Cube/Resources/NetworkPrefabLookup.asset";
-
-            var lookup = AssetDatabase.LoadAssetAtPath<NetworkPrefabLookup>(path);
+            var lookup = NetworkPrefabLookup.instance;
             if (lookup == null) {
                 lookup = ScriptableObject.CreateInstance<NetworkPrefabLookup>();
 
+                var path = "Assets/Cube/Resources/NetworkPrefabLookup.asset";
                 AssetDatabase.CreateAsset(lookup, path);
             }
             ////////////////
@@ -112,8 +111,7 @@ namespace Cube.Replication {
 
                 if (!usedIdxs.Contains(replica.sceneIdx)) {
                     usedIdxs.Add(replica.sceneIdx);
-                }
-                else {
+                } else {
                     replica.sceneIdx = 0;
                 }
             }
