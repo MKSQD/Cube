@@ -230,6 +230,8 @@ namespace Cube.Replication.Editor {
             for (int i = 0; i < remoteMethods.Count; ++i) {
                 var remoteMethod = remoteMethods[i];
 
+                il.Append(foo[i]);
+
                 var moo = new List<byte>();
                 for (int j = 0; j < remoteMethod.Parameters.Count; ++j) {
                     var param = remoteMethod.Parameters[j];
@@ -255,10 +257,6 @@ namespace Cube.Replication.Editor {
                         }
                     }
 
-                    if (j == 0) {
-                        il.Append(foo[i]);
-                    }
-
                     moo.Add((byte)(method.Body.Variables.Count));
 
                     if (isReplica) {
@@ -275,19 +273,6 @@ namespace Cube.Replication.Editor {
                         il.Emit(OpCodes.Stloc, method.Body.Variables.Count - 1);
                     } else if (isNetworkObject) {
                         method.Body.Variables.Add(new VariableDefinition(Import(param.ParameterType.Resolve())));
-
-                        //                         var nonGenericCall = new GenericInstanceMethod(result);
-                        //                         nonGenericCall.GenericArguments.Add(Import(typeDef));
-
-
-
-                        var genInst_1_ReadNetworkObject26 = new GenericInstanceMethod(result);
-                        genInst_1_ReadNetworkObject26.GenericArguments.Add(param.ParameterType);
-                        genInst_1_ReadNetworkObject26.ReturnType = mainModule.ImportReference(typeDef);
-                        //var Callvirt27 = il_Test_Main_.Create(OpCodes.Callvirt, genInst_1_ReadNetworkObject26);
-
-                        // var valN = bs.ReadNetworkObject<T>();
-                        // IL_0007: call !!0 [Cube.Replication]Cube.Replication.BitStreamExtensions::ReadNetworkObject<class EquippableItemType>(class [Cube.Transport]Cube.Transport.BitStream)
 
                         MethodInfo openGenericMethod = typeof(BitStreamExtensions).GetMethod("ReadNetworkObject");
                         MethodInfo closedGenericMethod = openGenericMethod.MakeGenericMethod(typeof(NetworkObject));

@@ -55,14 +55,12 @@ namespace Cube.Replication.Editor {
                             readerParameters.SymbolReaderProvider = new Mono.Cecil.Pdb.PdbReaderProvider();
                             writerParameters.WriteSymbols = true;
                             writerParameters.SymbolWriterProvider = new Mono.Cecil.Mdb.MdbWriterProvider(); // pdb written out as mdb, as mono can't work with pdbs
-                        }
-                        else if (File.Exists(mdbPath)) {
+                        } else if (File.Exists(mdbPath)) {
                             readerParameters.ReadSymbols = true;
                             readerParameters.SymbolReaderProvider = new Mono.Cecil.Mdb.MdbReaderProvider();
                             writerParameters.WriteSymbols = true;
                             writerParameters.SymbolWriterProvider = new Mono.Cecil.Mdb.MdbWriterProvider();
-                        }
-                        else {
+                        } else {
                             readerParameters.ReadSymbols = false;
                             readerParameters.SymbolReaderProvider = null;
                             writerParameters.WriteSymbols = false;
@@ -91,19 +89,17 @@ namespace Cube.Replication.Editor {
 
                         assembly.Write(writerParameters);
                     }
-                }
-                catch (InvalidOperationException) {
+                } catch (InvalidOperationException) {
                     // InvalidOperationException: Operation is not valid due to the current state of the object.
                     // Assembly is in use
-                }
-                catch (Exception e) {
+                } catch (Exception e) {
                     throw new Exception("RPC Patcher failed (assembly = " + assemblyPath + ", appType = " + appType.ToString() + ")", e);
                 }
 
                 watch.Stop();
-//#if CUBE_DEBUG_REP
+#if CUBE_DEBUG_REP
                 Debug.Log("RPC Patcher finished after " + watch.ElapsedMilliseconds + "ms (assembly = " + assemblyPath + ", appType = " + appType.ToString() + ")");
-//#endif
+#endif
             }
         }
     }
