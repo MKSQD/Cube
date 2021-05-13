@@ -26,7 +26,9 @@ namespace Cube.Replication.Editor {
         /// <param name="withSymbols"></param>
         public static void Start(string assemblyPath, IAssemblyResolver assemblyResolver, PatcherOptions options = PatcherOptions.None) {
             if (!File.Exists(assemblyPath)) {
+#if CUBE_DEBUG_REP
                 Debug.Log("RPC Patcher skipped file (not found): " + assemblyPath);
+#endif
                 return;
             }
 

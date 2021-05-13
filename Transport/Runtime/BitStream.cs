@@ -9,20 +9,14 @@ namespace Cube.Transport {
         int numBitsUsed = 0;
         int readBitOffset = 0;
 
-        public byte[] Data {
-            get { return data; }
-        }
+        public byte[] Data => data;
 
         /// <summary>
         /// Current write position in bits.
         /// </summary>
-        public int LengthInBits {
-            get { return numBitsUsed; }
-        }
+        public int LengthInBits => numBitsUsed;
 
-        public int Length {
-            get { return BitsToBytes(numBitsUsed); }
-        }
+        public int Length => BitsToBytes(numBitsUsed);
 
         /// <summary>
         /// Have we read all of its content?
@@ -65,13 +59,15 @@ namespace Cube.Transport {
                 char[] hexchar = new char[] { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
 
                 int i = 0, k = 2;
-                if (space) k++;
+                if (space)
+                    k++;
                 var c = new char[len * k];
                 while (i < len) {
                     byte d = data[offset + i];
                     c[i * k] = hexchar[d / 0x10];
                     c[i * k + 1] = hexchar[d % 0x10];
-                    if (space && i < len - 1) c[i * k + 2] = ' ';
+                    if (space && i < len - 1)
+                        c[i * k + 2] = ' ';
                     i++;
                 }
                 return new string(c, 0, c.Length - 1);
@@ -299,13 +295,11 @@ namespace Cube.Transport {
             if (chars.Length <= 32) {
                 Write(true);
                 WriteIntInRange(chars.Length, 0, 32);
-            }
-            else if (chars.Length <= 256) {
+            } else if (chars.Length <= 256) {
                 Write(false);
                 Write(true);
                 WriteIntInRange(chars.Length, 0, 256);
-            }
-            else {
+            } else {
                 Write(false);
                 Write(false);
                 Write((ushort)chars.Length);
@@ -324,13 +318,11 @@ namespace Cube.Transport {
             var under32 = ReadBool();
             if (under32) {
                 length = ReadIntInRange(0, 32);
-            }
-            else {
+            } else {
                 var under256 = ReadBool();
                 if (under256) {
                     length = ReadIntInRange(0, 256);
-                }
-                else {
+                } else {
                     length = ReadUShort();
                 }
             }
@@ -426,8 +418,7 @@ namespace Cube.Transport {
                 a = val[(largest + 1) % 4];
                 b = val[(largest + 2) % 4];
                 c = val[(largest + 3) % 4];
-            }
-            else {
+            } else {
                 a = -val[(largest + 1) % 4];
                 b = -val[(largest + 2) % 4];
                 c = -val[(largest + 3) % 4];
@@ -563,14 +554,12 @@ namespace Cube.Transport {
                     count -= 8;
                     readBitOffset += 8;
                     read += 8;
-                }
-                else {
+                } else {
                     int neg = count - 8;
                     if (neg < 0) {
                         buffer[read >> 3] >>= -neg;
                         readBitOffset += 8 + neg;
-                    }
-                    else {
+                    } else {
                         readBitOffset += 8;
                     }
                     read += count;
@@ -616,13 +605,11 @@ namespace Cube.Transport {
                     if ((other.data[other.Position >> 3] & (0x80 >> (other.Position & 7))) != 0) {
                         // Write 1
                         Data[numBitsUsed >> 3] = 0x80;
-                    }
-                    else {
+                    } else {
                         // Write 0
                         Data[numBitsUsed >> 3] = 0;
                     }
-                }
-                else {
+                } else {
                     // Existing byte
                     if ((other.data[other.Position >> 3] & (0x80 >> (other.Position & 7))) != 0) {
                         // Set bit to 1
@@ -659,8 +646,7 @@ namespace Cube.Transport {
 
                 if (numberOfBitsUsedMod8 == 0) {
                     data[numBitsUsed >> 3] = dataByte;
-                }
-                else {
+                } else {
                     data[numBitsUsed >> 3] |= (byte)(dataByte >> numberOfBitsUsedMod8);
 
                     if (8 - (numberOfBitsUsedMod8) < 8 && 8 - (numberOfBitsUsedMod8) < numberOfBitsToWrite)
@@ -670,8 +656,7 @@ namespace Cube.Transport {
                 if (numberOfBitsToWrite >= 8) {
                     numBitsUsed += 8;
                     numberOfBitsToWrite -= 8;
-                }
-                else {
+                } else {
                     numBitsUsed += numberOfBitsToWrite;
                     numberOfBitsToWrite = 0;
                 }
@@ -689,8 +674,7 @@ namespace Cube.Transport {
             int numberOfBitsMod8 = numBitsUsed & 7;
             if (numberOfBitsMod8 == 0) {
                 data[numBitsUsed >> 3] = 0x80;
-            }
-            else {
+            } else {
                 data[numBitsUsed >> 3] |= (byte)(0x80 >> (numberOfBitsMod8));
             }
 
