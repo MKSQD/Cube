@@ -12,7 +12,6 @@ namespace Cube.Networking.Editor {
 
             if (GUILayout.Button("Build")) {
                 Build.BuildWithConfiguration((BuildConfiguration)target);
-                Debug.Log("Build successful");
             }
         }
     }

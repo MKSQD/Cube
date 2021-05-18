@@ -20,17 +20,10 @@ namespace Cube.Networking.Editor {
             if (report.summary.result != BuildResult.Succeeded)
                 return;
 
-            foreach (var assembly in CompilationPipeline.GetAssemblies()) {
-                if ((assembly.flags & AssemblyFlags.EditorAssembly) != 0)
-                    continue;
+            using (var assemblyCache = new CachedAssemblyResolver()) {
+                assemblyCache.AddSearchDirectory(GetAssembliesDirectory());
 
-                //#FIXME: Workaround because unity sucks (no way to check if PlayTest.dll)
-                if (assembly.name == "Cube.Networking.Transport.RuntimeTests" || assembly.name == "Cube.Networking.RuntimeTests")
-                    continue;
-
-                using (var assemblyCache = new CachedAssemblyResolver()) {
-                    assemblyCache.AddSearchDirectory(GetAssembliesDirectory());
-
+                foreach (var assembly in CompilationPipeline.GetAssemblies(AssembliesType.PlayerWithoutTestAssemblies)) {
                     var assemblyPath = GetAssembliesDirectory() + "/" + assembly.name + ".dll";
 
                     var options = AssemblyPostProcessor.PatcherOptions.None;
@@ -40,7 +33,7 @@ namespace Cube.Networking.Editor {
                         options |= AssemblyPostProcessor.PatcherOptions.SkipSymbols;
                     }
 
-                    AssemblyPostProcessor.Start(assemblyPath, assemblyCache, options);
+                    AssemblyPostProcessor.Process(assemblyPath, assemblyCache, options);
                 }
             }
         }

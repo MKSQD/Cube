@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Collections.Generic;
 using UnityEditor;
+using UnityEngine;
 
 namespace Cube.Networking {
     public class Build {
@@ -13,7 +14,7 @@ namespace Cube.Networking {
         public static bool currentConfiguration {
             get { return _currentConfiguration; }
         }
-        
+
         public static void BuildWithConfiguration(string configurationName) {
             BuildWithConfiguration(TryGetConfiguration(configurationName));
         }
@@ -31,12 +32,14 @@ namespace Cube.Networking {
                 _currentConfiguration = configuration;
                 using (var rollback = new Rollback(() => { _currentConfiguration = null; })) {
                     var options = configuration.GetBuildPlayerOptions();
-                    
+
                     configuration.OnPreProcessBuild();
                     var buildReport = BuildPipeline.BuildPlayer(options);
                     configuration.OnPostProcessBuild(buildReport);
                 }
             }
+
+            Debug.Log("*** Build success ***");
         }
 
         public static BuildConfiguration TryGetConfiguration(string name) {

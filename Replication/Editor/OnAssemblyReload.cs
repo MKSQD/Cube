@@ -11,8 +11,7 @@ namespace Cube.Replication.Editor {
         static CachedAssemblyResolver resolver;
 
         static OnAssemblyReload() {
-            CompilationPipeline.assemblyCompilationFinished -= OnCompilationFinished;
-            CompilationPipeline.assemblyCompilationFinished += OnCompilationFinished;
+            CompilationPipeline.assemblyCompilationFinished += ComplicationComplete;
 
             var unityAssemblyPath = Path.GetDirectoryName(EditorApplication.applicationPath);
             if (unityAssemblyPath.Length == 0 || !Directory.Exists(unityAssemblyPath)) {
@@ -37,18 +36,17 @@ namespace Cube.Replication.Editor {
             }
         }
 
-        [MenuItem("Cube/Internal/Force Reload ALL Assemblies")]
-        static void OnReloadAll() {
-            foreach (var assembly in CompilationPipeline.GetAssemblies(AssembliesType.Editor)) {
-                OnCompilationFinished(assembly.outputPath, null);
-            }
+        static void ComplicationComplete(string assemblyPath, CompilerMessage[] compilerMessages) {
+            WeaveAssembly(assemblyPath);
         }
 
-        static void OnCompilationFinished(string assemblyPath, CompilerMessage[] messages) {
-            if (BuildPipeline.isBuildingPlayer)
+        static void WeaveAssembly(string assemblyPath) {
+            if (string.IsNullOrEmpty(assemblyPath))
                 return;
 
-            AssemblyPostProcessor.Start(assemblyPath, resolver);
+            string name = Path.GetFileNameWithoutExtension(assemblyPath);
+            string filePath = Path.Combine(Application.dataPath, "..", assemblyPath);
+            AssemblyPostProcessor.Process(filePath, resolver);
         }
     }
 }
