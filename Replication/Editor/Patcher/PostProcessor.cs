@@ -18,28 +18,28 @@ namespace Cube.Replication {
     /// </summary>
     /// <remarks>Available in: Editor</remarks>
     abstract class PostProcessor {
-        protected ApplicationType appType {
+        protected ApplicationType AppType {
             get;
             private set;
         }
-        protected ModuleDefinition mainModule {
+        protected ModuleDefinition MainModule {
             get;
             private set;
         }
 
         public PostProcessor(ApplicationType appType, ModuleDefinition mainModule) {
-            this.appType = appType;
-            this.mainModule = mainModule;
+            AppType = appType;
+            MainModule = mainModule;
         }
 
-        public abstract void Process(ModuleDefinition module);
+        public abstract bool Process(ModuleDefinition module);
 
         protected TypeReference Import(TypeDefinition type) {
-            return mainModule.ImportReference(type);
+            return MainModule.ImportReference(type);
         }
 
         protected MethodReference Import(MethodDefinition method) {
-            return mainModule.ImportReference(method);
+            return MainModule.ImportReference(method);
         }
 
         protected List<MethodReference> Import(IEnumerable<MethodDefinition> methods) {
@@ -51,7 +51,7 @@ namespace Cube.Replication {
         }
 
         protected FieldReference Import(FieldDefinition field) {
-            return mainModule.ImportReference(field);
+            return MainModule.ImportReference(field);
         }
 
         protected TypeDefinition GetTypeDefinitionByName(AssemblyDefinition assembly, string typeName) {
@@ -186,7 +186,7 @@ namespace Cube.Replication {
         }
 
         protected AssemblyDefinition ResolveAssembly(string name) {
-            var assembly = mainModule.AssemblyResolver.Resolve(new AssemblyNameReference(name, new Version()));
+            var assembly = MainModule.AssemblyResolver.Resolve(new AssemblyNameReference(name, new Version()));
             if (assembly == null) {
                 Debug.LogError("Cannot resolve Assembly '" + name + "'");
             }

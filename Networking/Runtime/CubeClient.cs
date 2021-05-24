@@ -24,9 +24,9 @@ namespace Cube.Networking {
             this.world = world;
             this.networkInterface = networkInterface;
             reactor = new ClientReactor(networkInterface);
-            replicaManager = new ClientReplicaManager(this, NetworkPrefabLookup.instance);
+            replicaManager = new ClientReplicaManager(this, NetworkPrefabLookup.Instance);
         }
-        
+
         public void Update() {
             replicaManager.Update();
             networkInterface.Update();

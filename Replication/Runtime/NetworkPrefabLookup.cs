@@ -1,25 +1,17 @@
 ﻿using UnityEngine;
+using UnityEngine.Assertions;
 
 namespace Cube.Replication {
-    public class NetworkPrefabLookup : ScriptableObject {
-        static NetworkPrefabLookup _instance;
-        public static NetworkPrefabLookup instance {
-            get {
-                if (_instance == null) {
-                    _instance = Resources.Load<NetworkPrefabLookup>("NetworkPrefabLookup");
-                }
-                return _instance;
-            }
-        }
-
-        public GameObject[] prefabs;
+    public class NetworkPrefabLookup : GlobalData<NetworkPrefabLookup> {
+        public GameObject[] Prefabs;
 
         public bool TryGetClientPrefabForIndex(int prefabIdx, out GameObject prefab) {
-            if (prefabIdx >= prefabs.Length) {
+            if (prefabIdx >= Prefabs.Length) {
                 prefab = null;
                 return false;
             }
-            prefab = prefabs[prefabIdx];
+            prefab = Prefabs[prefabIdx];
+            Assert.IsTrue(prefab.GetComponent<Replica>().prefabIdx == prefabIdx);
             return true;
         }
     }

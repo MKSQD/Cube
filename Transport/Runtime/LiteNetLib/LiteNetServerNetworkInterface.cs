@@ -37,7 +37,7 @@ namespace Cube.Transport {
         public void Update() {
             server.PollEvents();
             BitStreamPool.FrameReset();
-            
+
 #if UNITY_EDITOR
             TransportDebugger.CycleFrame();
 
@@ -63,8 +63,8 @@ namespace Cube.Transport {
 
         public void OnNetworkReceive(NetPeer peer, NetPacketReader reader, DeliveryMethod deliveryMethod) {
             var bs = BitStream.CreateWithExistingBuffer(reader.RawData,
-                    reader.UserDataOffset * 8,
-                    reader.RawDataSize * 8);
+                reader.UserDataOffset * 8,
+                reader.RawDataSize * 8);
 
             ReceivedPacket(bs, new Connection((ulong)peer.Id));
 

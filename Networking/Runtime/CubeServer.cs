@@ -4,19 +4,19 @@ using System.Collections.Generic;
 
 namespace Cube.Networking {
     public class CubeServer : ICubeServer {
-        public IServerNetworkInterface networkInterface {
+        public IServerNetworkInterface NetworkInterface {
             get;
             internal set;
         }
-        public ServerReactor reactor {
+        public ServerReactor Reactor {
             get;
             internal set;
         }
-        public IServerReplicaManager replicaManager {
+        public IServerReplicaManager ReplicaManager {
             get;
             internal set;
         }
-        public IWorld world {
+        public IWorld World {
             get;
             internal set;
         }
@@ -27,27 +27,28 @@ namespace Cube.Networking {
 
         public CubeServer(IWorld world, IServerNetworkInterface networkInterface, ServerReplicaManagerSettings replicaManagerSettings) {
             connections = new List<Connection>();
-            this.world = world;
+            World = world;
 
-            this.networkInterface = networkInterface;
+            NetworkInterface = networkInterface;
             networkInterface.NewConnectionEstablished += OnNewConnectionEstablished;
             networkInterface.DisconnectNotification += OnDisconnectNotification;
 
-            reactor = new ServerReactor(networkInterface);
-            replicaManager = new ServerReplicaManager(this, replicaManagerSettings);
+            Reactor = new ServerReactor(networkInterface);
+
+            ReplicaManager = new ServerReplicaManager(this, replicaManagerSettings);
         }
 
         public void Update() {
-            replicaManager.Update();
-            networkInterface.Update();
+            ReplicaManager.Update();
+            NetworkInterface.Update();
         }
 
         public void Shutdown() {
-            networkInterface.Shutdown();
+            NetworkInterface.Shutdown();
 
-            replicaManager = null;
-            reactor = null;
-            networkInterface = null;
+            ReplicaManager = null;
+            Reactor = null;
+            NetworkInterface = null;
         }
 
         void OnNewConnectionEstablished(Connection connection) {

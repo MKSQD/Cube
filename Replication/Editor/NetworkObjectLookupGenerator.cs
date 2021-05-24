@@ -2,13 +2,23 @@
 using UnityEditor;
 using UnityEditor.Callbacks;
 using UnityEngine;
+using UnityEngine.AddressableAssets;
 
 namespace Cube.Replication {
     public class NetworkObjectLookupGenerator {
-        [MenuItem("Cube/Internal/Force Refresh NetworkObject Lookup")]
+        [MenuItem("Cube/Internal/Force refresh NetworkObjectLookup")]
+        static void Force() {
+            Generate();
+            Debug.Log("Done");
+        }
+
         [DidReloadScripts]
-        public static void ForceRefreshCode() {
+        public static void Generate() {
+            if (BuildPipeline.isBuildingPlayer)
+                return; // No need to regenerate the data while building
+
             var networkObjects = new List<NetworkObject>();
+            var refs = new List<AssetReference>();
 
             var assetGuids = AssetDatabase.FindAssets("t:NetworkObject");
             foreach (var assetGuid in assetGuids) {
@@ -20,28 +30,24 @@ namespace Cube.Replication {
                     continue;
                 }
 
-                networkObjects.Add(asset);
-            }
-
-            var lookup = ScriptableObject.CreateInstance<NetworkObjectLookup>();
-            lookup.entries = networkObjects.ToArray();
-
-            //
-            var newLookupPath = "Assets/Cube/Resources/NetworkObjectLookup.asset";
-
-            var oldLookup = AssetDatabase.LoadAssetAtPath<NetworkObjectLookup>(newLookupPath);
-            if (lookup == oldLookup)
-                return;
-
-            for (int i = 0; i < networkObjects.Count; ++i) {
-                var networkObject = networkObjects[i];
-                if (networkObject.networkAssetId != i) {
-                    networkObject.networkAssetId = i;
-                    EditorUtility.SetDirty(networkObject);
+                if (asset.networkAssetId != networkObjects.Count) {
+                    asset.networkAssetId = networkObjects.Count;
+                    EditorUtility.SetDirty(asset);
                 }
+
+                networkObjects.Add(asset);
+                refs.Add(new AssetReference(assetGuid));
             }
 
-            AssetDatabase.CreateAsset(lookup, newLookupPath);
+            var newEntries = networkObjects.ToArray();
+
+            var lookup = NetworkObjectLookup.Instance;
+
+            if (!newEntries.Equals(lookup.Entries)) {
+                lookup.Entries = newEntries;
+
+                EditorUtility.SetDirty(lookup);
+            }
         }
     }
 }

@@ -1,6 +1,4 @@
 ﻿using Cube.Transport;
-using System.Collections.Generic;
-using System.Reflection;
 using UnityEngine;
 using BitStream = Cube.Transport.BitStream;
 
@@ -32,8 +30,9 @@ namespace Cube.Replication {
         public virtual void SerializeDestruction(BitStream bs, SerializeContext ctx) { }
         public virtual void DeserializeDestruction(BitStream bs) { }
 
+        /// Do NOT manually overwrite this. RpcPatcher will generate this dispatch table automatically.
         public virtual void DispatchRpc(byte methodIdx, BitStream bs) {
-            Debug.LogError("Pure virtual RPC called, Cube Patcher needs to run");
+            Debug.LogError("Pure virtual RPC called, RpcPatcher needs to run");
         }
     }
 }

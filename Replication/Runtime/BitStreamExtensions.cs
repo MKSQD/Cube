@@ -20,13 +20,13 @@ namespace Cube.Replication {
         }
 
         public static void WriteNetworkObject(this BitStream bs, NetworkObject networkObject) {
-            var max = NetworkObjectLookup.Instance.entries.Length;
+            var max = NetworkObjectLookup.Instance.Entries.Length;
             var idx = networkObject != null ? networkObject.networkAssetId : -1;
             bs.WriteIntInRange(idx, -1, max);
         }
 
         public static T ReadNetworkObject<T>(this BitStream bs) where T : NetworkObject {
-            var max = NetworkObjectLookup.Instance.entries.Length;
+            var max = NetworkObjectLookup.Instance.Entries.Length;
             var id = bs.ReadIntInRange(-1, max);
 
             return (T)NetworkObjectLookup.Instance.CreateFromNetworkAssetId(id);

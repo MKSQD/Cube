@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.ResourceManagement.AsyncOperations;
+using UnityEngine.SceneManagement;
 
 namespace Cube.Replication {
     public interface IServerReplicaManager : IReplicaManager {
@@ -11,7 +12,10 @@ namespace Cube.Replication {
         }
 
         void Update();
-        
+
+        void ProcessSceneReplicasInScene(Scene scene);
+
+
         GameObject InstantiateReplica(GameObject prefab);
         GameObject InstantiateReplica(GameObject prefab, Vector3 position);
         GameObject InstantiateReplica(GameObject prefab, Vector3 position, Quaternion rotation);

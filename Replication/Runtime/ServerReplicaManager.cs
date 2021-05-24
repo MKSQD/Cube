@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Linq;
 using System.Collections.ObjectModel;
 using System.Collections.Generic;
 using UnityEngine.SceneManagement;
@@ -23,9 +22,7 @@ namespace Cube.Replication {
 
         [SerializeField]
         List<ReplicaView> replicaViews = new List<ReplicaView>();
-        public List<ReplicaView> ReplicaViews {
-            get { return replicaViews; }
-        }
+        public List<ReplicaView> ReplicaViews => replicaViews;
 
         readonly ServerReplicaManagerSettings settings;
 
@@ -47,18 +44,19 @@ namespace Cube.Replication {
             networkScene = new NetworkScene();
 
             this.server = server;
-            server.reactor.AddMessageHandler((byte)MessageId.ReplicaRpc, OnReplicaRpc);
+            server.Reactor.AddMessageHandler((byte)MessageId.ReplicaRpc, OnReplicaRpc);
 
             this.settings = settings;
 
-            SceneManager.sceneLoaded += OnSceneLoaded;
+            SceneManager.sceneLoaded += (scene, mode) => ProcessSceneReplicasInScene(scene);
 
 #if UNITY_EDITOR
             Main = this;
 #endif
         }
 
-        void OnSceneLoaded(Scene scene, LoadSceneMode mode) {
+        /// Scan a newly loaded Scene for scene Replicas.
+        public void ProcessSceneReplicasInScene(Scene scene) {
             var sceneReplicas = new List<Replica>();
             foreach (var go in scene.GetRootGameObjects()) {
                 foreach (var replica in go.GetComponentsInChildren<Replica>()) {
@@ -102,7 +100,7 @@ namespace Cube.Replication {
             if (prefab == null)
                 throw new ArgumentNullException("prefab");
 
-            var newInstance = UnityEngine.Object.Instantiate(prefab, position, rotation, server.world.transform);
+            var newInstance = UnityEngine.Object.Instantiate(prefab, position, rotation, server.World.transform);
             var replica = InstantiateReplicaImpl(newInstance);
             if (replica == null) {
                 Debug.LogError("Prefab <i>" + prefab + "</i> is missing Replica Component", prefab);
@@ -133,7 +131,7 @@ namespace Cube.Replication {
         }
 
         public AsyncOperationHandle<GameObject> InstantiateReplicaAsync(object key, Vector3 position, Quaternion rotation) {
-            var newInstance = Addressables.InstantiateAsync(key, position, rotation, server.world.transform);
+            var newInstance = Addressables.InstantiateAsync(key, position, rotation, server.World.transform);
             newInstance.Completed += obj => {
                 var replica = InstantiateReplicaImpl(obj.Result);
                 if (replica == null) {
@@ -238,7 +236,7 @@ namespace Cube.Replication {
 #endif
                 }
 
-                foreach (var replica in networkScene.replicas) {
+                foreach (var replica in networkScene.Replicas) {
                     replica.queuedRpcs.Clear();
                 }
 
@@ -267,8 +265,7 @@ namespace Cube.Replication {
                         replica.Id = ReplicaId.Invalid;
                         UnityEngine.Object.Destroy(replica.gameObject);
                     }
-                }
-                finally {
+                } finally {
                     replicasInDestruction.Clear();
                 }
             }
@@ -341,7 +338,7 @@ namespace Cube.Replication {
                 TransportDebugger.EndScope(updateBs.LengthInBits);
 #endif
 
-                server.networkInterface.SendBitStream(updateBs,
+                server.NetworkInterface.SendBitStream(updateBs,
                     PacketPriority.Medium,
                     PacketReliability.Unreliable,
                     view.Connection);
@@ -364,9 +361,9 @@ namespace Cube.Replication {
                     TransportDebugger.BeginScope("Replica RPC " + queuedRpc.target);
 #endif
 
-                    server.networkInterface.SendBitStream(queuedRpc.bs,
-                        PacketPriority.Low, 
-                        PacketReliability.Unreliable, 
+                    server.NetworkInterface.SendBitStream(queuedRpc.bs,
+                        PacketPriority.Low,
+                        PacketReliability.Unreliable,
                         view.Connection);
 
 #if UNITY_EDITOR
@@ -400,7 +397,7 @@ namespace Cube.Replication {
                 oldAccs.Add(replica, view.RelevantReplicaPriorityAccumulator[i]);
             }
 
-            GatherRelevantReplicas(networkScene.replicas, view, view.RelevantReplicas);
+            GatherRelevantReplicas(networkScene.Replicas, view, view.RelevantReplicas);
 
             view.RelevantReplicaPriorityAccumulator.Clear();
             foreach (var replica in view.RelevantReplicas) {
@@ -491,7 +488,7 @@ namespace Cube.Replication {
             TransportDebugger.EndScope(destroyBs.LengthInBits);
 #endif
 
-            server.networkInterface.SendBitStream(destroyBs, PacketPriority.Medium, PacketReliability.Unreliable, view.Connection);
+            server.NetworkInterface.SendBitStream(destroyBs, PacketPriority.Medium, PacketReliability.Unreliable, view.Connection);
         }
 
         public ReplicaView GetReplicaView(Connection connection) {

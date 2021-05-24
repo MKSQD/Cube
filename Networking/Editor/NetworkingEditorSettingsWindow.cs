@@ -51,7 +51,7 @@ namespace Cube.Networking {
         void Save() {
             var definitions = new ScriptDefinitions(BuildTargetGroup.Standalone);
             definitions.Set("SERVER", (_appType & ApplicationType.Server) != 0);
-            definitions.Set("CLIENT", (_appType  & ApplicationType.Client) != 0);
+            definitions.Set("CLIENT", (_appType & ApplicationType.Client) != 0);
             definitions.Set("CUBE_DEBUG_REP", _debugReplication);
             definitions.Set("CUBE_DEBUG_TRA", _debugTransport);
             definitions.Write();

@@ -12,19 +12,12 @@ namespace Cube.Replication.Editor {
     class RpcPostProcessor : PostProcessor {
         const string RPC_IMPL = "_RpcImpl";
 
-        TypeDefinition _replicaBehaviourType;
         TypeDefinition replicaType;
         FieldReference replicaIdField;
 
         TypeReference _voidTypeReference;
-        TypeReference _objectTypeReference;
-        TypeReference _systemTypeTypeReference;
-
-        MethodReference _systemTypeGetTypeFromHandleMethod;
-        MethodReference _systemTypeGetMethodMethod;
 
         MethodReference _debugLogErrorMethod;
-        MethodReference _dictionaryAddMethod;
 
         MethodReference queueServerRpcMethod;
         FieldReference replicaComponentIdxField;
@@ -78,7 +71,7 @@ namespace Cube.Replication.Editor {
                 bitStreamRead[readMethod.ReturnType.Name] = readMethod;
             }
 
-            _replicaBehaviourType = GetTypeDefinitionByName(replicationAssembly, "Cube.Replication.ReplicaBehaviour");
+            var replicaBehaviourType = GetTypeDefinitionByName(replicationAssembly, "Cube.Replication.ReplicaBehaviour");
             replicaType = GetTypeDefinitionByName(replicationAssembly, "Cube.Replication.Replica");
             replicaIdField = Import(GetFieldDefinitionByName(replicaType, "Id"));
 
@@ -87,13 +80,13 @@ namespace Cube.Replication.Editor {
 
             queueServerRpcMethod = Import(GetMethodDefinitionByName(replicaType, "QueueServerRpc"));
 
-            replicaComponentIdxField = Import(GetFieldDefinitionByName(_replicaBehaviourType, "replicaComponentIdx"));
-            replicaField = Import(GetFieldDefinitionByName(_replicaBehaviourType, "Replica"));
+            replicaComponentIdxField = Import(GetFieldDefinitionByName(replicaBehaviourType, "replicaComponentIdx"));
+            replicaField = Import(GetFieldDefinitionByName(replicaBehaviourType, "Replica"));
 
-            _isServerProperty = GetPropertyDefinitionByName(_replicaBehaviourType, "isServer");
-            _isClientProperty = GetPropertyDefinitionByName(_replicaBehaviourType, "isClient");
-            clientProperty = GetPropertyDefinitionByName(_replicaBehaviourType, "client");
-            replicaManagerProperty = GetPropertyDefinitionByName(_replicaBehaviourType, "ReplicaManager");
+            _isServerProperty = GetPropertyDefinitionByName(replicaBehaviourType, "isServer");
+            _isClientProperty = GetPropertyDefinitionByName(replicaBehaviourType, "isClient");
+            clientProperty = GetPropertyDefinitionByName(replicaBehaviourType, "client");
+            replicaManagerProperty = GetPropertyDefinitionByName(replicaBehaviourType, "ReplicaManager");
 
             var cubeClientType = GetTypeDefinitionByName(replicationAssembly, "Cube.Replication.ICubeClient");
             networkInterfaceProperty = GetPropertyDefinitionByName(cubeClientType, "networkInterface");
@@ -101,48 +94,43 @@ namespace Cube.Replication.Editor {
             var ireplicaManager = GetTypeDefinitionByName(replicationAssembly, "Cube.Replication.IReplicaManager");
             replicaManagerGetReplicaMethod = GetMethodDefinitionByName(ireplicaManager, "GetReplica");
 
-
-
             _voidTypeReference = module.TypeSystem.Void;
-            _objectTypeReference = module.TypeSystem.Object;
-            _systemTypeTypeReference = module.ImportReference(typeof(Type));
-
-            _systemTypeGetTypeFromHandleMethod = module.ImportReference(typeof(Type).GetMethod("GetTypeFromHandle", new Type[] { typeof(RuntimeTypeHandle) }));
-            _systemTypeGetMethodMethod = module.ImportReference(typeof(Type).GetMethod("GetMethod", new Type[] {
-                        typeof(string),
-                        typeof(BindingFlags),
-                        typeof(Binder),
-                        typeof(Type[]),
-                        typeof(ParameterModifier[])
-                    }));
-
-            _dictionaryAddMethod = module.Assembly.MainModule.ImportReference(typeof(Dictionary<byte, string>).GetMethod("Add"));
         }
 
-        public override void Process(ModuleDefinition module) {
+        public override bool Process(ModuleDefinition module) {
+            var anythingChanged = false;
+
             foreach (var type in module.Types) {
                 try {
-                    ProcessType(type, module);
+                    var changed = ProcessType(type, module);
+                    if (changed) {
+                        anythingChanged = true;
+                    }
                 } catch (Exception e) {
                     Debug.LogException(e);
                 }
 
                 foreach (var nestedType in type.NestedTypes) {
                     try {
-                        ProcessType(nestedType, module);
+                        var changed = ProcessType(nestedType, module);
+                        if (changed) {
+                            anythingChanged = true;
+                        }
                     } catch (Exception e) {
                         Debug.LogException(e);
                     }
                 }
             }
+
+            return anythingChanged;
         }
 
-        void ProcessType(TypeDefinition type, ModuleDefinition module) {
+        bool ProcessType(TypeDefinition type, ModuleDefinition module) {
             if (!type.IsClass || !type.HasMethods)
-                return;
+                return false;
 
             if (processedTypes.Contains(type.FullName))
-                return;
+                return false;
 
             processedTypes.Add(type.FullName);
 
@@ -187,19 +175,22 @@ namespace Cube.Replication.Editor {
                 }
             }
 
-            if (remoteMethods.Count > 0) {
-                var dispatchRpcs = CreateDispatchRpcs(remoteMethods);
-                type.Methods.Add(dispatchRpcs);
+            if (remoteMethods.Count == 0)
+                return false;
 
-                foreach (var method in remoteMethods) {
-                    type.Methods.Add(method);
-                }
+            var dispatchRpcs = CreateDispatchRpcs(remoteMethods);
+            type.Methods.Add(dispatchRpcs);
+
+            foreach (var method in remoteMethods) {
+                type.Methods.Add(method);
             }
+
+            return true; // => changed
         }
 
         MethodDefinition CreateDispatchRpcs(List<MethodDefinition> remoteMethods) {
             var method = new MethodDefinition("DispatchRpc", Mono.Cecil.MethodAttributes.Public | Mono.Cecil.MethodAttributes.HideBySig | Mono.Cecil.MethodAttributes.Virtual, _voidTypeReference);
-            method.Parameters.Add(new ParameterDefinition("methodIdx", Mono.Cecil.ParameterAttributes.None, mainModule.TypeSystem.Byte));
+            method.Parameters.Add(new ParameterDefinition("methodIdx", Mono.Cecil.ParameterAttributes.None, MainModule.TypeSystem.Byte));
             method.Parameters.Add(new ParameterDefinition("bs", Mono.Cecil.ParameterAttributes.None, Import(bitStreamType)));
 
             method.Body.InitLocals = true;
@@ -276,7 +267,7 @@ namespace Cube.Replication.Editor {
 
                         MethodInfo openGenericMethod = typeof(BitStreamExtensions).GetMethod("ReadNetworkObject");
                         MethodInfo closedGenericMethod = openGenericMethod.MakeGenericMethod(typeof(NetworkObject));
-                        MethodReference mr = mainModule.ImportReference(closedGenericMethod);
+                        MethodReference mr = MainModule.ImportReference(closedGenericMethod);
 
                         il.Emit(OpCodes.Ldarg_2);
                         il.Emit(OpCodes.Call, mr);

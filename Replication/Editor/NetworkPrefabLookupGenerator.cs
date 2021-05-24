@@ -15,14 +15,21 @@ namespace Cube.Replication {
             EditorSceneManager.sceneSaving -= OnSceneSaving;
             EditorSceneManager.sceneSaving += OnSceneSaving;
 
-            GenerateNetworkPrefabLookupImpl();
+            Generate();
         }
 
-        [MenuItem("Cube/Internal/Force Refresh NetworkPrefab Lookup")]
-        static void GenerateNetworkPrefabLookupImpl() {
+        [MenuItem("Cube/Internal/Force refresh NetworkPrefabLookup")]
+        static void Force() {
+            Generate();
+            Debug.Log("Done");
+        }
+
+        static void Generate() {
+            if (BuildPipeline.isBuildingPlayer)
+                return; // No need to regenerate the data while building
+
             var prefabs = new List<GameObject>();
 
-            ushort nextPrefabIdx = 0;
             var assetGuids = AssetDatabase.FindAssets("t:Prefab");
             foreach (var assetGuid in assetGuids) {
                 var serverAssetPath = AssetDatabase.GUIDToAssetPath(assetGuid);
@@ -52,14 +59,14 @@ namespace Cube.Replication {
                 }
 
                 var serverReplica = serverPrefab.GetComponent<Replica>();
-                if (serverReplica.prefabIdx != nextPrefabIdx) {
-                    serverReplica.prefabIdx = nextPrefabIdx;
+                if (serverReplica.prefabIdx != prefabs.Count) {
+                    serverReplica.prefabIdx = (ushort)prefabs.Count;
                     EditorUtility.SetDirty(serverPrefab);
                 }
 
                 var clientReplica = clientPrefab.GetComponent<Replica>();
-                if (clientReplica.prefabIdx != nextPrefabIdx) {
-                    clientReplica.prefabIdx = nextPrefabIdx;
+                if (clientReplica.prefabIdx != prefabs.Count) {
+                    clientReplica.prefabIdx = (ushort)prefabs.Count;
                     EditorUtility.SetDirty(clientPrefab);
                 }
 
@@ -74,22 +81,13 @@ namespace Cube.Replication {
                 }
 
                 prefabs.Add(clientPrefab);
-                nextPrefabIdx++;
             }
-
-            //GetOrCreateLookup()
-            var lookup = NetworkPrefabLookup.instance;
-            if (lookup == null) {
-                lookup = ScriptableObject.CreateInstance<NetworkPrefabLookup>();
-
-                var path = "Assets/Cube/Resources/NetworkPrefabLookup.asset";
-                AssetDatabase.CreateAsset(lookup, path);
-            }
-            ////////////////
 
             var newPrefabs = prefabs.ToArray();
-            if (!lookup.prefabs.Equals(newPrefabs)) {
-                lookup.prefabs = newPrefabs;
+
+            var lookup = NetworkPrefabLookup.Instance;
+            if (lookup.Prefabs == null || !lookup.Prefabs.Equals(newPrefabs)) {
+                lookup.Prefabs = newPrefabs;
                 EditorUtility.SetDirty(lookup);
             }
         }

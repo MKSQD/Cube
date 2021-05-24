@@ -54,17 +54,17 @@ namespace Cube.Transport {
         }
 
         public void OnPeerDisconnected(NetPeer peer, DisconnectInfo disconnectInfo) {
-            throw new NotImplementedException();
+            Disconnected(disconnectInfo.Reason.ToString());
         }
 
         public void OnNetworkError(IPEndPoint endPoint, SocketError socketError) {
-            
+            NetworkError();
         }
 
         public void OnNetworkReceive(NetPeer peer, NetPacketReader reader, DeliveryMethod deliveryMethod) {
             var bs = BitStream.CreateWithExistingBuffer(reader.RawData,
-                     reader.UserDataOffset * 8,
-                     reader.RawDataSize * 8);
+                reader.UserDataOffset * 8,
+                reader.RawDataSize * 8);
 
             ReceivedPacket(bs);
 

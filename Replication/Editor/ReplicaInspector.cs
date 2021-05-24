@@ -1,6 +1,4 @@
-﻿#if UNITY_EDITOR
-
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEditor;
 using System;
 
@@ -16,25 +14,28 @@ namespace Cube.Replication.Editor {
 
             var replica = target as Replica;
 
-            EditorGUILayout.LabelField("Is Owner", replica.IsOwner.ToString());
-
+            GUILayout.BeginHorizontal();
             EditorGUILayout.LabelField("Prefab ID", replica.prefabIdx.ToString());
-
-            if (EditorApplication.isPlaying) {
-                EditorGUILayout.LabelField("Replica ID", replica.Id.Data.ToString());
-            }
-
             if (replica.isSceneReplica) {
                 EditorGUILayout.LabelField("Scene Idx", replica.sceneIdx.ToString());
             }
+            GUILayout.EndHorizontal();
 
             if (EditorApplication.isPlaying) {
-                if (GUILayout.Button("Find " + (replica.isClient ? "Server" : "Client") + " Replica")) {
+                EditorGUILayout.LabelField("Replica ID", replica.Id.Data.ToString());
+                EditorGUILayout.LabelField("Is Owner", replica.IsOwner.ToString());
+
+                GUILayout.BeginHorizontal();
+
+                var what = replica.isClient ? "Server" : "Client";
+                if (GUILayout.Button("Find " + what)) {
                     ApplyToCorrespondingReplica(replica, cr => EditorGUIUtility.PingObject(cr.transform.gameObject));
                 }
-                if (GUILayout.Button("Select " + (replica.isClient ? "Server" : "Client") + " Replica")) {
+                if (GUILayout.Button("Select " + what)) {
                     ApplyToCorrespondingReplica(replica, cr => Selection.activeGameObject = cr.transform.gameObject);
                 }
+
+                GUILayout.EndHorizontal();
             }
         }
 
@@ -69,4 +70,3 @@ namespace Cube.Replication.Editor {
         }
     }
 }
-#endif

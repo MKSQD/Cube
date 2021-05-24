@@ -530,7 +530,9 @@ namespace Cube.Transport {
 
         public unsafe int Read(byte* buffer, int count) {
             Assert.IsTrue(count > 0);
-            Assert.IsTrue(readBitOffset + count <= numBitsUsed);
+
+            if (readBitOffset + count > numBitsUsed)
+                throw new InvalidOperationException("BitStream exhausted");
 
             var readOffsetMod8 = readBitOffset & 7;
             if ((readBitOffset & 7) == 0 && (count & 7) == 0) {

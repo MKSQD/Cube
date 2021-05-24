@@ -1,7 +1,5 @@
 ﻿using Cube.Transport;
-using System;
 using System.Collections.Generic;
-using System.Reflection;
 using UnityEngine;
 using UnityEngine.Assertions;
 using BitStream = Cube.Transport.BitStream;
@@ -37,7 +35,7 @@ namespace Cube.Replication {
 
         public ICubeServer server;
         public ICubeClient client;
-        public IReplicaManager ReplicaManager => server != null ? (IReplicaManager)server.replicaManager : client.replicaManager;
+        public IReplicaManager ReplicaManager => server != null ? (IReplicaManager)server.ReplicaManager : client.replicaManager;
 
         public bool isServer => server != null;
         public bool isClient => client != null;
@@ -134,7 +132,7 @@ namespace Cube.Replication {
             if (!isServer)
                 return;
 
-            server.replicaManager.DestroyReplica(this);
+            server.ReplicaManager.DestroyReplica(this);
         }
 
         /// <summary>
@@ -147,7 +145,7 @@ namespace Cube.Replication {
             if (!isServer)
                 return;
 
-            server.replicaManager.RemoveReplica(this);
+            server.ReplicaManager.RemoveReplica(this);
         }
 
         public void Serialize(BitStream bs, ReplicaBehaviour.SerializeContext ctx) {
@@ -220,7 +218,7 @@ namespace Cube.Replication {
                 client.replicaManager.RemoveReplica(this);
             }
             if (isServer) {
-                server.replicaManager.RemoveReplica(this);
+                server.ReplicaManager.RemoveReplica(this);
             }
         }
 
@@ -248,8 +246,7 @@ namespace Cube.Replication {
 
                 var replicaBehaviour = _replicaBehaviours[componentIdx];
                 replicaBehaviour.DispatchRpc(methodId, bs);
-            }
-            finally {
+            } finally {
                 ReplicaBehaviour.rpcConnection = Connection.Invalid;
             }
         }

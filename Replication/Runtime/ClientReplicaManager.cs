@@ -78,7 +78,7 @@ namespace Cube.Replication {
 
             nextUpdateTime = Time.time + 1;
 
-            var replicas = networkScene.replicas;
+            var replicas = networkScene.Replicas;
             for (int i = 0; i < replicas.Count; ++i) {
                 var replica = replicas[i];
                 if (replica == null || replica.isSceneReplica)
@@ -128,8 +128,7 @@ namespace Cube.Replication {
 
             try {
                 replica.Deserialize(bs);
-            }
-            catch (Exception e) {
+            } catch (Exception e) {
                 Debug.LogException(e, replica.gameObject);
             }
 
