@@ -35,7 +35,9 @@ namespace Cube.Replication.Editor {
                 return;
 
             if (CompilerMessagesContainError(compilerMessages)) {
+#if CUBE_DEBUG_REP
                 UnityEngine.Debug.Log($"RPC Patcher stop because compile errors on target: {assemblyPath}");
+#endif
                 return;
             }
 
@@ -72,8 +74,7 @@ namespace Cube.Replication.Editor {
 
         static HashSet<string> GetDependecyPaths(string assemblyPath) {
             // build directory list for later asm/symbol resolving using CompilationPipeline refs
-            HashSet<string> dependencyPaths = new HashSet<string>
-            {
+            HashSet<string> dependencyPaths = new HashSet<string> {
                 Path.GetDirectoryName(assemblyPath)
             };
             foreach (Assembly unityAsm in CompilationPipeline.GetAssemblies()) {

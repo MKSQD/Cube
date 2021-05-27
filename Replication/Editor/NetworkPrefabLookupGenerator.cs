@@ -12,8 +12,8 @@ namespace Cube.Replication {
         const string SERVER_PREFAB_PREFIX = "Server_";
 
         static void OnPostprocessAllAssets(string[] importedAssets, string[] deletedAssets, string[] movedAssets, string[] movedFromAssetPaths) {
-            EditorSceneManager.sceneSaving -= OnSceneSaving;
-            EditorSceneManager.sceneSaving += OnSceneSaving;
+            EditorSceneManager.sceneSaving -= ProcessSceneReplicasInScene;
+            EditorSceneManager.sceneSaving += ProcessSceneReplicasInScene;
 
             Generate();
         }
@@ -92,7 +92,7 @@ namespace Cube.Replication {
             }
         }
 
-        static void OnSceneSaving(Scene scene, string path) {
+        static void ProcessSceneReplicasInScene(Scene scene, string path) {
             var sceneReplicas = new List<Replica>();
             foreach (var go in scene.GetRootGameObjects()) {
                 foreach (var replica in go.GetComponentsInChildren<Replica>()) {

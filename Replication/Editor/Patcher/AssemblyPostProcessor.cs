@@ -2,8 +2,6 @@
 using System.IO;
 using System.Linq;
 using Mono.Cecil;
-using UnityEditor;
-using UnityEngine;
 
 #if UNITY_EDITOR
 namespace Cube.Replication.Editor {
@@ -35,20 +33,14 @@ namespace Cube.Replication.Editor {
             var watch = new System.Diagnostics.Stopwatch();
             watch.Start();
 
-            var readerParameters = new ReaderParameters() {
-                AssemblyResolver = assemblyResolver,
-                ReadWrite = true,
-                ReadingMode = ReadingMode.Immediate,
-                //ReadSymbols = true,
-                //SymbolReaderProvider = new Mono.Cecil.Pdb.PdbReaderProvider()
-            };
-
-            var writerParameters = new WriterParameters() {
-                //WriteSymbols = true,
-                // SymbolWriterProvider = new Mono.Cecil.Pdb.NativePdbWriterProvider()
-            };
-
             try {
+                var readerParameters = new ReaderParameters() {
+                    AssemblyResolver = assemblyResolver,
+                    ReadWrite = true,
+                    ReadingMode = ReadingMode.Immediate,
+                    ReadSymbols = true
+                };
+
                 using (var assembly = AssemblyDefinition.ReadAssembly(assemblyPath, readerParameters)) {
                     var hasRefToReplication = assembly.MainModule.AssemblyReferences.Any(r => r.Name == "Cube.Replication");
                     if (!hasRefToReplication)
@@ -65,9 +57,14 @@ namespace Cube.Replication.Editor {
                     }
 
                     if (anythingChanged) {
+                        var writerParameters = new WriterParameters() {
+                            WriteSymbols = true
+                        };
+
                         assembly.Write(writerParameters);
                     }
                 }
+#pragma warning disable CS016 // The variable 'e' is declared but never used
             } catch (IOException e) {
 #if CUBE_DEBUG_REP
                 Debug.Log($"While processing {assemblyPath}:");
@@ -80,6 +77,7 @@ namespace Cube.Replication.Editor {
             } catch (Exception e) {
                 throw new Exception($"RPC Patcher failed (assembly = {assemblyPath}, appType = {appType})", e);
             }
+#pragma warning restore CS016
 
             watch.Stop();
 #if CUBE_DEBUG_REP
