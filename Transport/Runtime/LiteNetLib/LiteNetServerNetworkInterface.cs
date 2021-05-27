@@ -80,7 +80,7 @@ namespace Cube.Transport {
         public void OnConnectionRequest(ConnectionRequest request) {
             var bs = BitStream.CreateWithExistingBuffer(request.Data.RawData,
                 request.Data.UserDataOffset * 8,
-                request.Data.UserDataSize * 8);
+                request.Data.RawDataSize * 8);
 
             var approvalResult = ApproveConnection.Invoke(bs);
             if (!approvalResult.Approved) {
