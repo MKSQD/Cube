@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using UnityEditor;
 using UnityEditor.Callbacks;
 using UnityEngine;
@@ -42,8 +43,7 @@ namespace Cube.Replication {
             var newEntries = networkObjects.ToArray();
 
             var lookup = NetworkObjectLookup.Instance;
-
-            if (!newEntries.Equals(lookup.Entries)) {
+            if (!newEntries.SequenceEqual(lookup.Entries)) {
                 lookup.Entries = newEntries;
 
                 EditorUtility.SetDirty(lookup);
