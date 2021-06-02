@@ -170,21 +170,12 @@ namespace Cube.Replication {
         }
 
         void OnReplicaDestroy(BitStream bs) {
-            while (true) {
-                var replicaId = bs.ReadReplicaId();
-                if (replicaId == ReplicaId.Invalid)
-                    break;
+            var replicaId = bs.ReadReplicaId();
 
-                var absOffset = bs.ReadUShort();
-
-                var replica = networkScene.GetReplicaById(replicaId);
-                if (replica != null) {
-                    replica.DeserializeDestruction(bs);
-                    UnityEngine.Object.Destroy(replica.gameObject);
-                }
-
-                bs.Position = absOffset;
-                bs.AlignReadToByteBoundary();
+            var replica = networkScene.GetReplicaById(replicaId);
+            if (replica != null) {
+                replica.DeserializeDestruction(bs);
+                UnityEngine.Object.Destroy(replica.gameObject);
             }
         }
     }

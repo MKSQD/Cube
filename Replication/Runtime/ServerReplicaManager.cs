@@ -456,39 +456,36 @@ namespace Cube.Replication {
         void SendDestroyedReplicasToReplicaView(ReplicaView view) {
             Assert.IsTrue(replicasInDestruction.Count > 0);
 
-#if UNITY_EDITOR
-            TransportDebugger.BeginScope("ReplicaDestroy");
-#endif
 
-            var destroyBs = BitStreamPool.Create();
-            destroyBs.Write((byte)MessageId.ReplicaDestroy);
+
+
+
+
 
             foreach (var replica in replicasInDestruction) {
                 var wasInterestedInReplica = view.RelevantReplicas.Contains(replica);
                 if (!wasInterestedInReplica)
                     continue;
 
-                destroyBs.Write(replica.Id);
-
-                // Serialize custom destruction data
-                var replicaDestructionBs = BitStreamPool.Create();
-                replica.SerializeDestruction(replicaDestructionBs, new ReplicaBehaviour.SerializeContext() {
-                    Observer = view
-                });
-
-                var absOffset = (ushort)(destroyBs.LengthInBits + 16 + replicaDestructionBs.LengthInBits);
-                destroyBs.Write(absOffset);
-                destroyBs.Write(replicaDestructionBs);
-                destroyBs.AlignWriteToByteBoundary();
-            }
-
-            destroyBs.Write(ReplicaId.Invalid);
-
 #if UNITY_EDITOR
-            TransportDebugger.EndScope(destroyBs.LengthInBits);
+                TransportDebugger.BeginScope("ReplicaDestroy");
 #endif
 
-            server.NetworkInterface.SendBitStream(destroyBs, PacketPriority.Medium, PacketReliability.Unreliable, view.Connection);
+                var ctx = new ReplicaBehaviour.SerializeContext() {
+                    Observer = view
+                };
+
+                var destroyBs = BitStreamPool.Create();
+                destroyBs.Write((byte)MessageId.ReplicaDestroy);
+                destroyBs.Write(replica.Id);
+                replica.SerializeDestruction(destroyBs, ctx);
+
+                server.NetworkInterface.SendBitStream(destroyBs, PacketPriority.Medium, PacketReliability.Unreliable, view.Connection);
+
+#if UNITY_EDITOR
+                TransportDebugger.EndScope(destroyBs.LengthInBits);
+#endif
+            }
         }
 
         public ReplicaView GetReplicaView(Connection connection) {
