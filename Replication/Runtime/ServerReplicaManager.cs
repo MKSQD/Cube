@@ -19,6 +19,9 @@ namespace Cube.Replication {
 
         readonly ICubeServer server;
         readonly NetworkScene networkScene;
+        public ReadOnlyCollection<Replica> Replicas {
+            get => networkScene.Replicas;
+        }
 
         [SerializeField]
         List<ReplicaView> replicaViews = new List<ReplicaView>();

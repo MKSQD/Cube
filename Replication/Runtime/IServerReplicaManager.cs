@@ -1,5 +1,6 @@
 ﻿using Cube.Transport;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.ResourceManagement.AsyncOperations;
@@ -7,9 +8,8 @@ using UnityEngine.SceneManagement;
 
 namespace Cube.Replication {
     public interface IServerReplicaManager : IReplicaManager {
-        List<ReplicaView> ReplicaViews {
-            get;
-        }
+        List<ReplicaView> ReplicaViews { get; }
+        ReadOnlyCollection<Replica> Replicas { get; }
 
         void Update();
 
