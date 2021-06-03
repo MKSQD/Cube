@@ -16,7 +16,24 @@ namespace Cube.Replication {
             EditorSceneManager.sceneSaving -= ProcessSceneReplicasInScene;
             EditorSceneManager.sceneSaving += ProcessSceneReplicasInScene;
 
-            Generate();
+            var found = false;
+
+            var foos = new string[][] { importedAssets, deletedAssets, movedAssets };
+            foreach (var foo in foos) {
+                if (found)
+                    break;
+
+                foreach (var s in foo) {
+                    if (s.EndsWith(".prefab", StringComparison.InvariantCultureIgnoreCase)) {
+                        found = true;
+                        break;
+                    }
+                }
+            }
+
+            if (found) {
+                Generate();
+            }
         }
 
         [MenuItem("Cube/Internal/Force refresh NetworkPrefabLookup")]
