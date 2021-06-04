@@ -3,19 +3,15 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using UnityEditor;
-using UnityEditor.SceneManagement;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 
-namespace Cube.Replication {
+namespace Cube.Replication.Editor {
+
     public class NetworkPrefabLookupGenerator : AssetPostprocessor {
         const string CLIENT_PREFAB_PREFIX = "Client_";
         const string SERVER_PREFAB_PREFIX = "Server_";
 
         static void OnPostprocessAllAssets(string[] importedAssets, string[] deletedAssets, string[] movedAssets, string[] movedFromAssetPaths) {
-            EditorSceneManager.sceneSaving -= ProcessSceneReplicasInScene;
-            EditorSceneManager.sceneSaving += ProcessSceneReplicasInScene;
-
             var found = false;
 
             var foos = new string[][] { importedAssets, deletedAssets, movedAssets };
@@ -107,43 +103,6 @@ namespace Cube.Replication {
             if (lookup.Prefabs == null || !lookup.Prefabs.SequenceEqual(newPrefabs)) {
                 lookup.Prefabs = newPrefabs;
                 EditorUtility.SetDirty(lookup);
-            }
-        }
-
-        static void ProcessSceneReplicasInScene(Scene scene, string path) {
-            var sceneReplicas = new List<Replica>();
-            foreach (var go in scene.GetRootGameObjects()) {
-                foreach (var replica in go.GetComponentsInChildren<Replica>()) {
-                    sceneReplicas.Add(replica);
-                }
-            }
-
-            sceneReplicas.Sort((r1, r2) => r1.GetInstanceID() - r2.GetInstanceID()); // Mostly stable so scene indices don't change so often
-
-            var usedIdxs = new HashSet<byte>();
-            foreach (var replica in sceneReplicas) {
-                if (replica.sceneIdx == 0)
-                    continue;
-
-                if (!usedIdxs.Contains(replica.sceneIdx)) {
-                    usedIdxs.Add(replica.sceneIdx);
-                } else {
-                    replica.sceneIdx = 0;
-                }
-            }
-
-            foreach (var replica in sceneReplicas) {
-                if (replica.sceneIdx != 0)
-                    continue;
-
-                var lastUsedSceneIdx = 0;
-                foreach (var replica2 in sceneReplicas) {
-                    lastUsedSceneIdx = Math.Max(lastUsedSceneIdx, replica2.sceneIdx);
-                }
-
-                replica.sceneIdx = (byte)(lastUsedSceneIdx + 1);
-
-                PrefabUtility.RecordPrefabInstancePropertyModifications(replica);
             }
         }
 

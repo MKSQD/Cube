@@ -54,6 +54,18 @@ namespace Cube.Replication {
                     continue;
                 }
 
+#if UNITY_EDITOR
+                foreach (var existingReplica in networkScene.Replicas) {
+                    if (replica.sceneIdx == existingReplica.sceneIdx) {
+                        Debug.LogWarning("Replicas with the same sceneIdx found!");
+
+                        networkScene.RemoveReplica(existingReplica);
+
+                        break;
+                    }
+                }
+#endif
+
                 replica.client = client;
                 replica.Id = ReplicaId.CreateFromExisting(replica.sceneIdx);
                 networkScene.AddReplica(replica);
