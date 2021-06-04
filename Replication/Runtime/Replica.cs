@@ -138,9 +138,6 @@ namespace Cube.Replication {
         /// <summary>
         /// SERVER only. Removes the Replica instantly from replication. Does NOT send any message to the clients.
         /// </summary>
-        /// <remarks>
-        /// Use this when you want to remove the Replica yourself via an RPC. This way you can send additional information to the clients.
-        /// </remarks>
         public void Remove() {
             if (!isServer)
                 return;
