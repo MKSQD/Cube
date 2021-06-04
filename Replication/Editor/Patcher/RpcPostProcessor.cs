@@ -258,15 +258,18 @@ namespace Cube.Replication.Editor {
                         il.Emit(OpCodes.Call, Import(replicaManagerProperty.GetMethod));
 
                         il.Emit(OpCodes.Ldarg_2);
-                        il.Emit(OpCodes.Callvirt, Import(result.Resolve()));
+                        il.Emit(OpCodes.Call, Import(result.Resolve()));
                         il.Emit(OpCodes.Callvirt, Import(replicaManagerGetReplicaMethod));
 
                         il.Emit(OpCodes.Stloc, method.Body.Variables.Count - 1);
                     } else if (isNetworkObject) {
                         method.Body.Variables.Add(new VariableDefinition(Import(param.ParameterType.Resolve())));
 
+                        // Fragile AF, but works for now...
+                        var parameterType = Type.GetType(param.ParameterType.FullName + ", " + param.ParameterType.Module.Assembly.FullName, true);
+
                         MethodInfo openGenericMethod = typeof(BitStreamExtensions).GetMethod("ReadNetworkObject");
-                        MethodInfo closedGenericMethod = openGenericMethod.MakeGenericMethod(typeof(NetworkObject));
+                        MethodInfo closedGenericMethod = openGenericMethod.MakeGenericMethod(parameterType);
                         MethodReference mr = MainModule.ImportReference(closedGenericMethod);
 
                         il.Emit(OpCodes.Ldarg_2);
@@ -395,7 +398,7 @@ namespace Cube.Replication.Editor {
                 if (isReplica) {
                     il.Emit(OpCodes.Ldfld, replicaIdField);
                 }
-                il.Emit(OpCodes.Callvirt, result);
+                il.Emit(OpCodes.Call, result);
             }
 
             if (rpcTarget == RpcTarget.Server) {
