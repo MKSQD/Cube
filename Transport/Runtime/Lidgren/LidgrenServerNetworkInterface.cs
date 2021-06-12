@@ -14,10 +14,10 @@ namespace Cube.Transport {
         public Action<Connection> DisconnectNotification { get; set; }
         public Action<BitStream, Connection> ReceivedPacket { get; set; }
 
-        public bool IsRunning => _server.Status == NetPeerStatus.Running;
+        public bool IsRunning => server.Status == NetPeerStatus.Running;
 
 
-        NetServer _server;
+        NetServer server;
 
         public LidgrenServerNetworkInterface(ushort port, SimulatedLagSettings lagSettings) {
             var config = new NetPeerConfiguration("Cube") {
@@ -40,33 +40,33 @@ namespace Cube.Transport {
             config.DisableMessageType(NetIncomingMessageType.DebugMessage);
 #endif
 
-            _server = new NetServer(config);
-            _server.Start();
+            server = new NetServer(config);
+            server.Start();
         }
 
         public void Shutdown() {
-            _server.Shutdown("");
+            server.Shutdown("");
         }
 
         public void Update() {
             ReceiveMessages();
-            _server.FlushSendQueue();
+            server.FlushSendQueue();
             BitStreamPool.FrameReset();
 
 #if UNITY_EDITOR
             TransportDebugger.CycleFrame();
 
-            TransportDebugger.ReportStatistic("Sent Bytes/s", ((int)(_server.Statistics.SentBytes / Time.time)).ToString());
-            TransportDebugger.ReportStatistic("Received Bytes/s", ((int)(_server.Statistics.ReceivedBytes / Time.time)).ToString());
+            TransportDebugger.ReportStatistic($"Sent Bytes/s: {(int)(server.Statistics.SentBytes / Time.time)}");
+            TransportDebugger.ReportStatistic($"Received Bytes/s {(int)(server.Statistics.ReceivedBytes / Time.time)}");
 
-            TransportDebugger.ReportStatistic("# Sent", _server.Statistics.SentPackets.ToString());
-            TransportDebugger.ReportStatistic("# Received", _server.Statistics.ReceivedPackets.ToString());
+            TransportDebugger.ReportStatistic($"# Sent {server.Statistics.SentPackets}");
+            TransportDebugger.ReportStatistic($"# Received {server.Statistics.ReceivedPackets}");
 #endif
         }
 
         void ReceiveMessages() {
             while (true) {
-                var msg = _server.ReadMessage();
+                var msg = server.ReadMessage();
                 if (msg == null)
                     break;
 
@@ -96,8 +96,7 @@ namespace Cube.Transport {
                             var status = (NetConnectionStatus)msg.ReadByte();
                             if (status == NetConnectionStatus.Connected) {
                                 NewConnectionEstablished(connection);
-                            }
-                            else if (status == NetConnectionStatus.Disconnected) {
+                            } else if (status == NetConnectionStatus.Disconnected) {
                                 DisconnectNotification(connection);
                             }
                             break;
@@ -115,13 +114,11 @@ namespace Cube.Transport {
                                 if (approvalResult.Approved) {
                                     Debug.Log("[Server] Connection approved");
                                     msg.SenderConnection.Approve();
-                                }
-                                else {
+                                } else {
                                     Debug.Log($"[Server] Connection denied ({approvalResult.DenialReason})");
                                     msg.SenderConnection.Deny(approvalResult.DenialReason);
                                 }
-                            }
-                            catch (Exception e) {
+                            } catch (Exception e) {
                                 Debug.LogException(e);
                                 msg.SenderConnection.Deny("Approval Error");
                             }
@@ -133,7 +130,7 @@ namespace Cube.Transport {
                         break;
                 }
 
-                _server.Recycle(msg);
+                server.Recycle(msg);
             }
         }
 
@@ -142,30 +139,30 @@ namespace Cube.Transport {
 
             Assert.IsTrue(connection != Connection.Invalid);
 
-            var msg = _server.CreateMessage(bs.Length);
+            var msg = server.CreateMessage(bs.Length);
             msg.Write(bs.Data, 0, bs.Length);
             msg.LengthBits = bs.LengthInBits;
 
             var netConnection = GetNetConnection(connection);
-            _server.SendMessage(msg, netConnection, GetReliability(reliablity), sequenceChannel);
+            server.SendMessage(msg, netConnection, GetReliability(reliablity), sequenceChannel);
         }
 
         public void BroadcastBitStream(BitStream bs, PacketPriority priority, PacketReliability reliablity, int sequenceChannel) {
             Debug.Log("<< " + reliablity + " " + bs.ReadByte() + " len=" + bs.Length + " " + bs);
 
-            if (_server.Connections.Count == 0)
+            if (server.Connections.Count == 0)
                 return;
 
-            var msg = _server.CreateMessage(bs.Length);
+            var msg = server.CreateMessage(bs.Length);
             msg.Write(bs.Data, 0, bs.Length);
             msg.LengthBits = bs.LengthInBits;
 
-            _server.SendMessage(msg, _server.Connections, GetReliability(reliablity), sequenceChannel);
+            server.SendMessage(msg, server.Connections, GetReliability(reliablity), sequenceChannel);
         }
 
         NetConnection GetNetConnection(Connection connection) {
-            for (int i = 0; i < _server.Connections.Count; ++i) {
-                var con = _server.Connections[i];
+            for (int i = 0; i < server.Connections.Count; ++i) {
+                var con = server.Connections[i];
                 if ((ulong)con.RemoteUniqueIdentifier == connection.id)
                     return con;
             }

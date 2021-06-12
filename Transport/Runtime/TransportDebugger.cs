@@ -23,7 +23,7 @@ namespace Cube.Transport {
         public int CurrentFrameIdx = 0;
         public List<Frame> Frames;
         public Frame CurrentFrame;
-        public Dictionary<string, string> Statistics = new Dictionary<string, string>();
+        public List<string> Statistics = new List<string>();
 
         class SimpleTreeView : TreeView {
             public TransportDebugger Debugger;
@@ -96,8 +96,12 @@ namespace Cube.Transport {
             void CellGUI(Rect cellRect, SimpleTreeViewItem item, int column, ref RowGUIArgs args) {
                 CenterRectUsingSingleLineHeight(ref cellRect);
                 switch (column) {
-                    case 0: base.RowGUI(args); break;
-                    case 1: GUI.Label(cellRect, item.Bits); break;
+                    case 0:
+                        base.RowGUI(args);
+                        break;
+                    case 1:
+                        GUI.Label(cellRect, item.Bits);
+                        break;
                 }
             }
         }
@@ -117,6 +121,7 @@ namespace Cube.Transport {
                 return;
 
             activeDebugger.CurrentFrameIdx = (activeDebugger.CurrentFrameIdx + 1) % MaxFrames;
+            activeDebugger.Statistics.Clear();
 
             if (activeDebugger.Frames == null) {
                 activeDebugger.Frames = new List<Frame>();
@@ -158,11 +163,11 @@ namespace Cube.Transport {
             activeDebugger.CurrentFrame = activeDebugger.CurrentFrame.Parent;
         }
 
-        public static void ReportStatistic(string key, string value) {
+        public static void ReportStatistic(string line) {
             if (activeDebugger == null)
                 return;
 
-            activeDebugger.Statistics[key] = value;
+            activeDebugger.Statistics.Add(line);
         }
 
         void OnEnable() {
@@ -190,7 +195,7 @@ namespace Cube.Transport {
 
             activeDebugger = this;
 
-            tab = GUILayout.Toolbar(tab, new string[] { "Frames", "Statistics" });
+            tab = GUILayout.Toolbar(tab, new string[] { "Frames", "Server Statistics" });
             switch (tab) {
                 case 0:
                     simpleTreeView.Debugger = this;
@@ -199,8 +204,8 @@ namespace Cube.Transport {
                     break;
 
                 case 1:
-                    foreach (var pair in Statistics) {
-                        GUILayout.Label(pair.Key + ": " + pair.Value);
+                    foreach (var line in Statistics) {
+                        GUILayout.Label(line);
                     }
                     Repaint();
                     break;

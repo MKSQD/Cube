@@ -18,6 +18,10 @@ namespace Cube.Transport {
 
         public LiteNetServerNetworkInterface(ushort port) {
             server = new NetManager(this);
+#if UNITY_EDITOR
+            server.EnableStatistics = true;
+#endif
+
             server.Start(port);
         }
 
@@ -41,11 +45,20 @@ namespace Cube.Transport {
 #if UNITY_EDITOR
             TransportDebugger.CycleFrame();
 
-            TransportDebugger.ReportStatistic("Sent Bytes/s", ((int)(server.Statistics.BytesSent / Time.time)).ToString());
-            TransportDebugger.ReportStatistic("Received Bytes/s", ((int)(server.Statistics.BytesReceived / Time.time)).ToString());
+            {
+                var f = server.Statistics.BytesSent / Time.time;
+                f /= 1024; // b -> kb
+                var f2 = Mathf.RoundToInt(f * 100) * 0.01f;
 
-            TransportDebugger.ReportStatistic("# Sent", server.Statistics.PacketsSent.ToString());
-            TransportDebugger.ReportStatistic("# Received", server.Statistics.PacketsReceived.ToString());
+                TransportDebugger.ReportStatistic($"out {server.Statistics.PacketsSent} {f2}k/s");
+            }
+            {
+                var f = server.Statistics.BytesReceived / Time.time;
+                f /= 1024; // b -> kb
+                var f2 = Mathf.RoundToInt(f * 100) * 0.01f;
+
+                TransportDebugger.ReportStatistic($"in {server.Statistics.PacketsSent} {f2}k/s");
+            }
 #endif
         }
 

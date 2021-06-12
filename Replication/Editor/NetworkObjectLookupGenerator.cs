@@ -1,19 +1,40 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using UnityEditor;
-using UnityEditor.Callbacks;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 
 namespace Cube.Replication {
-    public class NetworkObjectLookupGenerator {
+    public class NetworkObjectLookupGenerator : AssetPostprocessor {
         [MenuItem("Cube/Internal/Force refresh NetworkObjectLookup")]
         static void Force() {
             Generate();
             Debug.Log("Done");
         }
 
-        [DidReloadScripts]
+        static void OnPostprocessAllAssets(string[] importedAssets, string[] deletedAssets, string[] movedAssets, string[] movedFromAssetPaths) {
+            var found = false;
+
+            var foos = new string[][] { importedAssets, deletedAssets, movedAssets };
+            foreach (var foo in foos) {
+                if (found)
+                    break;
+
+                foreach (var s in foo) {
+                    if (s.EndsWith(".asset", StringComparison.InvariantCultureIgnoreCase)
+                        && !s.EndsWith(NetworkObjectLookup.AssetName, StringComparison.InvariantCultureIgnoreCase)) {
+                        found = true;
+                        break;
+                    }
+                }
+            }
+
+            if (found) {
+                Generate();
+            }
+        }
+
         public static void Generate() {
             if (BuildPipeline.isBuildingPlayer)
                 return; // No need to regenerate the data while building
