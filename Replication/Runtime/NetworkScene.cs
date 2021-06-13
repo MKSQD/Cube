@@ -22,12 +22,7 @@ namespace Cube.Replication {
             }
             replicas.Add(replica);
         }
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="replica"></param>
-        /// <remarks>Won't do anything if this replica was removed already</remarks>
+        
         public void RemoveReplica(Replica replica) {
             if (!replicasById.Remove(replica.Id))
                 return;

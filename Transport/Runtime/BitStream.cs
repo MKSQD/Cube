@@ -11,23 +11,17 @@ namespace Cube.Transport {
 
         public byte[] Data => data;
 
-        /// <summary>
         /// Current write position in bits.
-        /// </summary>
         public int LengthInBits => numBitsUsed;
 
         public int Length => BitsToBytes(numBitsUsed);
 
-        /// <summary>
         /// Have we read all of its content?
-        /// </summary>
         public bool IsExhausted => readBitOffset >= numBitsUsed;
 
         int Capacity => data.Length;
 
-        /// <summary>
         /// Current read position in bits.
-        /// </summary>
         public int Position {
             get { return readBitOffset; }
             set {

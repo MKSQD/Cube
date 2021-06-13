@@ -10,25 +10,20 @@ namespace Cube.Replication {
         [HideInInspector]
         public Connection Connection;
 
-        /// <summary>
         /// Ignore Replica positions when calculating relevancy. F.i. RTS game.
-        /// </summary>
         public bool IgnoreReplicaPositionsForPriority = false;
 
-        /// <summary>
         /// If true this ReplicaView is ignored. Will be set automatically.
-        /// </summary>
         public bool IsLoadingLevel;
 
         [HideInInspector]
         public double NextPriorityUpdateTime;
+
         public List<Replica> RelevantReplicas;
         public List<float> RelevantReplicaPriorityAccumulator;
 
 #if UNITY_EDITOR
-        /// <summary>
-        /// The view currently being debugged.
-        /// </summary>
+        /// The ReplicaView currently being debugged.
         public static ReplicaView Debug;
 
         void OnDrawGizmosSelected() {

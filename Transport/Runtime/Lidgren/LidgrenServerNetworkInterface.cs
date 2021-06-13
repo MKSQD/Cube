@@ -134,7 +134,7 @@ namespace Cube.Transport {
             }
         }
 
-        public void SendBitStream(BitStream bs, PacketPriority priority, PacketReliability reliablity, Connection connection, int sequenceChannel) {
+        public void SendBitStream(BitStream bs, PacketReliability reliablity, Connection connection, int sequenceChannel) {
             Debug.Log("<< " + reliablity + " " + bs.ReadByte() + " len=" + bs.Length + " " + bs);
 
             Assert.IsTrue(connection != Connection.Invalid);
@@ -147,7 +147,7 @@ namespace Cube.Transport {
             server.SendMessage(msg, netConnection, GetReliability(reliablity), sequenceChannel);
         }
 
-        public void BroadcastBitStream(BitStream bs, PacketPriority priority, PacketReliability reliablity, int sequenceChannel) {
+        public void BroadcastBitStream(BitStream bs, PacketReliability reliablity, int sequenceChannel) {
             Debug.Log("<< " + reliablity + " " + bs.ReadByte() + " len=" + bs.Length + " " + bs);
 
             if (server.Connections.Count == 0)

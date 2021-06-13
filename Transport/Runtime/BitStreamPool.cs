@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 
 namespace Cube.Transport {
+    /// Pool for BitStreams which are used for 1 frame! only.
     public static class BitStreamPool {
         static List<BitStream> pool = new List<BitStream>();
         static int currentIdx;

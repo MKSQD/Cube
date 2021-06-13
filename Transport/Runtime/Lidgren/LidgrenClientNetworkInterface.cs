@@ -66,7 +66,7 @@ namespace Cube.Transport {
             client.Shutdown("bye byte"); //#TODO message ?
         }
 
-        public void Send(BitStream bs, PacketPriority priority, PacketReliability reliablity) {
+        public void Send(BitStream bs, PacketReliability reliablity) {
             var msg = client.CreateMessage(bs.Length);
             msg.Write(bs.Data, 0, bs.Length);
             msg.LengthBits = bs.LengthInBits;

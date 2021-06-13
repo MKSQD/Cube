@@ -6,23 +6,16 @@ namespace Cube.Transport {
     public delegate void ServerMessageHandler(Connection connection, BitStream bs);
 
     public class ServerReactor {
-        public IServerNetworkInterface networkInterface {
-            get;
-            internal set;
-        }
-
-        Dictionary<byte, List<ServerMessageHandler>> _handlers;
+        readonly Dictionary<byte, List<ServerMessageHandler>> handlers;
 
         public ServerReactor(IServerNetworkInterface networkInterface) {
-            _handlers = new Dictionary<byte, List<ServerMessageHandler>>();
-
-            this.networkInterface = networkInterface;
+            handlers = new Dictionary<byte, List<ServerMessageHandler>>();
 
             networkInterface.ReceivedPacket += (bs, connection) => {
                 var messageId = bs.ReadByte();
 
                 List<ServerMessageHandler> handlers;
-                if (!_handlers.TryGetValue(messageId, out handlers) || handlers.Count == 0) {
+                if (!handlers.TryGetValue(messageId, out handlers) || handlers.Count == 0) {
                     Debug.Log("Received unknown packet: " + messageId);
                     return;
                 }
@@ -32,26 +25,25 @@ namespace Cube.Transport {
 
                     try {
                         handler(connection, bs);
-                    }
-                    catch (Exception e) {
+                    } catch (Exception e) {
                         Debug.LogException(e);
                     }
-
+                    
                     bs.Position = pos;
                 }
             };
         }
 
         public void AddMessageHandler(byte id, ServerMessageHandler handler) {
-            if (!_handlers.TryGetValue(id, out List<ServerMessageHandler> existingHandlers)) {
+            if (!handlers.TryGetValue(id, out List<ServerMessageHandler> existingHandlers)) {
                 existingHandlers = new List<ServerMessageHandler>();
-                _handlers.Add(id, existingHandlers);
+                handlers.Add(id, existingHandlers);
             }
             existingHandlers.Add(handler);
         }
 
         public void RemoveMessageHandler(byte id, ServerMessageHandler handler) {
-            if (!_handlers.TryGetValue(id, out List<ServerMessageHandler> existingHandlers))
+            if (!handlers.TryGetValue(id, out List<ServerMessageHandler> existingHandlers))
                 return;
 
             existingHandlers.Remove(handler);

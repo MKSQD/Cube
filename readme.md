@@ -1,26 +1,24 @@
 # Cube
-GameObject based network replication library for [Unity3d](https://unity.com/). Simple network protocol based on eventual consistency (which means nothing is sent reliable and bandwidth is completely scalable).
+GameObject based network replication library for [Unity3d](https://unity.com/).
 
 ## Features
-- Eventual consistency based network model (loosely based on [GDC Vault: I Shot You First! Gameplay Networking in Halo: Reach](http://www.gdcvault.com/play/1014345/I-Shot-You-First-Networking))
-- Develop server and client at the same time
-- Rpcs as normal function calls (using Cecil to patch assemblies)
-- Client/server prefabs and ScriptableObjects are discovered automatically, no factory functions to implement or lists to manually maintain
+- Very scalable and robust, eventual consistency based network model (loosely based on [GDC Vault: I Shot You First! Gameplay Networking in Halo: Reach](http://www.gdcvault.com/play/1014345/I-Shot-You-First-Networking))
+- Does 1 thing only and focuses on doing that right
+- Develop server and client at the same time in editor
+- Prefabs for networked objects and ScriptableObject assets are discovered automatically, no factory functions to implement or lists to manually maintain
+- Static network objects in scene
+- RPCs as normal function calls (using Cecil to patch assemblies)
 - Transport layer currently either [LiteNetLib](https://github.com/RevenantX/LiteNetLib) or [Lidgren](https://github.com/lidgren/lidgren-network-gen3)
-- Tooling
 - Integration with [Unreal-style gameplay framework](https://github.com/NoDogsInc/GameFramework)
+
+## Network model
+No network packet is sent reliable (although reliable sending is of course supported for user packets). This allows for super aggressive priorization and scalability.
+Think as many networked objects or players as your server can support. As the bandwidth per connection gets exhausted optional events (RPCs) are culled first 
+and then more and more networked objects (Replicas). Those with the lowest priority (default metric: desired update rate * distance * is player looking towards Replica)
+first. The priority calculation can be customized per game.
 
 ![Transport Debugger](Docs/TransportDebugger.png)
 ![Replication Settings](Docs/ReplicationSettings.png)
-
-_What problem does this library solve exactly?_
-- Replicate a bunch of marked GameObjects (*Replica*s) with marked Components from a server to multiple clients with limited bandwidth with the help of scoping and aggressive priorization. Also takes care of ownership and events (unreliable rpcs).
-
-_Unreliable packets only sounds wasteful_
-- Think of it like backed shadowmaps vs realtime shadows. If it fits your bandwidth/cpu budget you can get several advantages by using this model. Note that this kind of network model is mainly useful for dynamic worlds, static elements such a buildings would benefit some being replicated in a seperate way (which you should do anyway)
-
-_Why not use UNet, Mirror, ..._
-- Years ago UNet had interesting kinks which we didn't like. The Halo/Tribes network model sounded interesting and it has been simple and hassle free to use. The core of this library has not changed over the years through it has been optimized and tweaked and more tooling has been added.
 
 ## Getting Started
 Clone the git repository into your **Assets** folder.

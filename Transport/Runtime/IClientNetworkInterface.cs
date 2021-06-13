@@ -21,7 +21,7 @@ namespace Cube.Transport {
 
         void Shutdown(uint blockDuration);
 
-        unsafe void Send(BitStream bs, PacketPriority priority, PacketReliability reliablity);
+        unsafe void Send(BitStream bs, PacketReliability reliablity);
     }
 }
 

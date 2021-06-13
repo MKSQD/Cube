@@ -2,7 +2,7 @@
 
 namespace Cube.Replication {
     /// <summary>
-    /// Used for runtime lookup of NetworkObject derived ScriptableObject instances in the Assets folder.
+    /// Used for runtime lookup of NetworkObject instances in the Assets folder.
     /// </summary>
     public class NetworkObjectLookup : GlobalData<NetworkObjectLookup> {
         public NetworkObject[] Entries;

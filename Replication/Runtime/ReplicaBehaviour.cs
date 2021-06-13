@@ -5,7 +5,7 @@ using BitStream = Cube.Transport.BitStream;
 namespace Cube.Replication {
     public abstract class ReplicaBehaviour : MonoBehaviour {
         public struct SerializeContext {
-            public ReplicaView Observer;
+            public ReplicaView View;
         }
 
         [HideInInspector]

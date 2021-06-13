@@ -37,7 +37,7 @@ namespace Cube.Transport {
             return time; // #todo
         }
 
-        public void Send(BitStream bs, PacketPriority priority, PacketReliability reliablity) {
+        public void Send(BitStream bs,  PacketReliability reliablity) {
             client.FirstPeer.Send(bs.Data, 0, bs.Length, GetDeliveryMethod(reliablity));
         }
 

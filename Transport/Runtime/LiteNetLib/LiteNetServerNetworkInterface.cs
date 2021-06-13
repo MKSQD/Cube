@@ -25,11 +25,11 @@ namespace Cube.Transport {
             server.Start(port);
         }
 
-        public void BroadcastBitStream(BitStream bs, PacketPriority priority, PacketReliability reliablity, int sequenceChannel = 0) {
+        public void BroadcastBitStream(BitStream bs, PacketReliability reliablity, int sequenceChannel = 0) {
             server.SendToAll(bs.Data, 0, bs.Length, (byte)sequenceChannel, GetDeliveryMethod(reliablity));
         }
 
-        public void SendBitStream(BitStream bs, PacketPriority priority, PacketReliability reliablity, Connection connection, int sequenceChannel = 0) {
+        public void SendBitStream(BitStream bs, PacketReliability reliablity, Connection connection, int sequenceChannel = 0) {
             var peer = server.GetPeerById((int)connection.id);
             peer.Send(bs.Data, 0, bs.Length, (byte)sequenceChannel, GetDeliveryMethod(reliablity));
         }

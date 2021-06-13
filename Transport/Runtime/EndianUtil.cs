@@ -1,5 +1,5 @@
 ﻿namespace Cube.Transport {
-    public class Endian {
+    public static class EndianUtil {
         public static short SwapInt16(short v) {
             return (short)(((v & 0xff) << 8) | ((v >> 8) & 0xff));
         }
