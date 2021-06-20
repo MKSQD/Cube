@@ -246,6 +246,21 @@ namespace Cube.Replication {
                 foreach (var idReplicaPair in replicasInConstruction) {
                     var replica = idReplicaPair.Value;
                     networkScene.AddReplica(replica);
+
+                    // Don't wait for relevant Replica set update, takes far too long for a newly spawned Replica
+                    for (int i = 0; i < replicaViews.Count; ++i) {
+                        var replicaView = replicaViews[i];
+                        if (replicaView.IsLoadingLevel)
+                            continue;
+
+                        if (!IsReplicaRelevantForView(replica, replicaView))
+                            continue;
+
+                        var relevance = replica.GetRelevance(replicaView);
+                        replicaView.RelevantReplicas.Add(replica);
+                        replicaView.RelevantReplicaPriorityAccumulator.Add(relevance * relevance * 2); // 2 to boost sending new Replicas
+                    }
+
                 }
                 replicasInConstruction.Clear();
             }
@@ -384,13 +399,6 @@ namespace Cube.Replication {
         /// Build a list of relevant Replicas for this ReplicaView.
         /// </summary>
         void UpdateRelevantReplicas(ReplicaView view) {
-            if (view.RelevantReplicaPriorityAccumulator == null) {
-                view.RelevantReplicaPriorityAccumulator = new List<float>();
-            }
-            if (view.RelevantReplicas == null) {
-                view.RelevantReplicas = new List<Replica>();
-            }
-
             var oldAccs = new Dictionary<Replica, float>();
             for (int i = 0; i < view.RelevantReplicas.Count; ++i) {
                 var replica = view.RelevantReplicas[i];
@@ -416,15 +424,22 @@ namespace Cube.Replication {
                 if (replica == null)
                     continue;
 
-                if (!replica.IsRelevantFor(view))
-                    continue;
-
-                var relevance = replica.GetRelevance(view);
-                if (relevance < settings.MinRelevance)
+                if (!IsReplicaRelevantForView(replica, view))
                     continue;
 
                 relevantReplicas.Add(replica);
             }
+        }
+
+        bool IsReplicaRelevantForView(Replica replica, ReplicaView view) {
+            if (!replica.IsRelevantFor(view))
+                return false;
+
+            var relevance = replica.GetRelevance(view);
+            if (relevance < settings.MinRelevance)
+                return false;
+
+            return true;
         }
 
         void UpdateRelevantReplicaPriorities(ReplicaView view) {
