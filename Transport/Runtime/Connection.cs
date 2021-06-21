@@ -23,7 +23,7 @@ namespace Cube.Transport {
         }
 
         public override int GetHashCode() {
-            return 17 + id * 31;
+            return (int)(17 + id * 31);
         }
 
         public bool Equals(Connection other) {

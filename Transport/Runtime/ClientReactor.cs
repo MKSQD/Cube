@@ -17,13 +17,13 @@ namespace Cube.Transport {
         void OnReceivedPacket(BitStream bs) {
             var messageId = bs.ReadByte();
 
-            List<ClientMessageHandler> handlers;
-            if (!handlers.TryGetValue(messageId, out handlers) || handlers.Count == 0) {
+            List<ClientMessageHandler> packetHandlers;
+            if (!handlers.TryGetValue(messageId, out packetHandlers) || packetHandlers.Count == 0) {
                 Debug.LogWarning("[Client] Received unknown packet " + messageId);
                 return;
             }
 
-            foreach (var handler in handlers) {
+            foreach (var handler in packetHandlers) {
                 var pos = bs.Position;
 
                 try {

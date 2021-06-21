@@ -5,22 +5,20 @@ using Mono.Cecil;
 using Mono.Cecil.Cil;
 using UnityEngine;
 using Cube.Replication;
-using System.Runtime.InteropServices;
 
 class RpcPostProcessor : PostProcessor {
     TypeDefinition replicaType;
     FieldReference replicaIdField;
 
-    TypeReference _voidTypeReference;
+    TypeReference voidTypeReference;
 
-    MethodReference _debugLogErrorMethod;
+    MethodReference debugLogErrorMethod;
 
     MethodReference queueServerRpcMethod;
     FieldReference replicaComponentIdxField;
     FieldReference replicaField;
 
-    PropertyDefinition _isServerProperty;
-    PropertyDefinition _isClientProperty;
+    PropertyDefinition isServerProperty, isClientProperty;
     PropertyDefinition clientProperty;
     PropertyDefinition replicaManagerProperty;
 
@@ -53,7 +51,7 @@ class RpcPostProcessor : PostProcessor {
         foreach (var writeMethod in Import(GetMethodDefinitionsByName(bitStreamType, "Write"))) {
             bitStreamWrite[writeMethod.Parameters[0].ParameterType.Name] = writeMethod;
         }
-        foreach (var readMethod in bitStreamType.Methods.Where(m => m.Name.StartsWith("Read"))) {
+        foreach (var readMethod in bitStreamType.Methods.Where(m => m.Name.StartsWith("Read") && m.Name != "ReadRaw" && m.Name != "ReadIntInRange")) {
             if (readMethod.Name.Contains("Normalised") || readMethod.Name.Contains("Lossy"))
                 continue;
 
@@ -75,15 +73,15 @@ class RpcPostProcessor : PostProcessor {
         replicaIdField = Import(GetFieldDefinitionByName(replicaType, "Id"));
 
         var debugType = GetTypeDefinitionByName(unityEngineAssembly, "UnityEngine.Debug");
-        _debugLogErrorMethod = Import(GetMethodDefinitionByName(debugType, "LogError"));
+        debugLogErrorMethod = Import(GetMethodDefinitionByName(debugType, "LogError"));
 
         queueServerRpcMethod = Import(GetMethodDefinitionByName(replicaType, "QueueServerRpc"));
 
         replicaComponentIdxField = Import(GetFieldDefinitionByName(replicaBehaviourType, "replicaComponentIdx"));
         replicaField = Import(GetFieldDefinitionByName(replicaBehaviourType, "Replica"));
 
-        _isServerProperty = GetPropertyDefinitionByName(replicaBehaviourType, "isServer");
-        _isClientProperty = GetPropertyDefinitionByName(replicaBehaviourType, "isClient");
+        isServerProperty = GetPropertyDefinitionByName(replicaBehaviourType, "isServer");
+        isClientProperty = GetPropertyDefinitionByName(replicaBehaviourType, "isClient");
         clientProperty = GetPropertyDefinitionByName(replicaBehaviourType, "client");
         replicaManagerProperty = GetPropertyDefinitionByName(replicaBehaviourType, "ReplicaManager");
 
@@ -93,7 +91,7 @@ class RpcPostProcessor : PostProcessor {
         var ireplicaManager = GetTypeDefinitionByName(replicationAssembly, "Cube.Replication.IReplicaManager");
         replicaManagerGetReplicaMethod = GetMethodDefinitionByName(ireplicaManager, "GetReplica");
 
-        _voidTypeReference = module.TypeSystem.Void;
+        voidTypeReference = module.TypeSystem.Void;
     }
 
     public override bool Process(ModuleDefinition module) {
@@ -180,7 +178,7 @@ class RpcPostProcessor : PostProcessor {
     }
 
     MethodDefinition CreateDispatchRpcs(List<MethodDefinition> remoteMethods) {
-        var method = new MethodDefinition("DispatchRpc", Mono.Cecil.MethodAttributes.Public | Mono.Cecil.MethodAttributes.HideBySig | Mono.Cecil.MethodAttributes.Virtual, _voidTypeReference);
+        var method = new MethodDefinition("DispatchRpc", Mono.Cecil.MethodAttributes.Public | Mono.Cecil.MethodAttributes.HideBySig | Mono.Cecil.MethodAttributes.Virtual, voidTypeReference);
         method.Parameters.Add(new ParameterDefinition("methodIdx", Mono.Cecil.ParameterAttributes.None, MainModule.TypeSystem.Byte));
         method.Parameters.Add(new ParameterDefinition("bs", Mono.Cecil.ParameterAttributes.None, Import(bitStreamType)));
 
@@ -231,12 +229,7 @@ class RpcPostProcessor : PostProcessor {
                         typeDef = GetEnumUnderlyingType(typeDef).Resolve();
                     }
 
-                    try {
-                        result = bitStreamRead[typeDef.Name];
-                    } catch (KeyNotFoundException) {
-                        Debug.LogError($"Rpc argument of type {typeDef.Name} not supported ({remoteMethod})");
-                        //throw;
-                    }
+                    result = bitStreamRead[typeDef.Name];
                 }
 
                 moo.Add((byte)(method.Body.Variables.Count));
@@ -259,7 +252,6 @@ class RpcPostProcessor : PostProcessor {
                     // Replace generic arguments with some vodoo magic
                     var mmm = new GenericInstanceMethod(readNetworkObject);
                     mmm.GenericArguments.Add(Import(param.ParameterType.Resolve()));
-                    //mmm.ReturnType = Import(param.ParameterType.Resolve());
 
                     var mr = MainModule.ImportReference(mmm);
 
@@ -291,7 +283,7 @@ class RpcPostProcessor : PostProcessor {
         // Debug.LogError((object)"Missing RPC dispatch");
         il.Append(foo[foo.Count - 1]);
         il.Emit(OpCodes.Ldstr, "Missing RPC dispatch");
-        il.Emit(OpCodes.Call, _debugLogErrorMethod);
+        il.Emit(OpCodes.Call, debugLogErrorMethod);
         il.Emit(OpCodes.Ret);
 
         return method;
@@ -307,11 +299,11 @@ class RpcPostProcessor : PostProcessor {
         string error;
         MethodDefinition serverOrClientGetMethod;
         if (rpcTarget == RpcTarget.Server) {
-            error = "Cannot call RPC method \"" + method.FullName + "\" on server";
-            serverOrClientGetMethod = _isClientProperty.GetMethod;
+            error = $"Cannot call RPC method '{method.FullName}' on server";
+            serverOrClientGetMethod = isClientProperty.GetMethod;
         } else {
-            error = "Cannot call RPC method \"" + method.FullName + "\" on client";
-            serverOrClientGetMethod = _isServerProperty.GetMethod;
+            error = $"Cannot call RPC method '{method.FullName}' on client";
+            serverOrClientGetMethod = isServerProperty.GetMethod;
         }
 
         var il = method.Body.GetILProcessor();
@@ -324,7 +316,7 @@ class RpcPostProcessor : PostProcessor {
         il.Emit(OpCodes.Ceq);
         il.Emit(OpCodes.Brfalse_S, ok);
         il.Emit(OpCodes.Ldstr, error);
-        il.Emit(OpCodes.Call, _debugLogErrorMethod);
+        il.Emit(OpCodes.Call, debugLogErrorMethod);
         il.Emit(OpCodes.Ret);
         il.Append(ok);
 
@@ -393,13 +385,12 @@ class RpcPostProcessor : PostProcessor {
         }
 
         if (rpcTarget == RpcTarget.Server) {
-            // base.client.networkInterface.Send(bitStream, PacketPriority.Immediate, PacketReliability.Unreliable);
+            // base.client.networkInterface.Send(bitStream, PacketReliability.Unreliable);
             il.Emit(OpCodes.Ldarg_0);
             il.Emit(OpCodes.Call, Import(clientProperty.GetMethod));
             il.Emit(OpCodes.Callvirt, Import(networkInterfaceProperty.GetMethod));
 
             il.Emit(OpCodes.Ldloc_0);
-            il.Emit(OpCodes.Ldc_I4_0);
             il.Emit(OpCodes.Ldc_I4_0);
             il.Emit(OpCodes.Callvirt, clientNetworkInterfaceSendMethod);
         } else {

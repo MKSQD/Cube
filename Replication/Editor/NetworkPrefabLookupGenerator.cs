@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.AddressableAssets;
 
 namespace Cube.Replication.Editor {
 
@@ -42,11 +43,11 @@ namespace Cube.Replication.Editor {
             if (BuildPipeline.isBuildingPlayer)
                 return; // No need to regenerate the data while building
 
-            var prefabs = new List<GameObject>();
+            var prefabs = new List<AssetReferenceGameObject>();
 
             var assetGuids = AssetDatabase.FindAssets("t:Prefab");
-            foreach (var assetGuid in assetGuids) {
-                var serverAssetPath = AssetDatabase.GUIDToAssetPath(assetGuid);
+            foreach (var serverAssetGuid in assetGuids) {
+                var serverAssetPath = AssetDatabase.GUIDToAssetPath(serverAssetGuid);
 
                 var isClientPrefab = serverAssetPath.IndexOf(CLIENT_PREFAB_PREFIX, StringComparison.InvariantCultureIgnoreCase) != -1;
                 if (isClientPrefab)
@@ -61,7 +62,7 @@ namespace Cube.Replication.Editor {
                     continue;
 
                 var clientPrefab = serverPrefab;
-                var clientAssetPath = "";
+                var clientAssetPath = serverAssetPath;
                 if (serverAssetPath.IndexOf("Server_", StringComparison.InvariantCultureIgnoreCase) != -1) {
                     clientAssetPath = ReplaceString(serverAssetPath, SERVER_PREFAB_PREFIX, CLIENT_PREFAB_PREFIX, StringComparison.InvariantCultureIgnoreCase);
 
@@ -94,7 +95,12 @@ namespace Cube.Replication.Editor {
                     EditorUtility.SetDirty(clientReplica);
                 }
 
-                prefabs.Add(clientPrefab);
+                var clientAssetGUID = AssetDatabase.AssetPathToGUID(clientAssetPath);
+                var re = new AssetReferenceGameObject(clientAssetGUID);
+                if (!re.RuntimeKeyIsValid()) {
+                    Debug.LogWarning($"Not addressable: {clientAssetPath}", clientPrefab);
+                }
+                prefabs.Add(re);
             }
 
             var newPrefabs = prefabs.ToArray();

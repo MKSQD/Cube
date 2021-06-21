@@ -14,13 +14,13 @@ namespace Cube.Transport {
             networkInterface.ReceivedPacket += (bs, connection) => {
                 var messageId = bs.ReadByte();
 
-                List<ServerMessageHandler> handlers;
-                if (!handlers.TryGetValue(messageId, out handlers) || handlers.Count == 0) {
+                List<ServerMessageHandler> packetHandlers;
+                if (!handlers.TryGetValue(messageId, out packetHandlers) || packetHandlers.Count == 0) {
                     Debug.Log("Received unknown packet: " + messageId);
                     return;
                 }
 
-                foreach (var handler in handlers) {
+                foreach (var handler in packetHandlers) {
                     var pos = bs.Position;
 
                     try {

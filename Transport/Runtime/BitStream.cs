@@ -48,6 +48,10 @@ namespace Cube.Transport {
             return new BitStream(data, offsetInBits, lengthInBits);
         }
 
+        public static BitStream CopyExistingBuffer(byte[] data, int offsetInBits, int lengthInBits) {
+            return CreateWithExistingBuffer((byte[])data.Clone(), offsetInBits, lengthInBits);
+        }
+
         public override string ToString() {
             static string HexStr(byte[] data, int offset, int len, bool space = false) {
                 char[] hexchar = new char[] { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
@@ -108,13 +112,13 @@ namespace Cube.Transport {
 
         public unsafe bool ReadBool() {
             var val = new bool();
-            Read((byte*)&val, 1);
+            ReadRaw((byte*)&val, 1);
             return val;
         }
 
 
         public unsafe void Write(byte val) {
-            Write(&val, 8);
+            WriteRaw(&val, 8);
         }
 
         public void Read(ref byte val) {
@@ -123,14 +127,14 @@ namespace Cube.Transport {
 
         public unsafe byte ReadByte() {
             var val = new byte();
-            Read(&val, 8);
+            ReadRaw(&val, 8);
             return val;
         }
 
 
         public unsafe void Write(ushort val) {
-            val = Endian.SwapUInt16(val);
-            Write((byte*)&val, 16);
+            val = EndianUtil.SwapUInt16(val);
+            WriteRaw((byte*)&val, 16);
         }
 
         public void Read(ref ushort val) {
@@ -139,13 +143,13 @@ namespace Cube.Transport {
 
         public unsafe ushort ReadUShort() {
             var val = new ushort();
-            Read((byte*)&val, 16);
-            return Endian.SwapUInt16(val);
+            ReadRaw((byte*)&val, 16);
+            return EndianUtil.SwapUInt16(val);
         }
 
 
         public unsafe void Write(float val) {
-            Write((byte*)&val, 32);
+            WriteRaw((byte*)&val, 32);
         }
 
         public void Read(ref float val) {
@@ -154,7 +158,7 @@ namespace Cube.Transport {
 
         public unsafe float ReadFloat() {
             float val;
-            Read((byte*)&val, 32);
+            ReadRaw((byte*)&val, 32);
             return val;
         }
 
@@ -198,14 +202,14 @@ namespace Cube.Transport {
 
 
         public unsafe void Write(int val) {
-            val = Endian.SwapInt32(val);
-            Write((byte*)&val, 32);
+            val = EndianUtil.SwapInt32(val);
+            WriteRaw((byte*)&val, 32);
         }
 
         public unsafe int ReadInt() {
             var val = new int();
-            Read((byte*)&val, 32);
-            return Endian.SwapInt32(val);
+            ReadRaw((byte*)&val, 32);
+            return EndianUtil.SwapInt32(val);
         }
 
 
@@ -221,14 +225,14 @@ namespace Cube.Transport {
             var mask = (uint)((1L << bits) - 1);
             var data = (uint)(val - min) & mask;
 
-            Write((byte*)&data, bits);
+            WriteRaw((byte*)&data, bits);
         }
 
         public unsafe int ReadIntInRange(int min, int max) {
             var bits = ComputeRequiredIntBits(min, max);
 
             var val = new uint();
-            Read((byte*)&val, bits);
+            ReadRaw((byte*)&val, bits);
 
             return (int)(val + min);
         }
@@ -240,20 +244,20 @@ namespace Cube.Transport {
 
 
         public unsafe void Write(uint val) {
-            val = Endian.SwapUInt32(val);
-            Write((byte*)&val, 32);
+            val = EndianUtil.SwapUInt32(val);
+            WriteRaw((byte*)&val, 32);
         }
 
         public unsafe uint ReadUInt() {
             var val = new uint();
-            Read((byte*)&val, 32);
-            return Endian.SwapUInt32(val);
+            ReadRaw((byte*)&val, 32);
+            return EndianUtil.SwapUInt32(val);
         }
 
 
         public unsafe void Write(long val) {
-            val = Endian.SwapInt64(val);
-            Write((byte*)&val, 64);
+            val = EndianUtil.SwapInt64(val);
+            WriteRaw((byte*)&val, 64);
         }
 
         public void Read(ref long val) {
@@ -262,14 +266,14 @@ namespace Cube.Transport {
 
         public unsafe long ReadLong() {
             var val = new long();
-            Read((byte*)&val, 64);
-            return Endian.SwapInt64(val);
+            ReadRaw((byte*)&val, 64);
+            return EndianUtil.SwapInt64(val);
         }
 
 
         public unsafe void Write(ulong val) {
-            val = Endian.SwapUInt64(val);
-            Write((byte*)&val, 64);
+            val = EndianUtil.SwapUInt64(val);
+            WriteRaw((byte*)&val, 64);
         }
 
         public void Read(ref ulong val) {
@@ -278,8 +282,8 @@ namespace Cube.Transport {
 
         public unsafe ulong ReadULong() {
             var val = new ulong();
-            Read((byte*)&val, 64);
-            return Endian.SwapUInt64(val);
+            ReadRaw((byte*)&val, 64);
+            return EndianUtil.SwapUInt64(val);
         }
 
 
@@ -301,7 +305,7 @@ namespace Cube.Transport {
 
             if (chars.Length > 0) {
                 fixed (char* charPtr = &chars[0]) {
-                    Write((byte*)charPtr, chars.Length * 16);
+                    WriteRaw((byte*)charPtr, chars.Length * 16);
                 }
             }
         }
@@ -326,7 +330,7 @@ namespace Cube.Transport {
 
             var chars = new char[length];
             fixed (char* charPtr = &chars[0]) {
-                Read((byte*)charPtr, length * 16);
+                ReadRaw((byte*)charPtr, length * 16);
             }
             return new string(chars);
         }
@@ -513,16 +517,16 @@ namespace Cube.Transport {
         }
 
 
-        public unsafe int Read(byte[] buffer, int count) {
+        public unsafe int ReadRaw(byte[] buffer, int count) {
             if (count > buffer.Length * 8)
                 throw new Exception("Buffer overflow");
 
             fixed (byte* dst = &buffer[0]) {
-                return Read(dst, count);
+                return ReadRaw(dst, count);
             }
         }
 
-        public unsafe int Read(byte* buffer, int count) {
+        public unsafe int ReadRaw(byte* buffer, int count) {
             Assert.IsTrue(count > 0);
 
             if (readBitOffset + count > numBitsUsed)
@@ -618,7 +622,7 @@ namespace Cube.Transport {
             }
         }
 
-        public unsafe void Write(byte* inByteArray, int numberOfBitsToWrite) {
+        public unsafe void WriteRaw(byte* inByteArray, int numberOfBitsToWrite) {
             Resize(numberOfBitsToWrite);
 
             int numberOfBitsUsedMod8 = (int)(numBitsUsed & 7);

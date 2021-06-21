@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.AddressableAssets;
 using UnityEngine.Assertions;
 using UnityEngine.SceneManagement;
 using BitStream = Cube.Transport.BitStream;
@@ -103,7 +104,10 @@ namespace Cube.Replication {
             }
         }
 
+        HashSet<ReplicaId> replicasInConstruction = new HashSet<ReplicaId>();
         void OnReplicaUpdate(BitStream bs) {
+            var prePosition = bs.Position;
+
             var prefabIdx = ushort.MaxValue;
 
             var isSceneReplica = bs.ReadBool();
@@ -112,17 +116,17 @@ namespace Cube.Replication {
             }
 
             var replicaId = bs.ReadReplicaId();
+            if (replicasInConstruction.Contains(replicaId))
+                return;
 
             var replica = networkScene.GetReplicaById(replicaId);
             if (replica == null) {
                 if (isSceneReplica)
                     return; // Don't construct scene Replicas
 
-                replica = ConstructReplica(prefabIdx, replicaId);
-                if (replica == null)
-                    return; // Construction failed
-
-                networkScene.AddReplica(replica);
+                var bsCopy = BitStream.CopyExistingBuffer(bs.Data, prePosition, bs.LengthInBits);
+                ConstructReplica(prefabIdx, replicaId, bsCopy);
+                return;
             }
 
             var isOwner = bs.ReadBool();
@@ -132,7 +136,7 @@ namespace Cube.Replication {
 
             // Hack: 
             // In the editor client and service scene Replica is the same instance. So we don't do
-            // any ReplicaBehaviour replication
+            // any replication
 #if UNITY_EDITOR
             if (isSceneReplica)
                 return;
@@ -147,24 +151,33 @@ namespace Cube.Replication {
             replica.lastUpdateTime = Time.time;
         }
 
-        Replica ConstructReplica(ushort prefabIdx, ReplicaId replicaId) {
-            if (!networkPrefabLookup.TryGetClientPrefabForIndex(prefabIdx, out GameObject prefab)) {
-                Debug.LogWarning("Prefab for index " + prefabIdx + " not found!");
-                return null;
-            }
+        void ConstructReplica(ushort prefabIdx, ReplicaId replicaId, BitStream bsCopy) {
+            AssetReferenceGameObject prefab;
+            if (!networkPrefabLookup.TryGetClientPrefabForIndex(prefabIdx, out prefab))
+                throw new Exception($"Prefab for index {prefabIdx} not found!");
 
-            var newInstance = UnityEngine.Object.Instantiate(prefab, client.world.transform);
+            replicasInConstruction.Add(replicaId);
 
-            var newReplica = newInstance.GetComponent<Replica>();
-            if (newReplica == null) {
-                Debug.LogError("Replica component missing on " + prefab);
-                return null;
-            }
+            var result = prefab.InstantiateAsync(client.world.transform);
+            result.Completed += ctx => {
+                var newReplica = ctx.Result.GetComponent<Replica>();
+                if (newReplica == null) {
+                    Debug.LogError("Replica component missing on " + prefab);
+                    return;
+                }
 
-            newReplica.client = client;
-            newReplica.Id = replicaId;
+                newReplica.client = client;
+                newReplica.Id = replicaId;
 
-            return newReplica;
+                replicasInConstruction.Remove(replicaId);
+                networkScene.AddReplica(newReplica);
+
+                // Make sure the Replica has all it's state before Start(), etc. can run
+                // Not pretty but not having this leads to a Replica being in an uninitialized state
+                // for a potentially very long time while we had this info. All this mess is the result
+                // of Addressables not having a sync API which should be used for Replicas.
+                OnReplicaUpdate(bsCopy);
+            };
         }
 
         void OnReplicaRpc(BitStream bs) {
