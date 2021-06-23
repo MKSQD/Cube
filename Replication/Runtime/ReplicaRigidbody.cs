@@ -30,8 +30,14 @@ namespace Cube.Replication {
                 if (blend < 1) {
                     blend = Mathf.Min(blend + Time.deltaTime * 3, 1);
 
-                    currentModelPosition = Vector3.Lerp(currentModelPosition, transform.position, blend);
-                    currentModelRotation = Quaternion.Lerp(currentModelRotation, transform.rotation, blend);
+                    var diff = (currentModelPosition - transform.position).sqrMagnitude;
+                    if (diff < 1) {
+                        currentModelPosition = Vector3.Lerp(currentModelPosition, transform.position, blend);
+                        currentModelRotation = Quaternion.Lerp(currentModelRotation, transform.rotation, blend);
+                    } else {
+                        currentModelPosition = transform.position;
+                        currentModelRotation = transform.rotation;
+                    }
                     model.position = currentModelPosition;
                     model.rotation = currentModelRotation;
                 } else {
