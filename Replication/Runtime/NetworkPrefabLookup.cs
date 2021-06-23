@@ -1,10 +1,10 @@
-﻿using UnityEngine.AddressableAssets;
+﻿using UnityEngine;
 
 namespace Cube.Replication {
     public class NetworkPrefabLookup : GlobalData<NetworkPrefabLookup> {
-        public AssetReferenceGameObject[] Prefabs;
+        public GameObject[] Prefabs;
 
-        public bool TryGetClientPrefabForIndex(int prefabIdx, out AssetReferenceGameObject prefab) {
+        public bool TryGetClientPrefabForIndex(int prefabIdx, out GameObject prefab) {
             if (prefabIdx >= Prefabs.Length) {
                 prefab = null;
                 return false;

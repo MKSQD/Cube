@@ -43,7 +43,7 @@ namespace Cube.Replication.Editor {
             if (BuildPipeline.isBuildingPlayer)
                 return; // No need to regenerate the data while building
 
-            var prefabs = new List<AssetReferenceGameObject>();
+            var prefabs = new List<GameObject>();
 
             var assetGuids = AssetDatabase.FindAssets("t:Prefab");
             foreach (var serverAssetGuid in assetGuids) {
@@ -95,12 +95,7 @@ namespace Cube.Replication.Editor {
                     EditorUtility.SetDirty(clientReplica);
                 }
 
-                var clientAssetGUID = AssetDatabase.AssetPathToGUID(clientAssetPath);
-                var re = new AssetReferenceGameObject(clientAssetGUID);
-                if (!re.RuntimeKeyIsValid()) {
-                    Debug.LogWarning($"Not addressable: {clientAssetPath}", clientPrefab);
-                }
-                prefabs.Add(re);
+                prefabs.Add(clientPrefab);
             }
 
             var newPrefabs = prefabs.ToArray();

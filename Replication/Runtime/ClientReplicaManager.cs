@@ -106,8 +106,6 @@ namespace Cube.Replication {
 
         HashSet<ReplicaId> replicasInConstruction = new HashSet<ReplicaId>();
         void OnReplicaUpdate(BitStream bs) {
-            var prePosition = bs.Position;
-
             var prefabIdx = ushort.MaxValue;
 
             var isSceneReplica = bs.ReadBool();
@@ -116,17 +114,16 @@ namespace Cube.Replication {
             }
 
             var replicaId = bs.ReadReplicaId();
-            if (replicasInConstruction.Contains(replicaId))
-                return;
 
             var replica = networkScene.GetReplicaById(replicaId);
             if (replica == null) {
                 if (isSceneReplica)
                     return; // Don't construct scene Replicas
 
-                var bsCopy = BitStream.CopyExistingBuffer(bs.Data, prePosition, bs.LengthInBits);
-                ConstructReplica(prefabIdx, replicaId, bsCopy);
-                return;
+                if (replicasInConstruction.Contains(replicaId))
+                    return;
+
+                replica = ConstructReplica(prefabIdx, replicaId);
             }
 
             var isOwner = bs.ReadBool();
@@ -151,33 +148,26 @@ namespace Cube.Replication {
             replica.lastUpdateTime = Time.time;
         }
 
-        void ConstructReplica(ushort prefabIdx, ReplicaId replicaId, BitStream bsCopy) {
-            AssetReferenceGameObject prefab;
+        Replica ConstructReplica(ushort prefabIdx, ReplicaId replicaId) {
+            GameObject prefab;
             if (!networkPrefabLookup.TryGetClientPrefabForIndex(prefabIdx, out prefab))
                 throw new Exception($"Prefab for index {prefabIdx} not found!");
 
             replicasInConstruction.Add(replicaId);
 
-            var result = prefab.InstantiateAsync(client.world.transform);
-            result.Completed += ctx => {
-                var newReplica = ctx.Result.GetComponent<Replica>();
-                if (newReplica == null) {
-                    Debug.LogError("Replica component missing on " + prefab);
-                    return;
-                }
+            var newGameObject = GameObject.Instantiate(prefab, client.world.transform);
 
-                newReplica.client = client;
-                newReplica.Id = replicaId;
+            var replica = newGameObject.GetComponent<Replica>();
+            if (replica == null)
+                throw new Exception("Replica component missing on " + prefab);
 
-                replicasInConstruction.Remove(replicaId);
-                networkScene.AddReplica(newReplica);
+            replica.client = client;
+            replica.Id = replicaId;
 
-                // Make sure the Replica has all it's state before Start(), etc. can run
-                // Not pretty but not having this leads to a Replica being in an uninitialized state
-                // for a potentially very long time while we had this info. All this mess is the result
-                // of Addressables not having a sync API which should be used for Replicas.
-                OnReplicaUpdate(bsCopy);
-            };
+            replicasInConstruction.Remove(replicaId);
+            networkScene.AddReplica(replica);
+
+            return replica;
         }
 
         void OnReplicaRpc(BitStream bs) {
