@@ -59,7 +59,7 @@ namespace Cube.Replication {
         }
 
         /// Scan a newly loaded Scene for scene Replicas.
-        public void ProcessSceneReplicasInScene(Scene scene) {
+        void ProcessSceneReplicasInScene(Scene scene) {
             var sceneReplicas = new List<Replica>();
             foreach (var go in scene.GetRootGameObjects()) {
                 foreach (var replica in go.GetComponentsInChildren<Replica>()) {

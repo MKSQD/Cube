@@ -13,8 +13,6 @@ namespace Cube.Replication {
 
         void Update();
 
-        void ProcessSceneReplicasInScene(Scene scene);
-
 
         GameObject InstantiateReplica(GameObject prefab);
         GameObject InstantiateReplica(GameObject prefab, Vector3 position);

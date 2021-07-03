@@ -213,28 +213,28 @@ namespace Cube.Transport {
         }
 
 
-        public unsafe void WriteIntInRange(int val, int min, int max) {
-            if (val < min || val > max) {
+        public unsafe void WriteIntInRange(int val, int minInclusive, int maxInclusive) {
+            if (val < minInclusive || val > maxInclusive) {
 #if UNITY_EDITOR
-                Debug.LogWarning("Clamped value " + val + " to (" + min + "," + max + ")");
+                Debug.LogWarning("Clamped value " + val + " to (" + minInclusive + "," + maxInclusive + ")");
 #endif
-                val = Mathf.Clamp(val, min, max);
+                val = Mathf.Clamp(val, minInclusive, maxInclusive);
             }
 
-            var bits = ComputeRequiredIntBits(min, max);
+            var bits = ComputeRequiredIntBits(minInclusive, maxInclusive);
             var mask = (uint)((1L << bits) - 1);
-            var data = (uint)(val - min) & mask;
+            var data = (uint)(val - minInclusive) & mask;
 
             WriteRaw((byte*)&data, bits);
         }
 
-        public unsafe int ReadIntInRange(int min, int max) {
-            var bits = ComputeRequiredIntBits(min, max);
+        public unsafe int ReadIntInRange(int minInclusive, int maxInclusive) {
+            var bits = ComputeRequiredIntBits(minInclusive, maxInclusive);
 
             var val = new uint();
             ReadRaw((byte*)&val, bits);
 
-            return (int)(val + min);
+            return (int)(val + minInclusive);
         }
 
 
