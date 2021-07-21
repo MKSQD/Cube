@@ -10,7 +10,7 @@ namespace Cube.Transport {
         bool IsConnected { get; }
 
         float GetRemoteTime(float time);
-        
+
         /// <exception cref="ClientConnectionAttemptException">Throw on connection error</exception>
         void Connect(string address, ushort port);
         /// <exception cref="ClientConnectionAttemptException">Throw on connection error</exception>
@@ -21,7 +21,7 @@ namespace Cube.Transport {
 
         void Shutdown(uint blockDuration);
 
-        unsafe void Send(BitStream bs, PacketReliability reliablity);
+        void Send(BitStream bs, PacketReliability reliablity, int sequenceChannel = 0);
     }
 }
 

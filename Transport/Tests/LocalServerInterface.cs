@@ -33,7 +33,7 @@ namespace Cube.Transport.Tests {
             }
         }
 
-        public void SendBitStream(BitStream bs, PacketReliability reliablity, Connection connection, int sequenceChannel) {
+        public void Send(BitStream bs, PacketReliability reliablity, Connection connection, int sequenceChannel) {
             LocalClientInterface targetClient = null;
 
             foreach (var client in clients) {

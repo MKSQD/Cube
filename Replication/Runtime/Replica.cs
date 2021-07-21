@@ -111,12 +111,11 @@ namespace Cube.Replication {
             if (sqrMagnitude > sqrMaxDist)
                 return 0; // No costly calculations
 
-            var distanceRelevance = 1f - Mathf.Pow(sqrMagnitude / sqrMaxDist, 0.8f);
+            var distanceRelevance = 1f - Mathf.Pow(sqrMagnitude / sqrMaxDist, 0.9f);
 
-
-            var dotRelevance = Vector2.Dot(new Vector2(view.transform.forward.x, view.transform.forward.z).normalized,
-                diff.normalized);
-            dotRelevance = Mathf.Max(dotRelevance, 0.5f);
+            var viewForward = new Vector2(view.transform.forward.x, view.transform.forward.z).normalized;
+            var dotRelevance = Vector2.Dot(viewForward, diff.normalized);
+            dotRelevance = dotRelevance > 0 ? 1 : 0.5f;
 
             return distanceRelevance * dotRelevance;
         }

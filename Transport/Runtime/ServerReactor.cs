@@ -28,13 +28,13 @@ namespace Cube.Transport {
                     } catch (Exception e) {
                         Debug.LogException(e);
                     }
-                    
+
                     bs.Position = pos;
                 }
             };
         }
 
-        public void AddMessageHandler(byte id, ServerMessageHandler handler) {
+        public void AddHandler(byte id, ServerMessageHandler handler) {
             if (!handlers.TryGetValue(id, out List<ServerMessageHandler> existingHandlers)) {
                 existingHandlers = new List<ServerMessageHandler>();
                 handlers.Add(id, existingHandlers);
@@ -42,7 +42,7 @@ namespace Cube.Transport {
             existingHandlers.Add(handler);
         }
 
-        public void RemoveMessageHandler(byte id, ServerMessageHandler handler) {
+        public void RemoveHandler(byte id, ServerMessageHandler handler) {
             if (!handlers.TryGetValue(id, out List<ServerMessageHandler> existingHandlers))
                 return;
 

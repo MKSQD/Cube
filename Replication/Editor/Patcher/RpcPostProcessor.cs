@@ -86,7 +86,7 @@ class RpcPostProcessor : PostProcessor {
         replicaManagerProperty = GetPropertyDefinitionByName(replicaBehaviourType, "ReplicaManager");
 
         var cubeClientType = GetTypeDefinitionByName(replicationAssembly, "Cube.Replication.ICubeClient");
-        networkInterfaceProperty = GetPropertyDefinitionByName(cubeClientType, "networkInterface");
+        networkInterfaceProperty = GetPropertyDefinitionByName(cubeClientType, "NetworkInterface");
 
         var ireplicaManager = GetTypeDefinitionByName(replicationAssembly, "Cube.Replication.IReplicaManager");
         replicaManagerGetReplicaMethod = GetMethodDefinitionByName(ireplicaManager, "GetReplica");
@@ -151,7 +151,7 @@ class RpcPostProcessor : PostProcessor {
             if (IsRpcMethodValid(method, out string error)) {
                 InjectSendRpcInstructions(nextRpcMethodId, method, implMethod);
             } else {
-                Debug.LogError("RPC method error \"" + method.FullName + "\": " + error);
+                Debug.LogError($"RPC method error \"{method.FullName}\": {error}");
             }
 
             remoteMethods.Add(implMethod);
@@ -391,7 +391,8 @@ class RpcPostProcessor : PostProcessor {
             il.Emit(OpCodes.Callvirt, Import(networkInterfaceProperty.GetMethod));
 
             il.Emit(OpCodes.Ldloc_0);
-            il.Emit(OpCodes.Ldc_I4_0);
+            il.Emit(OpCodes.Ldc_I4_0); // PacketReliability.Unreliable
+            il.Emit(OpCodes.Ldc_I4_0); // sequenceChannel
             il.Emit(OpCodes.Callvirt, clientNetworkInterfaceSendMethod);
         } else {
             // Replica.QueueServerRpc(bitStream, RpcTarget.Owner);

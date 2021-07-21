@@ -26,9 +26,9 @@ namespace Cube.Replication {
             this.networkPrefabLookup = networkPrefabLookup;
             this.client = client;
 
-            client.reactor.AddHandler((byte)MessageId.ReplicaUpdate, OnReplicaUpdate);
-            client.reactor.AddHandler((byte)MessageId.ReplicaRpc, OnReplicaRpc);
-            client.reactor.AddHandler((byte)MessageId.ReplicaDestroy, OnReplicaDestroy);
+            client.Reactor.AddHandler((byte)MessageId.ReplicaUpdate, OnReplicaUpdate);
+            client.Reactor.AddHandler((byte)MessageId.ReplicaRpc, OnReplicaRpc);
+            client.Reactor.AddHandler((byte)MessageId.ReplicaDestroy, OnReplicaDestroy);
 
             networkScene = new NetworkScene();
 
@@ -58,7 +58,7 @@ namespace Cube.Replication {
 #if UNITY_EDITOR
                 foreach (var existingReplica in networkScene.Replicas) {
                     if (replica.sceneIdx == existingReplica.sceneIdx) {
-                        Debug.LogWarning("Replicas with the same sceneIdx found!");
+                        Debug.LogWarning($"Replicas with the same sceneIdx found! (sceneIdx={replica.sceneIdx})");
 
                         networkScene.RemoveReplica(existingReplica);
 
@@ -155,7 +155,7 @@ namespace Cube.Replication {
 
             replicasInConstruction.Add(replicaId);
 
-            var newGameObject = GameObject.Instantiate(prefab, client.world.transform);
+            var newGameObject = GameObject.Instantiate(prefab, client.World.transform);
 
             var replica = newGameObject.GetComponent<Replica>();
             if (replica == null)

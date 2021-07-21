@@ -3,11 +3,11 @@ using Cube.Transport;
 
 namespace Cube.Networking {
     public class CubeClient : ICubeClient {
-        public IClientNetworkInterface networkInterface {
+        public IClientNetworkInterface NetworkInterface {
             get;
             internal set;
         }
-        public ClientReactor reactor {
+        public ClientReactor Reactor {
             get;
             internal set;
         }
@@ -15,25 +15,25 @@ namespace Cube.Networking {
             get;
             internal set;
         }
-        public IWorld world {
+        public IWorld World {
             get;
             internal set;
         }
 
         public CubeClient(IWorld world, IClientNetworkInterface networkInterface) {
-            this.world = world;
-            this.networkInterface = networkInterface;
-            reactor = new ClientReactor(networkInterface);
+            this.World = world;
+            this.NetworkInterface = networkInterface;
+            Reactor = new ClientReactor(networkInterface);
             replicaManager = new ClientReplicaManager(this, NetworkPrefabLookup.Instance);
         }
 
         public void Update() {
             replicaManager.Update();
-            networkInterface.Update();
+            NetworkInterface.Update();
         }
 
         public void Shutdown() {
-            networkInterface.Shutdown(0);
+            NetworkInterface.Shutdown(0);
         }
     }
 }

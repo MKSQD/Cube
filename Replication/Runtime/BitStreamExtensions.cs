@@ -31,5 +31,9 @@ namespace Cube.Replication {
 
             return (T)NetworkObjectLookup.Instance.CreateFromNetworkAssetId(id);
         }
+
+        public static void Read<T>(this BitStream bs, ref T value) where T : NetworkObject {
+            value = bs.ReadNetworkObject<T>();
+        }
     }
 }

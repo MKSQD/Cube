@@ -134,7 +134,7 @@ namespace Cube.Transport {
             }
         }
 
-        public void SendBitStream(BitStream bs, PacketReliability reliablity, Connection connection, int sequenceChannel) {
+        public void Send(BitStream bs, PacketReliability reliablity, Connection connection, int sequenceChannel) {
             Debug.Log("<< " + reliablity + " " + bs.ReadByte() + " len=" + bs.Length + " " + bs);
 
             Assert.IsTrue(connection != Connection.Invalid);

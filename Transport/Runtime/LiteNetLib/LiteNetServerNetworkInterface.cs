@@ -20,6 +20,7 @@ namespace Cube.Transport {
             server = new NetManager(this);
 #if UNITY_EDITOR
             server.EnableStatistics = true;
+            server.DisconnectTimeout = 5000000;
 #endif
 
             server.Start(port);
@@ -29,7 +30,7 @@ namespace Cube.Transport {
             server.SendToAll(bs.Data, 0, bs.Length, (byte)sequenceChannel, GetDeliveryMethod(reliablity));
         }
 
-        public void SendBitStream(BitStream bs, PacketReliability reliablity, Connection connection, int sequenceChannel = 0) {
+        public void Send(BitStream bs, PacketReliability reliablity, Connection connection, int sequenceChannel = 0) {
             var peer = server.GetPeerById((int)connection.id);
             peer.Send(bs.Data, 0, bs.Length, (byte)sequenceChannel, GetDeliveryMethod(reliablity));
         }

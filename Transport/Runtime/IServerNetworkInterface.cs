@@ -24,8 +24,8 @@ namespace Cube.Transport {
         Action<BitStream, Connection> ReceivedPacket { get; set; }
 
         bool IsRunning { get; }
-        
-        void SendBitStream(BitStream bs, PacketReliability reliablity, Connection connection, int sequenceChannel = 0);
+
+        void Send(BitStream bs, PacketReliability reliablity, Connection connection, int sequenceChannel = 0);
         void BroadcastBitStream(BitStream bs, PacketReliability reliablity, int sequenceChannel = 0);
 
         void Update();

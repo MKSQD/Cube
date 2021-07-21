@@ -66,15 +66,15 @@ namespace Cube.Transport {
             client.Shutdown("bye byte"); //#TODO message ?
         }
 
-        public void Send(BitStream bs, PacketReliability reliablity) {
+        public void Send(BitStream bs, PacketReliability reliablity, int sequenceChannel = 0) {
             var msg = client.CreateMessage(bs.Length);
             msg.Write(bs.Data, 0, bs.Length);
             msg.LengthBits = bs.LengthInBits;
-            client.SendMessage(msg, GetReliability(reliablity));
+            client.SendMessage(msg, GetReliability(reliablity), sequenceChannel);
         }
 
         void ReceiveMessages() {
-            while(true) {
+            while (true) {
                 var msg = client.ReadMessage();
                 if (msg == null)
                     break;

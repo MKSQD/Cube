@@ -17,6 +17,9 @@ namespace Cube.Transport {
 
         public LiteNetClientNetworkInterface() {
             client = new NetManager(this);
+#if UNITY_EDITOR
+            client.DisconnectTimeout = 5000000;
+#endif
             client.Start();
         }
 
@@ -37,8 +40,8 @@ namespace Cube.Transport {
             return time; // #todo
         }
 
-        public void Send(BitStream bs,  PacketReliability reliablity) {
-            client.FirstPeer.Send(bs.Data, 0, bs.Length, GetDeliveryMethod(reliablity));
+        public void Send(BitStream bs, PacketReliability reliablity, int sequenceChannel = 0) {
+            client.FirstPeer.Send(bs.Data, 0, bs.Length, (byte)sequenceChannel, GetDeliveryMethod(reliablity));
         }
 
         public void Shutdown(uint blockDuration) {

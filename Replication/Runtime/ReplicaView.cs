@@ -2,6 +2,7 @@
 using System;
 using Cube.Transport;
 using System.Collections.Generic;
+using UnityEditor;
 
 namespace Cube.Replication {
     [Serializable]
@@ -33,6 +34,11 @@ namespace Cube.Replication {
 
         void OnDrawGizmosSelected() {
             Debug = this;
+
+            Handles.color = Color.white;
+            for (int i = 1; i < 3; ++i) {
+                Handles.DrawWireDisc(transform.position, Vector3.up, i * 50);
+            }
         }
 #endif
     }

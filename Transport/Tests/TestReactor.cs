@@ -25,9 +25,9 @@ namespace Cube.Transport.Tests {
         public void TestServerReactor() {
             var server = new LocalServerInterface();
             var reactor = new ServerReactor(server);
-            
+
             bool messageHandlerCalled = false;
-            reactor.AddMessageHandler(1, (Connection connection, BitStream bs) => {
+            reactor.AddHandler(1, (Connection connection, BitStream bs) => {
                 messageHandlerCalled = true;
             });
 

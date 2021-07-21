@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using UnityEditor;
+using UnityEditor.SceneManagement;
+using UnityEngine;
 using UnityEngine.SceneManagement;
 
 namespace Cube.Replication.Editor {
@@ -8,6 +10,22 @@ namespace Cube.Replication.Editor {
     static class SceneReplicaPatcher {
         static SceneReplicaPatcher() {
             UnityEditor.SceneManagement.EditorSceneManager.sceneSaving += OnSceneSaving;
+        }
+
+        [MenuItem("Cube/Internal/Force reset scene Replica SceneIDs")]
+        static void Force() {
+            if (Application.isPlaying)
+                return;
+
+            for (int i = 0; i < SceneManager.sceneCount; ++i) {
+                var scene = SceneManager.GetSceneAt(i);
+                if (!scene.isLoaded)
+                    continue;
+
+                OnSceneSaving(scene, "");
+                EditorSceneManager.MarkSceneDirty(scene);
+            }
+            Debug.Log("Done");
         }
 
         static void OnSceneSaving(Scene scene, string path) {

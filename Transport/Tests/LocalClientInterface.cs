@@ -39,7 +39,7 @@ namespace Cube.Transport.Tests {
             }
         }
 
-        public void Send(BitStream bs, PacketReliability reliablity) {
+        public void Send(BitStream bs, PacketReliability reliablity, int sequenceChannel = 0) {
             if (!IsConnected)
                 throw new Exception("Not connected.");
 

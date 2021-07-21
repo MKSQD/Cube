@@ -15,7 +15,7 @@ namespace Cube.Networking {
 
             client = new CubeClient(worldC, networkInterface);
 
-            client.networkInterface.Connect("127.0.0.1", 60000);
+            client.NetworkInterface.Connect("127.0.0.1", 60000);
         }
 
         void Update() {
