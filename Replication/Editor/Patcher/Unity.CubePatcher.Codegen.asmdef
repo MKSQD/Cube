@@ -3,7 +3,8 @@
     "rootNamespace": "",
     "references": [
         "Unity.CompilationPipeline.Common.dll",
-        "Cube.Replication"
+        "Cube.Replication",
+        "Cube.Transport"
     ],
     "includePlatforms": [
         "Editor"
