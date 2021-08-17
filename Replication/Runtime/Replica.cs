@@ -36,6 +36,10 @@ namespace Cube.Replication {
         public bool isServer => server != null;
         public bool isClient => client != null;
 
+        /// <summary>
+        /// The connection (client) owning this Replica, or Connection.Invalid if the server owns it.
+        /// Only valid on the server.
+        /// </summary>
         public Connection Owner {
             get;
             internal set;

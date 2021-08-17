@@ -17,7 +17,7 @@ namespace Cube.Replication.Editor {
             GUILayout.BeginHorizontal();
             EditorGUILayout.LabelField("Prefab ID", replica.prefabIdx.ToString());
             if (replica.isSceneReplica) {
-                EditorGUILayout.LabelField("Scene Idx", replica.sceneIdx.ToString());
+                EditorGUILayout.LabelField("Scene Replica ID", replica.sceneIdx.ToString());
             }
             GUILayout.EndHorizontal();
 
