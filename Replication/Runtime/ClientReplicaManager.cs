@@ -97,7 +97,9 @@ namespace Cube.Replication {
                 if (replica == null || replica.isSceneReplica)
                     continue;
 
-                if (replica.lastUpdateTime < Time.time - replica.settings.DesiredUpdateRate * 30) {
+                var replicaTimeout = replica.lastUpdateTime < Time.time - replica.settings.DesiredUpdateRate * 30;
+                var canDestroy = !replica.IsOwner; // We don't ever destroy owned Replicas
+                if (replicaTimeout && canDestroy) {
                     // Note we modify the replicas variable implicitly here -> the Replica deletes itself
                     UnityEngine.Object.Destroy(replica.gameObject);
                 }
