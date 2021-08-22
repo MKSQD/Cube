@@ -50,7 +50,7 @@ namespace Cube.Replication {
             internal set;
         }
 
-        ReplicaBehaviour[] _replicaBehaviours;
+        ReplicaBehaviour[] replicaBehaviours;
 
         /// <summary>
         /// Used on the client to remove Replicas which received no updates for a long time.
@@ -60,7 +60,7 @@ namespace Cube.Replication {
 
         public List<QueuedRpc> queuedRpcs = new List<QueuedRpc>();
 
-        static bool _applicationQuitting;
+        static bool applicationQuitting;
 
         public void AssignOwnership(Connection owner) {
             Assert.IsTrue(isServer);
@@ -125,7 +125,8 @@ namespace Cube.Replication {
         }
 
         /// <summary>
-        /// SERVER only. Removes the Replica instantly from replication, destroys the GameObject and sends a destroy message to the clients on the next update.
+        /// SERVER only.
+        /// Removes the Replica instantly from replication, destroys the GameObject and sends a destroy message to the clients on the next update.
         /// </summary>
         public void Destroy() {
             if (!isServer)
@@ -135,7 +136,10 @@ namespace Cube.Replication {
         }
 
         /// <summary>
-        /// SERVER only. Removes the Replica instantly from replication. Does NOT send any message to the clients.
+        /// SERVER only. 
+        /// Removes the Replica instantly from replication.
+        /// Does NOT send any message to the clients.
+        /// Does NOT destroy the gameObject.
         /// </summary>
         public void Remove() {
             if (!isServer)
@@ -145,7 +149,7 @@ namespace Cube.Replication {
         }
 
         public void Serialize(BitStream bs, ReplicaBehaviour.SerializeContext ctx) {
-            foreach (var component in _replicaBehaviours) {
+            foreach (var component in replicaBehaviours) {
 #if UNITY_EDITOR
                 TransportDebugger.BeginScope(component.ToString());
                 var startSize = bs.LengthInBits;
@@ -160,28 +164,28 @@ namespace Cube.Replication {
         }
 
         public void Deserialize(BitStream bs) {
-            foreach (var component in _replicaBehaviours) {
+            foreach (var component in replicaBehaviours) {
                 component.Deserialize(bs);
             }
         }
 
         public void SerializeDestruction(BitStream bs, ReplicaBehaviour.SerializeContext ctx) {
-            foreach (var component in _replicaBehaviours) {
+            foreach (var component in replicaBehaviours) {
                 component.SerializeDestruction(bs, ctx);
             }
         }
 
         public void DeserializeDestruction(BitStream bs) {
-            foreach (var component in _replicaBehaviours) {
+            foreach (var component in replicaBehaviours) {
                 component.DeserializeDestruction(bs);
             }
         }
 
         public void RebuildCaches() {
-            _replicaBehaviours = GetComponentsInChildren<ReplicaBehaviour>();
+            replicaBehaviours = GetComponentsInChildren<ReplicaBehaviour>();
 
             byte idx = 0;
-            foreach (var rb in _replicaBehaviours) {
+            foreach (var rb in replicaBehaviours) {
                 rb.Replica = this;
                 rb.replicaComponentIdx = idx++;
             }
@@ -207,7 +211,7 @@ namespace Cube.Replication {
             if (!Application.isPlaying)
                 return; // No need to remove this if not in play mode
 #endif
-            if (_applicationQuitting)
+            if (applicationQuitting)
                 return;
 
             if (isClient) {
@@ -219,7 +223,7 @@ namespace Cube.Replication {
         }
 
         void OnApplicationQuit() {
-            _applicationQuitting = true;
+            applicationQuitting = true;
         }
 
         public void QueueServerRpc(BitStream bs, RpcTarget target) {
@@ -231,16 +235,20 @@ namespace Cube.Replication {
         }
 
         public void CallRpcServer(Connection connection, BitStream bs) {
-            var isReplicaOwnedByCaller = Owner == connection;
-            if (!isReplicaOwnedByCaller)
-                return;
+            if (connection != Connection.Invalid) {
+                var isReplicaOwnedByCaller = Owner == connection;
+                if (!isReplicaOwnedByCaller) {
+                    Debug.LogWarning($"Replica RPC called by non-owner, rejected (Replica={gameObject})", gameObject);
+                    return;
+                }
+            }
 
             ReplicaBehaviour.rpcConnection = connection;
             try {
                 var componentIdx = bs.ReadByte();
                 var methodId = bs.ReadByte();
 
-                var replicaBehaviour = _replicaBehaviours[componentIdx];
+                var replicaBehaviour = replicaBehaviours[componentIdx];
                 replicaBehaviour.DispatchRpc(methodId, bs);
             } finally {
                 ReplicaBehaviour.rpcConnection = Connection.Invalid;
@@ -251,7 +259,7 @@ namespace Cube.Replication {
             var componentIdx = bs.ReadByte();
             var methodId = bs.ReadByte();
 
-            var replicaBehaviour = _replicaBehaviours[componentIdx];
+            var replicaBehaviour = replicaBehaviours[componentIdx];
             replicaBehaviour.DispatchRpc(methodId, bs);
         }
     }

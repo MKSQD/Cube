@@ -240,6 +240,16 @@ namespace Cube.Replication {
                 }
 
                 foreach (var replica in networkScene.Replicas) {
+                    // Call RpcTarget.All RPCs on the server
+                    // This is done in case the RPC destroys the Replica the RPC had a chance to be send
+                    foreach (var queuedRpc in replica.queuedRpcs) {
+                        if (queuedRpc.target == RpcTarget.All) {
+                            var _ = queuedRpc.bs.ReadByte();
+                            var _2 = queuedRpc.bs.ReadReplicaId();
+                            replica.CallRpcServer(Connection.Invalid, queuedRpc.bs);
+                        }
+                    }
+
                     replica.queuedRpcs.Clear();
                 }
 
@@ -313,7 +323,7 @@ namespace Cube.Replication {
 
             int bytesSent = 0;
 
-            var sortedIndices = new List<int>();
+            List<int> sortedIndices = new List<int>();
             CalculateRelevantReplicaIndices(view, sortedIndices);
 
             var serializeCtx = new ReplicaBehaviour.SerializeContext() {
@@ -322,6 +332,9 @@ namespace Cube.Replication {
 
             int numSentLowRelevance = 0;
             foreach (var currentReplicaIdx in sortedIndices) {
+                if (view.RelevantReplicaPriorityAccumulator[currentReplicaIdx] < 1)
+                    continue; // < 1 means we are still not over the DesiredUpdateRate interval
+
                 var replica = view.RelevantReplicas[currentReplicaIdx];
                 if (replica == null || replica.Id == ReplicaId.Invalid)
                     continue;
@@ -363,12 +376,20 @@ namespace Cube.Replication {
 
                 bytesSent += updateBs.Length;
                 if (bytesSent >= settings.MaxBytesPerConnectionPerUpdate)
-                    return; // Packet size exhausted
+                    break; // Packet size exhausted
+            }
+
+            // Rpcs
+            foreach (var currentReplicaIdx in sortedIndices) {
+                var replica = view.RelevantReplicas[currentReplicaIdx];
+                if (replica == null || replica.Id == ReplicaId.Invalid)
+                    continue;
 
                 // Rpcs
                 foreach (var queuedRpc in replica.queuedRpcs) {
                     var isRpcRelevant = (queuedRpc.target == RpcTarget.Owner && replica.Owner == view.Connection)
                         || queuedRpc.target == RpcTarget.All
+                        || queuedRpc.target == RpcTarget.AllClients
                         || (queuedRpc.target == RpcTarget.AllClientsExceptOwner && replica.Owner != view.Connection);
                     if (!isRpcRelevant)
                         continue;
@@ -384,7 +405,7 @@ namespace Cube.Replication {
 
                     bytesSent += queuedRpc.bs.Length;
                     if (bytesSent >= settings.MaxBytesPerConnectionPerUpdate)
-                        return; // Packet size exhausted
+                        break; // Packet size exhausted
                 }
             }
         }
@@ -456,9 +477,6 @@ namespace Cube.Replication {
             sortedReplicaIndices.Clear();
 
             for (int i = 0; i < view.RelevantReplicas.Count; ++i) {
-                if (view.RelevantReplicaPriorityAccumulator[i] < 1)
-                    continue; // < 1 means we are still not over the DesiredUpdateRate interval
-
                 sortedReplicaIndices.Add(i);
             }
 

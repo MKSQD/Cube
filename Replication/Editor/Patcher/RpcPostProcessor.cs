@@ -306,6 +306,7 @@ class RpcPostProcessor : PostProcessor {
     }
 
     void InjectSendRpcInstructions(int methodId, MethodDefinition method, MethodDefinition implMethod) {
+        method.Body.ExceptionHandlers.Clear();
         method.Body.Variables.Clear();
         method.Body.Variables.Add(new VariableDefinition(Import(bitStreamType)));
 
@@ -328,9 +329,7 @@ class RpcPostProcessor : PostProcessor {
         var ok = il.Create(OpCodes.Nop);
         il.Emit(OpCodes.Ldarg_0);
         il.Emit(OpCodes.Call, Import(serverOrClientGetMethod));
-        il.Emit(OpCodes.Ldc_I4_0);
-        il.Emit(OpCodes.Ceq);
-        il.Emit(OpCodes.Brfalse_S, ok);
+        il.Emit(OpCodes.Brtrue_S, ok);
         il.Emit(OpCodes.Ldstr, error);
         il.Emit(OpCodes.Call, debugLogErrorMethod);
         il.Emit(OpCodes.Ret);
@@ -338,14 +337,14 @@ class RpcPostProcessor : PostProcessor {
 
 
         // BitStream bitStream = new BitStream();
-        il.Emit(OpCodes.Ldc_I4, 64);
+        il.Emit(OpCodes.Ldc_I4_S, (sbyte)64);
         il.Emit(OpCodes.Newobj, bitStreamCTorMethod);
         il.Emit(OpCodes.Stloc_0);
 
 
         // bitStream.Write((byte)Cube.Transport.MessageId.ReplicaRpc);
         il.Emit(OpCodes.Ldloc_0);
-        il.Emit(OpCodes.Ldc_I4, 1);
+        il.Emit(OpCodes.Ldc_I4_1);
         il.Emit(OpCodes.Callvirt, bitStreamWrite["Byte"]);
 
         // BitStreamExtensions.Write(bitStream, Replica.Id);
@@ -424,6 +423,15 @@ class RpcPostProcessor : PostProcessor {
             il.Emit(OpCodes.Ldc_I4, (int)rpcTarget);
             il.Emit(OpCodes.Callvirt, queueServerRpcMethod);
         }
+        /*
+                if (rpcTarget == RpcTarget.All) {
+                    il.Emit(OpCodes.Ldarg_0);
+                    for (int i = 0; i < method.Parameters.Count; ++i) { // 0 == this
+                        il.Emit(OpCodes.Ldarg, i + 1);
+                    }
+                    il.Emit(OpCodes.Callvirt, implMethod);
+                }
+                */
 
         il.Emit(OpCodes.Ret);
     }
