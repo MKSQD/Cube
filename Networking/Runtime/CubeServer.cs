@@ -1,6 +1,8 @@
 using Cube.Replication;
 using Cube.Transport;
 using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.Assertions;
 
 namespace Cube.Networking {
     public class CubeServer : ICubeServer {
@@ -16,18 +18,15 @@ namespace Cube.Networking {
             get;
             internal set;
         }
-        public IWorld World {
-            get;
-            internal set;
-        }
         public List<Connection> connections {
             get;
             internal set;
         }
 
-        public CubeServer(IWorld world, IServerNetworkInterface networkInterface, ServerReplicaManagerSettings replicaManagerSettings) {
+        public CubeServer(Transform replicaParentTransform, IServerNetworkInterface networkInterface, ServerReplicaManagerSettings replicaManagerSettings) {
+            Assert.IsNotNull(replicaParentTransform);
+
             connections = new List<Connection>();
-            World = world;
 
             NetworkInterface = networkInterface;
             networkInterface.NewConnectionEstablished += OnNewConnectionEstablished;
@@ -35,7 +34,7 @@ namespace Cube.Networking {
 
             Reactor = new ServerReactor(networkInterface);
 
-            ReplicaManager = new ServerReplicaManager(this, replicaManagerSettings);
+            ReplicaManager = new ServerReplicaManager(this, replicaParentTransform, replicaManagerSettings);
         }
 
         public void Update() {

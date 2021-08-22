@@ -18,10 +18,9 @@ namespace Cube.Replication {
         const ushort FirstLocalReplicaId = 255; // The first 255 values are reserved for scene Replicas
 
         readonly ICubeServer server;
+        readonly Transform spawnTransform;
         readonly NetworkScene networkScene;
-        public ReadOnlyCollection<Replica> Replicas {
-            get => networkScene.Replicas;
-        }
+        public ReadOnlyCollection<Replica> Replicas => networkScene.Replicas;
 
         [SerializeField]
         List<ReplicaView> replicaViews = new List<ReplicaView>();
@@ -40,11 +39,13 @@ namespace Cube.Replication {
         Dictionary<ReplicaId, Replica> replicasInConstruction = new Dictionary<ReplicaId, Replica>();
         List<Replica> replicasInDestruction = new List<Replica>();
 
-        public ServerReplicaManager(ICubeServer server, ServerReplicaManagerSettings settings) {
+        public ServerReplicaManager(ICubeServer server, Transform spawnTransform, ServerReplicaManagerSettings settings) {
             Assert.IsNotNull(server);
+            Assert.IsNotNull(spawnTransform);
             Assert.IsNotNull(settings);
 
             networkScene = new NetworkScene();
+            this.spawnTransform = spawnTransform;
 
             this.server = server;
             server.Reactor.AddHandler((byte)MessageId.ReplicaRpc, OnReplicaRpc);
@@ -103,7 +104,7 @@ namespace Cube.Replication {
             if (prefab == null)
                 throw new ArgumentNullException("prefab");
 
-            var newInstance = UnityEngine.Object.Instantiate(prefab, position, rotation, server.World.transform);
+            var newInstance = UnityEngine.Object.Instantiate(prefab, position, rotation, spawnTransform);
             var replica = InstantiateReplicaImpl(newInstance);
             if (replica == null) {
                 Debug.LogError("Prefab <i>" + prefab + "</i> is missing Replica Component", prefab);
@@ -134,7 +135,7 @@ namespace Cube.Replication {
         }
 
         public AsyncOperationHandle<GameObject> InstantiateReplicaAsync(object key, Vector3 position, Quaternion rotation) {
-            var newInstance = Addressables.InstantiateAsync(key, position, rotation, server.World.transform);
+            var newInstance = Addressables.InstantiateAsync(key, position, rotation, spawnTransform);
             newInstance.Completed += obj => {
                 var replica = InstantiateReplicaImpl(obj.Result);
                 if (replica == null) {
@@ -175,9 +176,8 @@ namespace Cube.Replication {
 
             if (replica.Id != ReplicaId.Invalid) {
                 FreeLocalReplicaId(replica.Id);
+                replica.Id = ReplicaId.Invalid;
             }
-
-            replica.Id = ReplicaId.Invalid;
         }
 
         /// <summary>
@@ -318,6 +318,7 @@ namespace Cube.Replication {
             nextReplicaIdRecycleTime = Time.time + replicaIdRecycleTime;
         }
 
+
         void UpdateReplicaView(ReplicaView view) {
             UpdateRelevantReplicaPriorities(view);
 
@@ -385,7 +386,6 @@ namespace Cube.Replication {
                 if (replica == null || replica.Id == ReplicaId.Invalid)
                     continue;
 
-                // Rpcs
                 foreach (var queuedRpc in replica.queuedRpcs) {
                     var isRpcRelevant = (queuedRpc.target == RpcTarget.Owner && replica.Owner == view.Connection)
                         || queuedRpc.target == RpcTarget.All
@@ -479,18 +479,11 @@ namespace Cube.Replication {
             for (int i = 0; i < view.RelevantReplicas.Count; ++i) {
                 sortedReplicaIndices.Add(i);
             }
-
             sortedReplicaIndices.Sort((i1, i2) => (int)((view.RelevantReplicaPriorityAccumulator[i2] - view.RelevantReplicaPriorityAccumulator[i1]) * 100));
         }
 
         void SendDestroyedReplicasToReplicaView(ReplicaView view) {
             Assert.IsTrue(replicasInDestruction.Count > 0);
-
-
-
-
-
-
 
             foreach (var replica in replicasInDestruction) {
                 var wasInterestedInReplica = view.RelevantReplicas.Contains(replica);

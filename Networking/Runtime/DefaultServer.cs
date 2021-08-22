@@ -11,12 +11,9 @@ namespace Cube.Networking {
 
 
         void Start() {
-            var world = new GameObject("Server World");
-            var worldC = world.AddComponent<World>();
-
             var networkInterface = new LiteNetServerNetworkInterface(60000);
             var settings = new ServerReplicaManagerSettings();
-            Server = new CubeServer(worldC, networkInterface, settings);
+            Server = new CubeServer(transform, networkInterface, settings);
 
             networkInterface.NewConnectionEstablished += conn => {
                 Debug.Log($"[Server] New connection {conn}");

@@ -27,11 +27,11 @@ namespace Cube.Networking.Tests {
 
             objects.server = new LocalServerInterface();
             objects.reactor = new ServerReactor(objects.server);
-            
+
             var replicaManagerSettings = new ServerReplicaManagerSettings();
 
             objects.gameObject = new GameObject("Server");
-            objects.replicaManager = new ServerReplicaManager(null, replicaManagerSettings);
+            objects.replicaManager = new ServerReplicaManager(null, objects.gameObject.transform, replicaManagerSettings);
 
             return objects;
         }
