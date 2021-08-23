@@ -17,8 +17,6 @@ namespace Cube.Replication {
         public ReplicaSettings settings;
         public ReplicaSettings settingsOrDefault => settings != null ? settings : defaultReplicaSettings;
 
-        public bool replicateOnlyToOwner;
-
         [HideInInspector]
         public ReplicaId Id = ReplicaId.Invalid;
 
@@ -84,14 +82,7 @@ namespace Cube.Replication {
 
         public bool IsRelevantFor(ReplicaView view) {
             Assert.IsTrue(isServer);
-
-            if (!gameObject.activeInHierarchy)
-                return false;
-
-            if (replicateOnlyToOwner)
-                return view.Connection == Owner;
-
-            return true;
+            return gameObject.activeInHierarchy;
         }
 
         /// [0,1]
