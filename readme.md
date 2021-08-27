@@ -3,22 +3,24 @@ GameObject based network replication library for [Unity3d](https://unity.com/).
 
 ## Features
 - Very scalable and robust, eventual consistency based network model (loosely based on [GDC Vault: I Shot You First! Gameplay Networking in Halo: Reach](http://www.gdcvault.com/play/1014345/I-Shot-You-First-Networking))
-- Does 1 thing only and focuses on doing that right
+- Integration with [Unreal-style gameplay framework](https://github.com/NoDogsInc/GameFramework)
 - Develop server and client at the same time in editor
 - Prefabs for networked objects and ScriptableObject assets are discovered automatically, no factory functions to implement or lists to manually maintain
-- Static network objects in scene
+- Networked static scene objects
 - RPCs as normal function calls (using Cecil to patch assemblies)
 - Transport layer currently either [LiteNetLib](https://github.com/RevenantX/LiteNetLib) or [Lidgren](https://github.com/lidgren/lidgren-network-gen3)
-- Integration with [Unreal-style gameplay framework](https://github.com/NoDogsInc/GameFramework)
-
-## Network model
-No network packet is sent reliable (although reliable sending is of course supported for user packets). This allows for super aggressive priorization and scalability.
-Think as many networked objects or players as your server can support. As the bandwidth per connection gets exhausted optional events (RPCs) are culled first 
-and then more and more networked objects (Replicas). Those with the lowest priority (default metric: desired update rate * distance * is player looking towards Replica)
-first. The priority calculation can be customized per game.
 
 ![Transport Debugger](Docs/TransportDebugger.png)
 ![Replication Settings](Docs/ReplicationSettings.png)
+
+## Introduction
+Cube is an object based replication library. What does that mean? You begin by starting a server and connecting with a client. Add a GameObject with an _ReplicaView_ to the server. This tells the server from where to client viewes the world. Instantiate a prefab with a _Replica_ component on the server. The server starts sending updates about all Replicas in the range of the ReplicaView to the client. That's basically it.
+
+To send a Replica to a client all Components on the Replica GameObject that inherit _ReplicaBehaviour_ are serialized by calling _Serialize_. On the client _Deserialize_ is called on all _ReplicaBehaviour_s on the GameObject. These state update ticks are done at fixed intervals and will eventually arrive at the client.
+
+In addition to the regular state updates there are RPCs. These are used to add flavour in between the regular state updates. Imagine a car going from ok to broken. You would send an RPC to all client why the car breaks. State for permanent data, RPCs for temporary data/events.
+
+For the client to know which Prefab belongs to the server _Replica_ prefab we use naming conventions. The server prefab must be named Server_, the client on Client_. If you don't name a prefab containing a _Replica_ this way Cube will assume that server and client both use the same prefab.
 
 ## Getting Started
 Clone the git repository into your **Assets** folder.
@@ -33,7 +35,6 @@ Note that the automatic connection to the server in ClientGame is just enabled i
 Now that we've got a connection we can start looking at ...
 
 ## Replication
-
 A **Replica** is replicated from the server to all clients. Replicas must always be instances of prefabs for Cube to be able to create client instances of them.
 
 
