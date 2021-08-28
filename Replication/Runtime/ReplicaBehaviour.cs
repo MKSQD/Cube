@@ -27,9 +27,6 @@ namespace Cube.Replication {
         public virtual void Serialize(BitStream bs, SerializeContext ctx) { }
         public virtual void Deserialize(BitStream bs) { }
 
-        public virtual void SerializeDestruction(BitStream bs, SerializeContext ctx) { }
-        public virtual void DeserializeDestruction(BitStream bs) { }
-
         /// Do NOT manually overwrite this. RpcPatcher will generate this dispatch table automatically.
         public virtual void DispatchRpc(byte methodIdx, BitStream bs) {
             Debug.LogError("Pure virtual RPC called, RpcPatcher needs to run");

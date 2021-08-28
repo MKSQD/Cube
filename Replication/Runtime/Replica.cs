@@ -160,18 +160,6 @@ namespace Cube.Replication {
             }
         }
 
-        public void SerializeDestruction(BitStream bs, ReplicaBehaviour.SerializeContext ctx) {
-            foreach (var component in replicaBehaviours) {
-                component.SerializeDestruction(bs, ctx);
-            }
-        }
-
-        public void DeserializeDestruction(BitStream bs) {
-            foreach (var component in replicaBehaviours) {
-                component.DeserializeDestruction(bs);
-            }
-        }
-
         public void RebuildCaches() {
             replicaBehaviours = GetComponentsInChildren<ReplicaBehaviour>();
 
@@ -229,7 +217,9 @@ namespace Cube.Replication {
             if (connection != Connection.Invalid) {
                 var isReplicaOwnedByCaller = Owner == connection;
                 if (!isReplicaOwnedByCaller) {
+#if CUBE_DEBUG_REP
                     Debug.LogWarning($"Replica RPC called by non-owner, rejected (Replica={gameObject})", gameObject);
+#endif
                     return;
                 }
             }

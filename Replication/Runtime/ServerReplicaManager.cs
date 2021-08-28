@@ -242,7 +242,8 @@ namespace Cube.Replication {
                 foreach (var replica in networkScene.Replicas) {
                     // Call RpcTarget.All RPCs on the server
                     // This is done in case the RPC destroys the Replica the RPC had a chance to be send
-                    foreach (var queuedRpc in replica.queuedRpcs) {
+                    for (int i = 0; i < replica.queuedRpcs.Count; ++i) {
+                        var queuedRpc = replica.queuedRpcs[i];
                         if (queuedRpc.target == RpcTarget.All) {
                             var _ = queuedRpc.bs.ReadByte();
                             var _2 = queuedRpc.bs.ReadReplicaId();
@@ -485,6 +486,10 @@ namespace Cube.Replication {
         void SendDestroyedReplicasToReplicaView(ReplicaView view) {
             Assert.IsTrue(replicasInDestruction.Count > 0);
 
+            var destroyBs = BitStreamPool.Create();
+            destroyBs.Write((byte)MessageId.ReplicaDestroy);
+
+            var send = false;
             foreach (var replica in replicasInDestruction) {
                 var wasInterestedInReplica = view.RelevantReplicas.Contains(replica);
                 if (!wasInterestedInReplica)
@@ -493,22 +498,17 @@ namespace Cube.Replication {
 #if UNITY_EDITOR
                 TransportDebugger.BeginScope("ReplicaDestroy");
 #endif
-
-                var ctx = new ReplicaBehaviour.SerializeContext() {
-                    View = view
-                };
-
-                var destroyBs = BitStreamPool.Create();
-                destroyBs.Write((byte)MessageId.ReplicaDestroy);
                 destroyBs.Write(replica.Id);
-                replica.SerializeDestruction(destroyBs, ctx);
-
-                server.NetworkInterface.Send(destroyBs, PacketReliability.Unreliable, view.Connection);
-
+                send = true;
 #if UNITY_EDITOR
                 TransportDebugger.EndScope(destroyBs.LengthInBits);
 #endif
             }
+
+            if (send) {
+                server.NetworkInterface.Send(destroyBs, PacketReliability.Unreliable, view.Connection);
+            }
+
         }
 
         public ReplicaView GetReplicaView(Connection connection) {
