@@ -13,6 +13,7 @@ namespace Cube.Replication.Editor {
         const string SERVER_PREFAB_PREFIX = "Server_";
 
         static void OnPostprocessAllAssets(string[] importedAssets, string[] deletedAssets, string[] movedAssets, string[] movedFromAssetPaths) {
+            /*
             var found = false;
 
             var foos = new string[][] { importedAssets, deletedAssets, movedAssets };
@@ -31,9 +32,10 @@ namespace Cube.Replication.Editor {
             if (found) {
                 Generate();
             }
+            */
         }
 
-        [MenuItem("Cube/Internal/Force refresh NetworkPrefabLookup")]
+        [MenuItem("Cube/Refresh NetworkPrefabLookup")]
         static void Force() {
             Generate();
             Debug.Log("Done");
