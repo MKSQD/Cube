@@ -240,18 +240,20 @@ namespace Cube.Replication {
                 }
 
                 foreach (var replica in networkScene.Replicas) {
-                    // Call RpcTarget.All RPCs on the server
-                    // This is done in case the RPC destroys the Replica the RPC had a chance to be send
-                    for (int i = 0; i < replica.queuedRpcs.Count; ++i) {
-                        var queuedRpc = replica.queuedRpcs[i];
-                        if (queuedRpc.target == RpcTarget.All) {
-                            var _ = queuedRpc.bs.ReadByte();
-                            var _2 = queuedRpc.bs.ReadReplicaId();
-                            replica.CallRpcServer(Connection.Invalid, queuedRpc.bs);
+                    try {
+                        // Call RpcTarget.All RPCs on the server
+                        // This is done in case the RPC destroys the Replica the RPC had a chance to be send
+                        for (int i = 0; i < replica.queuedRpcs.Count; ++i) {
+                            var queuedRpc = replica.queuedRpcs[i];
+                            if (queuedRpc.target == RpcTarget.All) {
+                                var _ = queuedRpc.bs.ReadByte();
+                                var _2 = queuedRpc.bs.ReadReplicaId();
+                                replica.CallRpcServer(Connection.Invalid, queuedRpc.bs);
+                            }
                         }
+                    } finally {
+                        replica.queuedRpcs.Clear();
                     }
-
-                    replica.queuedRpcs.Clear();
                 }
 
                 foreach (var idReplicaPair in replicasInConstruction) {
