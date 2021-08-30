@@ -16,16 +16,18 @@ namespace Cube.Replication {
         static void OnPostprocessAllAssets(string[] importedAssets, string[] deletedAssets, string[] movedAssets, string[] movedFromAssetPaths) {
             var found = false;
 
-            var foos = new string[][] { importedAssets, deletedAssets, movedAssets };
-            foreach (var foo in foos) {
+            var assetLists = new string[][] { importedAssets, deletedAssets };
+            foreach (var assetList in assetLists) {
                 if (found)
                     break;
 
-                foreach (var s in foo) {
-                    if (s.EndsWith(".asset", StringComparison.InvariantCultureIgnoreCase)
-                        && !s.EndsWith(NetworkObjectLookup.AssetName, StringComparison.InvariantCultureIgnoreCase)) {
-                        found = true;
-                        break;
+                foreach (var assetPath in assetList) {
+                    if (assetPath.EndsWith(".asset", StringComparison.InvariantCultureIgnoreCase)) {
+                        var asset = AssetDatabase.LoadAssetAtPath<NetworkObject>(assetPath);
+                        if (asset != null) {
+                            found = true;
+                            break;
+                        }
                     }
                 }
             }
@@ -48,7 +50,7 @@ namespace Cube.Replication {
 
                 var asset = AssetDatabase.LoadAssetAtPath<NetworkObject>(assetPath);
                 if (asset == null) {
-                    Debug.LogError("LoadAssetAtPath failed (path=" + assetPath + ")");
+                    Debug.LogWarning("LoadAssetAtPath failed (path=" + assetPath + ")");
                     continue;
                 }
 
@@ -66,7 +68,6 @@ namespace Cube.Replication {
             var lookup = NetworkObjectLookup.Instance;
             if (!newEntries.SequenceEqual(lookup.Entries)) {
                 lookup.Entries = newEntries;
-
                 EditorUtility.SetDirty(lookup);
             }
         }
