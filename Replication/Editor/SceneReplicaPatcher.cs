@@ -12,7 +12,7 @@ namespace Cube.Replication.Editor {
             UnityEditor.SceneManagement.EditorSceneManager.sceneSaving += OnSceneSaving;
         }
 
-        [MenuItem("Cube/Internal/Force reset scene Replica SceneIDs")]
+        [MenuItem("Cube/Internal/Reset Scene Replica IDs")]
         static void Force() {
             if (Application.isPlaying)
                 return;
@@ -22,48 +22,74 @@ namespace Cube.Replication.Editor {
                 if (!scene.isLoaded)
                     continue;
 
-                OnSceneSaving(scene, "");
+                var sceneReplicas = GatherSceneReplicas(scene);
+                foreach (var replica in sceneReplicas) {
+                    replica.sceneIdx = 0;
+                    PrefabUtility.RecordPrefabInstancePropertyModifications(replica);
+                }
+
                 EditorSceneManager.MarkSceneDirty(scene);
             }
             Debug.Log("Done");
         }
 
+
+
         static void OnSceneSaving(Scene scene, string path) {
-            var sceneReplicas = new List<Replica>();
-            foreach (var go in scene.GetRootGameObjects()) {
-                foreach (var replica in go.GetComponentsInChildren<Replica>()) {
-                    sceneReplicas.Add(replica);
-                }
-            }
+            var sceneReplicas = GatherSceneReplicas(scene);
 
-            sceneReplicas.Sort((r1, r2) => r1.GetInstanceID() - r2.GetInstanceID()); // Mostly stable so scene indices don't change so often
-
-            var usedIdxs = new HashSet<byte>();
+            // Collect existing IDs
+            var usedIdcs = new HashSet<byte>();
             foreach (var replica in sceneReplicas) {
                 if (replica.sceneIdx == 0)
                     continue;
 
-                if (!usedIdxs.Contains(replica.sceneIdx)) {
-                    usedIdxs.Add(replica.sceneIdx);
+                if (!usedIdcs.Contains(replica.sceneIdx)) {
+                    usedIdcs.Add(replica.sceneIdx);
                 } else {
                     replica.sceneIdx = 0;
+                    Debug.Log("Replica scene idx already assigned, reset.", replica.gameObject);
+
+                    PrefabUtility.RecordPrefabInstancePropertyModifications(replica);
                 }
             }
+
+            var nextSceneIdx = 0;
 
             var lastUsedSceneIdx = 0;
             foreach (var replica2 in sceneReplicas) {
                 lastUsedSceneIdx = Math.Max(lastUsedSceneIdx, replica2.sceneIdx);
             }
 
+            // Assign new IDs
             foreach (var replica in sceneReplicas) {
                 if (replica.sceneIdx != 0)
                     continue;
 
-                ++lastUsedSceneIdx;
-                replica.sceneIdx = (byte)lastUsedSceneIdx;
+                while (usedIdcs.Contains((byte)nextSceneIdx) && nextSceneIdx <= 255) {
+                    ++nextSceneIdx;
+                }
+                if (nextSceneIdx > 255) {
+                    Debug.LogError("More than 255 scene Replicas, not yet supported. Aborting.");
+                    return;
+                }
+
+                replica.sceneIdx = (byte)nextSceneIdx;
+                ++nextSceneIdx;
 
                 PrefabUtility.RecordPrefabInstancePropertyModifications(replica);
             }
+        }
+
+        static List<Replica> GatherSceneReplicas(Scene scene) {
+            var sceneReplicas = new List<Replica>();
+            foreach (var go in scene.GetRootGameObjects()) {
+                foreach (var replica in go.GetComponentsInChildren<Replica>()) {
+                    sceneReplicas.Add(replica);
+                }
+            }
+            sceneReplicas.Sort((r1, r2) => r1.GetInstanceID() - r2.GetInstanceID()); // Mostly stable so scene indices don't change so often
+            return sceneReplicas;
         }
     }
 }
