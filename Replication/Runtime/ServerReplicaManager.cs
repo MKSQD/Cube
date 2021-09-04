@@ -139,7 +139,7 @@ namespace Cube.Replication {
             newInstance.Completed += obj => {
                 var replica = InstantiateReplicaImpl(obj.Result);
                 if (replica == null) {
-                    Debug.LogError("Prefab <i>" + key + "</i> is missing Replica Component");
+                    Debug.LogError($"Prefab <i>{key}</i> is missing Replica Component");
                 }
             };
 
@@ -396,6 +396,8 @@ namespace Cube.Replication {
                         || (queuedRpc.target == RpcTarget.AllClientsExceptOwner && replica.Owner != view.Connection);
                     if (!isRpcRelevant)
                         continue;
+
+
 #if UNITY_EDITOR
                     TransportDebugger.BeginScope("Replica RPC " + queuedRpc.target);
 #endif

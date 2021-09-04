@@ -180,7 +180,7 @@ namespace Cube.Transport {
 
 
         /// <summary>
-        /// Write float in the range [0,1].
+        /// Write float in the range [-1,1] with 2 bytes.
         /// </summary>
         public void WriteNormalised(float val) {
             Assert.IsTrue(val > -1.01f && val < 1.01f);
