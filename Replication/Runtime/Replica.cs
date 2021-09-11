@@ -148,6 +148,10 @@ namespace Cube.Replication {
 
                 component.Serialize(bs, ctx);
 
+#if UNITY_EDITOR || DEVELOPMENT
+                bs.Write((byte)0b10101010);
+#endif
+
 #if UNITY_EDITOR
                 TransportDebugger.EndScope(bs.LengthInBits - startSize);
 #endif
@@ -157,6 +161,18 @@ namespace Cube.Replication {
         public void Deserialize(BitStream bs) {
             foreach (var component in replicaBehaviours) {
                 component.Deserialize(bs);
+
+#if UNITY_EDITOR || DEVELOPMENT
+                try {
+                    if (bs.ReadByte() != 0b10101010) {
+                        Debug.LogError($"{component} violated serialization guard");
+                        return;
+                    }
+                } catch (InvalidOperationException e) {
+                    Debug.LogError($"{component} violated serialization guard");
+                    return;
+                }
+#endif
             }
         }
 
