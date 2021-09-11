@@ -3,7 +3,19 @@ using UnityEngine;
 using BitStream = Cube.Transport.BitStream;
 
 namespace Cube.Replication {
-    public abstract class ReplicaBehaviour : MonoBehaviour {
+    public abstract class BaseReplicaBehaviour : MonoBehaviour {
+        [HideInInspector]
+        public Replica Replica;
+
+        public bool isServer => Replica.isServer;
+        public bool isClient => Replica.isClient;
+        public bool isOwner => Replica.IsOwner;
+
+        public ICubeServer server => Replica.server;
+        public ICubeClient client => Replica.client;
+    }
+
+    public abstract class ReplicaBehaviour : BaseReplicaBehaviour {
         public struct SerializeContext {
             public ReplicaView View;
         }
@@ -11,18 +23,9 @@ namespace Cube.Replication {
         [HideInInspector]
         public byte replicaComponentIdx;
 
-        [HideInInspector]
-        public Replica Replica;
-
         public static Connection rpcConnection = Connection.Invalid;
 
-        public ICubeServer server => Replica.server;
-        public ICubeClient client => Replica.client;
         public IReplicaManager ReplicaManager => Replica.ReplicaManager;
-
-        public bool isServer => Replica.isServer;
-        public bool isClient => Replica.isClient;
-        public bool isOwner => Replica.IsOwner;
 
         public virtual void Serialize(BitStream bs, SerializeContext ctx) { }
         public virtual void Deserialize(BitStream bs) { }

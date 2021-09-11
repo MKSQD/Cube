@@ -1,4 +1,5 @@
 ﻿using Cube.Transport;
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Assertions;
@@ -177,13 +178,22 @@ namespace Cube.Replication {
         }
 
         public void RebuildCaches() {
-            replicaBehaviours = GetComponentsInChildren<ReplicaBehaviour>();
+            // #todo This is disgusting
+            var brbs = GetComponentsInChildren<BaseReplicaBehaviour>();
+
+            var rbs = new List<ReplicaBehaviour>();
 
             byte idx = 0;
-            foreach (var rb in replicaBehaviours) {
-                rb.Replica = this;
-                rb.replicaComponentIdx = idx++;
+            foreach (var brb in brbs) {
+                brb.Replica = this;
+
+                if (brb is ReplicaBehaviour rb) {
+                    rb.replicaComponentIdx = idx++;
+                    rbs.Add(rb);
+                }
             }
+
+            replicaBehaviours = rbs.ToArray();
         }
 
         void Awake() {

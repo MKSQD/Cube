@@ -70,6 +70,8 @@ class RpcPostProcessor : PostProcessor {
 
         readNetworkObject = GetMethodDefinitionByName(bitStreamExtensionsType, "ReadNetworkObject");
 
+        var baseReplicaBehaviourType = GetTypeDefinitionByName(replicationAssembly, "Cube.Replication.BaseReplicaBehaviour");
+
         var replicaBehaviourType = GetTypeDefinitionByName(replicationAssembly, "Cube.Replication.ReplicaBehaviour");
         replicaType = GetTypeDefinitionByName(replicationAssembly, "Cube.Replication.Replica");
         replicaIdField = Import(GetFieldDefinitionByName(replicaType, "Id"));
@@ -80,11 +82,11 @@ class RpcPostProcessor : PostProcessor {
         queueServerRpcMethod = Import(GetMethodDefinitionByName(replicaType, "QueueServerRpc"));
 
         replicaComponentIdxField = Import(GetFieldDefinitionByName(replicaBehaviourType, "replicaComponentIdx"));
-        replicaField = Import(GetFieldDefinitionByName(replicaBehaviourType, "Replica"));
+        replicaField = Import(GetFieldDefinitionByName(baseReplicaBehaviourType, "Replica"));
 
-        isServerProperty = GetPropertyDefinitionByName(replicaBehaviourType, "isServer");
-        isClientProperty = GetPropertyDefinitionByName(replicaBehaviourType, "isClient");
-        clientProperty = GetPropertyDefinitionByName(replicaBehaviourType, "client");
+        isServerProperty = GetPropertyDefinitionByName(baseReplicaBehaviourType, "isServer");
+        isClientProperty = GetPropertyDefinitionByName(baseReplicaBehaviourType, "isClient");
+        clientProperty = GetPropertyDefinitionByName(baseReplicaBehaviourType, "client");
         replicaManagerProperty = GetPropertyDefinitionByName(replicaBehaviourType, "ReplicaManager");
 
         var cubeClientType = GetTypeDefinitionByName(replicationAssembly, "Cube.Replication.ICubeClient");
