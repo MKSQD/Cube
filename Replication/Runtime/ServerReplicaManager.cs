@@ -321,7 +321,6 @@ namespace Cube.Replication {
             nextReplicaIdRecycleTime = Time.time + replicaIdRecycleTime;
         }
 
-
         void UpdateReplicaView(ReplicaView view) {
             UpdateRelevantReplicaPriorities(view);
 
@@ -330,9 +329,7 @@ namespace Cube.Replication {
             List<int> sortedIndices = new List<int>();
             CalculateRelevantReplicaIndices(view, sortedIndices);
 
-            var serializeCtx = new ReplicaBehaviour.SerializeContext() {
-                View = view
-            };
+
 
             int numSentLowRelevance = 0;
             foreach (var currentReplicaIdx in sortedIndices) {
@@ -367,6 +364,9 @@ namespace Cube.Replication {
                 bool isOwner = replica.Owner == view.Connection;
                 updateBs.Write(isOwner);
 
+                var serializeCtx = new ReplicaBehaviour.SerializeContext() {
+                    IsOwner = isOwner
+                };
                 replica.Serialize(updateBs, serializeCtx);
 
 #if UNITY_EDITOR
@@ -379,8 +379,12 @@ namespace Cube.Replication {
                 view.RelevantReplicaPriorityAccumulator[currentReplicaIdx] = 0;
 
                 bytesSent += updateBs.Length;
-                if (bytesSent >= settings.MaxBytesPerConnectionPerUpdate)
+                if (bytesSent >= settings.MaxBytesPerConnectionPerUpdate) {
+                    if (bytesSent >= 1400)
+                        Debug.LogError("bytesSent >= 1400 " + replica.gameObject);
+
                     break; // Packet size exhausted
+                }
             }
 
             // Rpcs
@@ -409,8 +413,12 @@ namespace Cube.Replication {
 #endif
 
                     bytesSent += queuedRpc.bs.Length;
-                    if (bytesSent >= settings.MaxBytesPerConnectionPerUpdate)
+                    if (bytesSent >= settings.MaxBytesPerConnectionPerUpdate) {
+                        if (bytesSent >= 1400)
+                            Debug.LogError("bytesSent >= 1400 " + replica.gameObject);
+
                         break; // Packet size exhausted
+                    }
                 }
             }
         }

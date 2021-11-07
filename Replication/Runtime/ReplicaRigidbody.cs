@@ -51,30 +51,26 @@ namespace Cube.Replication {
             bs.Write(transform.position);
 
             var euler = transform.rotation.eulerAngles;
-            if (euler.x < 0)
-                euler.x += 360;
-            if (euler.y < 0)
-                euler.y += 360;
-            if (euler.z < 0)
-                euler.z += 360;
+            euler.x = Mathf.Repeat(euler.x, 360);
+            euler.y = Mathf.Repeat(euler.y, 360);
+            euler.z = Mathf.Repeat(euler.z, 360);
             bs.WriteLossyFloat(euler.x, 0, 360);
             bs.WriteLossyFloat(euler.y, 0, 360);
             bs.WriteLossyFloat(euler.z, 0, 360);
 
             var sleeping = rigidbody.IsSleeping();
             bs.Write(sleeping);
-            if (sleeping)
-                return;
+            if (!sleeping) {
+                var velocity = rigidbody.velocity;
+                bs.WriteLossyFloat(velocity.x, -maxVelocity, maxVelocity);
+                bs.WriteLossyFloat(velocity.y, -maxVelocity, maxVelocity);
+                bs.WriteLossyFloat(velocity.z, -maxVelocity, maxVelocity);
 
-            var velocity = rigidbody.velocity;
-            bs.WriteLossyFloat(velocity.x, -maxVelocity, maxVelocity);
-            bs.WriteLossyFloat(velocity.y, -maxVelocity, maxVelocity);
-            bs.WriteLossyFloat(velocity.z, -maxVelocity, maxVelocity);
-
-            var angularVelocity = rigidbody.angularVelocity;
-            bs.WriteLossyFloat(angularVelocity.x, -maxAngularVelocity, maxAngularVelocity);
-            bs.WriteLossyFloat(angularVelocity.y, -maxAngularVelocity, maxAngularVelocity);
-            bs.WriteLossyFloat(angularVelocity.z, -maxAngularVelocity, maxAngularVelocity);
+                var angularVelocity = rigidbody.angularVelocity;
+                bs.WriteLossyFloat(angularVelocity.x, -maxAngularVelocity, maxAngularVelocity);
+                bs.WriteLossyFloat(angularVelocity.y, -maxAngularVelocity, maxAngularVelocity);
+                bs.WriteLossyFloat(angularVelocity.z, -maxAngularVelocity, maxAngularVelocity);
+            }
         }
 
         public override void Deserialize(BitStream bs) {

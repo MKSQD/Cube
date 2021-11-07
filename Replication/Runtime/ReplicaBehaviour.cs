@@ -17,7 +17,10 @@ namespace Cube.Replication {
 
     public abstract class ReplicaBehaviour : BaseReplicaBehaviour {
         public struct SerializeContext {
-            public ReplicaView View;
+            /// <summary>
+            /// Is the current Serialize call for the owner of this Replica?
+            /// </summary>
+            public bool IsOwner;
         }
 
         [HideInInspector]

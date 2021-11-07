@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace Cube.Replication {
+﻿namespace Cube.Replication {
     /// <summary>
     /// Used for runtime lookup of NetworkObject instances in the Assets folder.
     /// </summary>

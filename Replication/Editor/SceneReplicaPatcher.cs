@@ -48,8 +48,6 @@ namespace Cube.Replication.Editor {
                     usedIdcs.Add(replica.sceneIdx);
                 } else {
                     replica.sceneIdx = 0;
-                    Debug.Log("Replica scene idx already assigned, reset.", replica.gameObject);
-
                     PrefabUtility.RecordPrefabInstancePropertyModifications(replica);
                 }
             }

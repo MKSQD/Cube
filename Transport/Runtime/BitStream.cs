@@ -228,12 +228,15 @@ namespace Cube.Transport {
 
 
         public unsafe void WriteIntInRange(int val, int minInclusive, int maxInclusive) {
-            if (val < minInclusive || val > maxInclusive) {
 #if UNITY_EDITOR
+            if (val < minInclusive || val > maxInclusive) {
+
                 Debug.LogWarning("Clamped value " + val + " to (" + minInclusive + "," + maxInclusive + ")");
-#endif
-                val = Mathf.Clamp(val, minInclusive, maxInclusive);
+
+
             }
+#endif
+            val = Mathf.Clamp(val, minInclusive, maxInclusive);
 
             var bits = ComputeRequiredIntBits(minInclusive, maxInclusive);
             var mask = (uint)((1L << bits) - 1);
