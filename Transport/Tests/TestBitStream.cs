@@ -4,7 +4,7 @@ using UnityEngine;
 namespace Cube.Transport.Tests {
     public class TestBitStream {
         [Test]
-        public void Test_CompressDecompress_Float() {
+        public void Test_LossyFloat() {
             var bs = new BitStream();
 
             for (int i = -32; i < 32; ++i) {
@@ -17,7 +17,24 @@ namespace Cube.Transport.Tests {
         }
 
         [Test]
-        public void Test_CompressDecompress_Int() {
+        public void Test_QuantizeFloat() {
+            var bs = new BitStream();
+
+            bs.WriteLossyFloat(10, -32, 32, 1);
+            Assert.AreEqual(BitStream.QuantizeFloat(10, -32, 32, 1), bs.ReadLossyFloat(-32, 32, 1));
+
+            bs.WriteLossyFloat(-10, -32, 32, 1);
+            Assert.AreEqual(BitStream.QuantizeFloat(-10, -32, 32, 1), bs.ReadLossyFloat(-32, 32, 1));
+
+            bs.WriteLossyFloat(10, -32, 32, 0.5f);
+            Assert.AreEqual(BitStream.QuantizeFloat(10, -32, 32, 0.5f), bs.ReadLossyFloat(-32, 32, 0.5f));
+
+            bs.WriteLossyFloat(0.125f, -32, 32, 0.5f);
+            Assert.AreEqual(BitStream.QuantizeFloat(0.125f, -32, 32, 0.5f), bs.ReadLossyFloat(-32, 32, 0.5f));
+        }
+
+        [Test]
+        public void Test_IntInRange() {
             var bs = new BitStream();
 
             for (int i = -32; i < 32; ++i) {
@@ -53,8 +70,8 @@ namespace Cube.Transport.Tests {
         [Test]
         public void Test_WriteRead_String() {
             var strings = new string[] { "",
-                "f", 
-                "foo", 
+                "f",
+                "foo",
                 "1.4.0",
                 "foooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo" };
             foreach (var str in strings) {

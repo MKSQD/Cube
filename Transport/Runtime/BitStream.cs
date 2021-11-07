@@ -172,6 +172,20 @@ namespace Cube.Transport {
             WriteIntInRange((int)(val * inv), (int)(min * inv), (int)(max * inv));
         }
 
+        public static float QuantizeFloat(float val, float min, float max, float precision = 0.1f) {
+            if (val < min || val > max) {
+                val = Mathf.Clamp(val, min, max);
+            }
+
+            var inv = 1 / precision;
+
+            var bits = ComputeRequiredIntBits((int)(min * inv), (int)(max * inv));
+            var mask = (uint)((1L << bits) - 1);
+            var data = (uint)((int)(val * inv) - (int)(min * inv)) & mask;
+
+            return (data + (int)(min * inv)) * precision;
+        }
+
         public unsafe float ReadLossyFloat(float min, float max, float precision = 0.1f) {
             var inv = 1 / precision;
             var val = ReadIntInRange((int)(min * inv), (int)(max * inv));
@@ -711,7 +725,7 @@ namespace Cube.Transport {
             return FastMath.Log2((uint)(maxVal + 0.5f)) + 1;
         }
 
-        int ComputeRequiredIntBits(int min, int max) {
+        static int ComputeRequiredIntBits(int min, int max) {
             if (min > max)
                 return 0;
 
