@@ -52,7 +52,7 @@ namespace Cube.Replication.Editor {
                 }
             }
 
-            var nextSceneIdx = 0;
+            var nextSceneIdx = 1;
 
             var lastUsedSceneIdx = 0;
             foreach (var replica2 in sceneReplicas) {
