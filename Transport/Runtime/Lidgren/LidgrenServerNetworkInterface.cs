@@ -19,8 +19,8 @@ namespace Cube.Transport {
 
         NetServer server;
 
-        public LidgrenServerNetworkInterface(ushort port, SimulatedLagSettings lagSettings) {
-            var config = new NetPeerConfiguration("Cube") {
+        public LidgrenServerNetworkInterface(string appIdentifier, ushort port, SimulatedLagSettings lagSettings) {
+            var config = new NetPeerConfiguration(appIdentifier) {
                 Port = port,
                 AutoFlushSendQueue = false
             };

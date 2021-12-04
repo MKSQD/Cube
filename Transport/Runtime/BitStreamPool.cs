@@ -13,7 +13,7 @@ namespace Cube.Transport {
             }
 
             var bs = pool[currentIdx++];
-            bs.Reset();
+            bs.Clear();
 
             return bs;
         }

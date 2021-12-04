@@ -6,22 +6,10 @@ using UnityEngine.Assertions;
 
 namespace Cube.Networking {
     public class CubeServer : ICubeServer {
-        public IServerNetworkInterface NetworkInterface {
-            get;
-            internal set;
-        }
-        public ServerReactor Reactor {
-            get;
-            internal set;
-        }
-        public IServerReplicaManager ReplicaManager {
-            get;
-            internal set;
-        }
-        public List<Connection> connections {
-            get;
-            internal set;
-        }
+        public IServerNetworkInterface NetworkInterface { get; private set; }
+        public ServerReactor Reactor { get; private set; }
+        public IServerReplicaManager ReplicaManager { get; private set; }
+        public List<Connection> connections { get; private set; }
 
         public CubeServer(Transform replicaParentTransform, IServerNetworkInterface networkInterface, ServerReplicaManagerSettings replicaManagerSettings) {
             Assert.IsNotNull(replicaParentTransform);

@@ -32,44 +32,37 @@ namespace Cube.Replication {
 
             networkScene = new NetworkScene();
 
-            SceneManager.sceneLoaded += OnSceneLoaded;
+            SceneManager.sceneLoaded += (scene, mode) => ProcessSceneReplicasInSceneInternal(scene);
 
 #if UNITY_EDITOR
             All.Add(this);
 #endif
         }
 
-        void OnSceneLoaded(Scene scene, LoadSceneMode mode) {
+        void ProcessSceneReplicasInSceneInternal(Scene scene) {
             var sceneReplicas = new List<Replica>();
             foreach (var go in scene.GetRootGameObjects()) {
                 foreach (var replica in go.GetComponentsInChildren<Replica>()) {
-                    sceneReplicas.Add(replica);
+                    if (!replica.isSceneReplica)
+                        continue;
+
+                    replica.client = client;
                 }
             }
+        }
 
-            sceneReplicas.Sort((r1, r2) => r1.sceneIdx - r2.sceneIdx);
+        public void ProcessSceneReplicasInScene(Scene scene) {
+            Debug.Log("[Client] <b>Scene loaded</b>");
 
-            foreach (var replica in sceneReplicas) {
-                if (replica.sceneIdx == 0) {
-                    Debug.LogWarning("[Client] scene Replica had no valid sceneIdx; edit and save the scene to generate valid ones", replica.gameObject);
-                    continue;
+            var sceneReplicas = new List<Replica>();
+            foreach (var go in scene.GetRootGameObjects()) {
+                foreach (var replica in go.GetComponentsInChildren<Replica>()) {
+                    if (!replica.isSceneReplica)
+                        continue;
+
+                    replica.Id = ReplicaId.CreateFromExisting(replica.sceneIdx);
+                    networkScene.AddReplica(replica);
                 }
-
-#if UNITY_EDITOR
-                foreach (var existingReplica in networkScene.Replicas) {
-                    if (replica.sceneIdx == existingReplica.sceneIdx) {
-                        Debug.LogWarning($"Replicas with the same sceneIdx found! (sceneIdx={replica.sceneIdx})");
-
-                        networkScene.RemoveReplica(existingReplica);
-
-                        break;
-                    }
-                }
-#endif
-
-                replica.client = client;
-                replica.Id = ReplicaId.CreateFromExisting(replica.sceneIdx);
-                networkScene.AddReplica(replica);
             }
         }
 

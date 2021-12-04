@@ -1,4 +1,6 @@
-﻿namespace Cube.Replication {
+﻿using UnityEngine.Assertions;
+
+namespace Cube.Replication {
     /// <summary>
     /// Used for runtime lookup of NetworkObject instances in the Assets folder.
     /// </summary>
@@ -6,9 +8,7 @@
         public NetworkObject[] Entries;
 
         public NetworkObject CreateFromNetworkAssetId(int networkAssetId) {
-            if (networkAssetId == -1)
-                return null;
-
+            Assert.IsTrue(networkAssetId != -1);
             return Entries[networkAssetId];
         }
     }

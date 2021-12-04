@@ -11,7 +11,7 @@ namespace Cube.Networking {
             get;
             internal set;
         }
-        public IClientReplicaManager replicaManager {
+        public IClientReplicaManager ReplicaManager {
             get;
             internal set;
         }
@@ -24,11 +24,11 @@ namespace Cube.Networking {
             this.World = world;
             this.NetworkInterface = networkInterface;
             Reactor = new ClientReactor(networkInterface);
-            replicaManager = new ClientReplicaManager(this, NetworkPrefabLookup.Instance);
+            ReplicaManager = new ClientReplicaManager(this, NetworkPrefabLookup.Instance);
         }
 
         public void Update() {
-            replicaManager.Update();
+            ReplicaManager.Update();
             NetworkInterface.Update();
         }
 

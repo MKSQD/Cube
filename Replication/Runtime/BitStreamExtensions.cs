@@ -1,4 +1,6 @@
-﻿using Cube.Transport;
+﻿using System;
+using UnityEngine;
+using BitStream = Cube.Transport.BitStream;
 
 namespace Cube.Replication {
     public static class BitStreamExtensions {
@@ -28,8 +30,17 @@ namespace Cube.Replication {
         public static T ReadNetworkObject<T>(this BitStream bs) where T : NetworkObject {
             var max = NetworkObjectLookup.Instance.Entries.Length;
             var id = bs.ReadIntInRange(-1, max);
+            if (id == -1)
+                return null;
 
-            return (T)NetworkObjectLookup.Instance.CreateFromNetworkAssetId(id);
+            var networkObject = NetworkObjectLookup.Instance.CreateFromNetworkAssetId(id);
+#if UNITY_EDITOR
+            if (!(networkObject is T)) {
+                Debug.Log($"Merde; Tried to read {typeof(T).Name}, but NO was {networkObject.GetType().Name}");
+                return null;
+            }
+#endif
+            return (T)networkObject;
         }
 
         public static void Read<T>(this BitStream bs, ref T value) where T : NetworkObject {

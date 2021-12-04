@@ -75,7 +75,7 @@ namespace Cube.Transport {
             return str;
         }
 
-        public void Reset() {
+        public void Clear() {
             numBitsUsed = 0;
             readBitOffset = 0;
         }
@@ -164,18 +164,14 @@ namespace Cube.Transport {
 
 
         public unsafe void WriteLossyFloat(float val, float min, float max, float precision = 0.1f) {
-            if (val < min || val > max) {
-                val = Mathf.Clamp(val, min, max);
-            }
+            val = Mathf.Clamp(val, min, max);
 
             var inv = 1 / precision;
             WriteIntInRange((int)(val * inv), (int)(min * inv), (int)(max * inv));
         }
 
         public static float QuantizeFloat(float val, float min, float max, float precision = 0.1f) {
-            if (val < min || val > max) {
-                val = Mathf.Clamp(val, min, max);
-            }
+            val = Mathf.Clamp(val, min, max);
 
             var inv = 1 / precision;
 
@@ -506,20 +502,6 @@ namespace Cube.Transport {
             return value;
         }
 
-        public void Read(ref Connection val) {
-            val = ReadConnection();
-        }
-
-
-        public void Write(Connection connection) {
-            Write(connection.id);
-        }
-
-        public Connection ReadConnection() {
-            var id = ReadULong();
-            return new Connection(id);
-        }
-
 
         public void Write(ISerializable obj) {
             obj.Serialize(this);
@@ -654,12 +636,11 @@ namespace Cube.Transport {
 
             byte dataByte;
             int write = 0;
-
             while (numberOfBitsToWrite > 0) {
                 dataByte = inByteArray[write++];
 
                 if (numberOfBitsToWrite < 8)
-                    dataByte <<= 8 - numberOfBitsToWrite;
+                    dataByte <<= (8 - numberOfBitsToWrite);
 
                 if (numberOfBitsUsedMod8 == 0) {
                     data[numBitsUsed >> 3] = dataByte;
@@ -714,13 +695,8 @@ namespace Cube.Transport {
             }
         }
 
-        static int BytesToBits(int bytes) {
-            return bytes << 3;
-        }
-
-        static int BitsToBytes(int bits) {
-            return (bits >> 3) + ((bits & 7) == 0 ? 0 : 1);
-        }
+        static int BytesToBits(int bytes) => bytes << 3;
+        static int BitsToBytes(int bits) => (bits >> 3) + ((bits & 7) == 0 ? 0 : 1);
 
         int ComputeRequiredFloatBits(float min, float max, float precision) {
             float range = max - min;
@@ -729,8 +705,7 @@ namespace Cube.Transport {
         }
 
         static int ComputeRequiredIntBits(int min, int max) {
-            if (min > max)
-                return 0;
+            Assert.IsTrue(min <= max);
 
             var minLong = (long)min;
             var maxLong = (long)max;

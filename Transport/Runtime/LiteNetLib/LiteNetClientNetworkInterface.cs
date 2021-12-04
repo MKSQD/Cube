@@ -17,6 +17,8 @@ namespace Cube.Transport {
 
         public LiteNetClientNetworkInterface() {
             client = new NetManager(this);
+            client.ChannelsCount = 3;
+
 #if UNITY_EDITOR
             client.DisconnectTimeout = 5000000;
 #endif

@@ -14,8 +14,8 @@ namespace Cube.Transport {
         NetClient client;
         NetConnection connection;
 
-        public LidgrenClientNetworkInterface(SimulatedLagSettings lagSettings) {
-            var config = new NetPeerConfiguration("Cube") {
+        public LidgrenClientNetworkInterface(string appIdentifier, SimulatedLagSettings lagSettings) {
+            var config = new NetPeerConfiguration(appIdentifier) {
                 AutoFlushSendQueue = false
             };
 

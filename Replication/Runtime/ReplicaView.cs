@@ -12,17 +12,14 @@ namespace Cube.Replication {
         public Connection Connection;
 
         /// <summary>
-        /// Ignore Replica positions when calculating relevancy. F.i. RTS game.
-        /// </summary>
-        public bool IgnoreReplicaPositionsForPriority = false;
-
-        /// <summary>
         /// If true this ReplicaView is ignored. Will be set automatically.
         /// </summary>
         public bool IsLoadingLevel;
 
         [HideInInspector]
         public double NextPriorityUpdateTime;
+
+        // There Lists need to be in sync
         public List<Replica> RelevantReplicas = new List<Replica>();
         public List<float> RelevantReplicaPriorityAccumulator = new List<float>();
 

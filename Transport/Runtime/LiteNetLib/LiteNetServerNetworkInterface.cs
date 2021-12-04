@@ -18,6 +18,8 @@ namespace Cube.Transport {
 
         public LiteNetServerNetworkInterface(ushort port) {
             server = new NetManager(this);
+            server.ChannelsCount = 3;
+
 #if UNITY_EDITOR
             server.EnableStatistics = true;
             server.DisconnectTimeout = 5000000;

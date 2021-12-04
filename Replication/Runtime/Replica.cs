@@ -30,7 +30,7 @@ namespace Cube.Replication {
 
         public ICubeServer server;
         public ICubeClient client;
-        public IReplicaManager ReplicaManager => server != null ? (IReplicaManager)server.ReplicaManager : client.replicaManager;
+        public IReplicaManager ReplicaManager => server != null ? (IReplicaManager)server.ReplicaManager : client.ReplicaManager;
 
         public bool isServer => server != null;
         public bool isClient => client != null;
@@ -88,14 +88,10 @@ namespace Cube.Replication {
 
         /// [0,1]
         public virtual float GetRelevance(ReplicaView view) {
-            Assert.IsNotNull(view);
-            Assert.IsTrue(isServer);
-
             if (Owner == view.Connection)
                 return 1;
 
-            var usePosition = (settings.priorityFlags & ReplicaPriorityFlag.IgnorePosition) == 0
-                && !view.IgnoreReplicaPositionsForPriority;
+            var usePosition = (settings.priorityFlags & ReplicaPriorityFlag.IgnorePosition) == 0;
             if (!usePosition)
                 return 1;
 
@@ -169,7 +165,7 @@ namespace Cube.Replication {
                         Debug.LogError($"{component} violated serialization guard");
                         return;
                     }
-                } catch (InvalidOperationException e) {
+                } catch (InvalidOperationException) {
                     Debug.LogError($"{component} violated serialization guard");
                     return;
                 }
@@ -220,7 +216,7 @@ namespace Cube.Replication {
                 return;
 
             if (isClient) {
-                client.replicaManager.RemoveReplica(this);
+                client.ReplicaManager.RemoveReplica(this);
             }
             if (isServer) {
                 server.ReplicaManager.RemoveReplica(this);
