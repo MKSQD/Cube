@@ -26,8 +26,9 @@ class RpcPostProcessor : PostProcessor {
 
     MethodDefinition replicaManagerGetReplicaMethod;
 
-    TypeDefinition bitStreamType;
-    MethodReference bitStreamCTorMethod;
+    TypeDefinition bitWriterType;
+    TypeDefinition bitReaderType;
+    MethodReference bitWriterCTorMethod;
     Dictionary<string, MethodReference> bitStreamWrite = new Dictionary<string, MethodReference>();
     Dictionary<string, MethodReference> bitStreamRead = new Dictionary<string, MethodReference>();
     MethodReference readNetworkObject;
@@ -46,19 +47,32 @@ class RpcPostProcessor : PostProcessor {
         var clientNetworkInterfaceType = GetTypeDefinitionByName(transportAssembly, "Cube.Transport.IClientNetworkInterface");
         clientNetworkInterfaceSendMethod = Import(GetMethodDefinitionByName(clientNetworkInterfaceType, "Send"));
 
-        bitStreamType = GetTypeDefinitionByName(transportAssembly, "Cube.Transport.BitStream");
-        bitStreamCTorMethod = Import(GetMethodDefinitionByName(bitStreamType, ".ctor"));
+        {
+            bitWriterType = GetTypeDefinitionByName(transportAssembly, "Cube.Transport.BitWriter");
+            bitWriterCTorMethod = Import(GetMethodDefinitionByName(bitWriterType, ".ctor"));
 
-        foreach (var writeMethod in Import(GetMethodDefinitionsByName(bitStreamType, "Write"))) {
-            bitStreamWrite[writeMethod.Parameters[0].ParameterType.Name] = writeMethod;
+            foreach (var writeMethod in Import(GetMethodDefinitionsByName(bitWriterType, "Write"))) {
+                bitStreamWrite[writeMethod.Parameters[0].ParameterType.Name] = writeMethod;
+            }
         }
-        foreach (var readMethod in bitStreamType.Methods.Where(m => m.Name.StartsWith("Read") && m.Name != "ReadRaw" && m.Name != "ReadIntInRange")) {
-            if (readMethod.Name.Contains("Normalised") || readMethod.Name.Contains("Lossy"))
-                continue;
+        {
+            bitReaderType = GetTypeDefinitionByName(transportAssembly, "Cube.Transport.BitReader");
 
-            bitStreamRead[readMethod.ReturnType.Name] = readMethod;
+            foreach (var readMethod in bitReaderType.Methods.Where(m => m.Name.StartsWith("Read") && m.Name != "ReadRaw" && m.Name != "ReadIntInRange")) {
+                if (readMethod.Name.Contains("Normalised") || readMethod.Name.Contains("Lossy"))
+                    continue;
+
+                bitStreamRead[readMethod.ReturnType.Name] = readMethod;
+            }
+            readSerializable = GetMethodDefinitionByName(bitReaderType, "ReadSerializable");
         }
-        readSerializable = GetMethodDefinitionByName(bitStreamType, "ReadSerializable");
+
+
+
+
+
+
+
 
         var bitStreamExtensionsType = GetTypeDefinitionByName(replicationAssembly, "Cube.Replication.BitStreamExtensions");
         foreach (var writeMethod in Import(GetMethodDefinitionsByName(bitStreamExtensionsType, "Write"))) {
@@ -184,7 +198,7 @@ class RpcPostProcessor : PostProcessor {
     MethodDefinition CreateDispatchRpcs(List<MethodDefinition> remoteMethods) {
         var method = new MethodDefinition("DispatchRpc", Mono.Cecil.MethodAttributes.Public | Mono.Cecil.MethodAttributes.HideBySig | Mono.Cecil.MethodAttributes.Virtual, voidTypeReference);
         method.Parameters.Add(new ParameterDefinition("methodIdx", Mono.Cecil.ParameterAttributes.None, MainModule.TypeSystem.Byte));
-        method.Parameters.Add(new ParameterDefinition("bs", Mono.Cecil.ParameterAttributes.None, Import(bitStreamType)));
+        method.Parameters.Add(new ParameterDefinition("bs", Mono.Cecil.ParameterAttributes.None, Import(bitReaderType)));
 
         method.Body.InitLocals = true;
 
@@ -310,7 +324,7 @@ class RpcPostProcessor : PostProcessor {
     void InjectSendRpcInstructions(int methodId, MethodDefinition method, MethodDefinition implMethod) {
         method.Body.ExceptionHandlers.Clear();
         method.Body.Variables.Clear();
-        method.Body.Variables.Add(new VariableDefinition(Import(bitStreamType)));
+        method.Body.Variables.Add(new VariableDefinition(Import(bitWriterType)));
 
         var rpcTarget = (RpcTarget)GetAttributeByName("Cube.Replication.ReplicaRpcAttribute", method.CustomAttributes).ConstructorArguments[0].Value;
 
@@ -338,9 +352,9 @@ class RpcPostProcessor : PostProcessor {
         il.Append(ok);
 
 
-        // BitStream bitStream = new BitStream();
-        il.Emit(OpCodes.Ldc_I4_S, (sbyte)64);
-        il.Emit(OpCodes.Newobj, bitStreamCTorMethod);
+        // BitWriter bitStream = new BitWriter();
+        il.Emit(OpCodes.Ldc_I4, 32);
+        il.Emit(OpCodes.Newobj, bitWriterCTorMethod);
         il.Emit(OpCodes.Stloc_0);
 
 

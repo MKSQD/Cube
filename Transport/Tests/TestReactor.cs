@@ -8,11 +8,11 @@ namespace Cube.Transport.Tests {
             var reactor = new ClientReactor(client);
 
             bool messageHandlerCalled = false;
-            reactor.AddHandler(1, (BitStream bs) => {
+            reactor.AddHandler(1, (BitReader bs) => {
                 messageHandlerCalled = true;
             });
 
-            var message = new BitStream();
+            var message = new BitWriter();
             message.Write((byte)1);
             client.EnqueueMessage(message);
 
@@ -27,11 +27,11 @@ namespace Cube.Transport.Tests {
             var reactor = new ServerReactor(server);
 
             bool messageHandlerCalled = false;
-            reactor.AddHandler(1, (Connection connection, BitStream bs) => {
+            reactor.AddHandler(1, (Connection connection, BitReader bs) => {
                 messageHandlerCalled = true;
             });
 
-            var message = new BitStream();
+            var message = new BitWriter();
             message.Write((byte)1);
             server.EnqueueMessage(Connection.Invalid, message);
 

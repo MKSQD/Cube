@@ -3,55 +3,42 @@ using System.Collections.Generic;
 using UnityEngine;
 
 namespace Cube.Transport {
-    public delegate void ClientMessageHandler(BitStream bs);
+    public delegate void ClientMessageHandler(BitReader bs);
 
     public class ClientReactor {
-        readonly Dictionary<byte, List<ClientMessageHandler>> handlers;
+        readonly Dictionary<byte, ClientMessageHandler> handlers;
 
         public ClientReactor(IClientNetworkInterface networkInterface) {
-            handlers = new Dictionary<byte, List<ClientMessageHandler>>();
+            handlers = new Dictionary<byte, ClientMessageHandler>();
 
             networkInterface.ReceivedPacket += OnReceivedPacket;
         }
 
-        void OnReceivedPacket(BitStream bs) {
+        void OnReceivedPacket(BitReader bs) {
             var messageId = bs.ReadByte();
 
-            List<ClientMessageHandler> packetHandlers;
-            if (!handlers.TryGetValue(messageId, out packetHandlers) || packetHandlers.Count == 0) {
+            ClientMessageHandler packetHandler;
+            if (!handlers.TryGetValue(messageId, out packetHandler)) {
                 Debug.LogWarning("[Client] Received unknown packet " + messageId);
                 return;
             }
 
-            foreach (var handler in packetHandlers) {
-                var pos = bs.Position;
-
-                try {
-                    handler(bs);
-                } catch (Exception e) {
-                    Debug.LogException(e);
-                }
-
-                bs.Position = pos;
+            try {
+                packetHandler(bs);
+            } catch (Exception e) {
+                Debug.LogException(e);
             }
         }
 
         public void AddHandler(byte id, ClientMessageHandler handler) {
-            List<ClientMessageHandler> existingHandlers;
-            if (!handlers.TryGetValue(id, out existingHandlers)) {
-                existingHandlers = new List<ClientMessageHandler>();
-                handlers.Add(id, existingHandlers);
-            }
+            if (handlers.ContainsKey(id))
+                throw new Exception("Message handler already set");
 
-            existingHandlers.Add(handler);
+            handlers[id] = handler;
         }
 
         public void RemoveHandler(byte id, ClientMessageHandler handler) {
-            List<ClientMessageHandler> existingHandlers;
-            if (!handlers.TryGetValue(id, out existingHandlers))
-                return;
-
-            existingHandlers.Remove(handler);
+            handlers.Remove(id);
         }
     }
 }

@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Assertions;
-using BitStream = Cube.Transport.BitStream;
+
 
 namespace Cube.Replication {
     [AddComponentMenu("Cube/Replica")]
@@ -11,7 +11,7 @@ namespace Cube.Replication {
     public class Replica : MonoBehaviour {
         public struct QueuedRpc {
             public RpcTarget target;
-            public BitStream bs;
+            public BitWriter bs;
         }
 
         public static ReplicaSettings defaultReplicaSettings;
@@ -136,11 +136,11 @@ namespace Cube.Replication {
             server.ReplicaManager.RemoveReplica(this);
         }
 
-        public void Serialize(BitStream bs, ReplicaBehaviour.SerializeContext ctx) {
+        public void Serialize(BitWriter bs, ReplicaBehaviour.SerializeContext ctx) {
             foreach (var component in replicaBehaviours) {
 #if UNITY_EDITOR
                 TransportDebugger.BeginScope(component.ToString());
-                var startSize = bs.LengthInBits;
+                var startSize = bs.BitsWritten;
 #endif
 
                 component.Serialize(bs, ctx);
@@ -150,18 +150,18 @@ namespace Cube.Replication {
 #endif
 
 #if UNITY_EDITOR
-                TransportDebugger.EndScope(bs.LengthInBits - startSize);
+                TransportDebugger.EndScope(bs.BitsWritten - startSize);
 #endif
             }
         }
 
-        public void Deserialize(BitStream bs) {
+        public void Deserialize(BitReader bs) {
             foreach (var component in replicaBehaviours) {
                 component.Deserialize(bs);
 
 #if UNITY_EDITOR || DEVELOPMENT
                 try {
-                    if (bs.ReadByte() != 0b10101010) {
+                    if (bs.WouldReadPastEnd(8) || bs.ReadByte() != 0b10101010) {
                         Debug.LogError($"{component} violated serialization guard");
                         return;
                     }
@@ -227,7 +227,9 @@ namespace Cube.Replication {
             applicationQuitting = true;
         }
 
-        public void QueueServerRpc(BitStream bs, RpcTarget target) {
+        public void QueueServerRpc(BitWriter bs, RpcTarget target) {
+            bs.FlushBits();
+
             var qrpc = new QueuedRpc() {
                 bs = bs,
                 target = target
@@ -235,7 +237,7 @@ namespace Cube.Replication {
             queuedRpcs.Add(qrpc);
         }
 
-        public void CallRpcServer(Connection connection, BitStream bs) {
+        public void CallRpcServer(Connection connection, BitReader bs) {
             if (connection != Connection.Invalid) {
                 var isReplicaOwnedByCaller = Owner == connection;
                 if (!isReplicaOwnedByCaller) {
@@ -258,7 +260,7 @@ namespace Cube.Replication {
             }
         }
 
-        public void CallRpcClient(BitStream bs) {
+        public void CallRpcClient(BitReader bs) {
             var componentIdx = bs.ReadByte();
             var methodId = bs.ReadByte();
 

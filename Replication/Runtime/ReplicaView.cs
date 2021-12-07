@@ -19,9 +19,12 @@ namespace Cube.Replication {
         [HideInInspector]
         public double NextPriorityUpdateTime;
 
-        // There Lists need to be in sync
+
+        // These Lists are in sync
         public List<Replica> RelevantReplicas = new List<Replica>();
         public List<float> RelevantReplicaPriorityAccumulator = new List<float>();
+        public List<int> RelevantReplicaIndicesSortedByPriority = new List<int>();
+
 
 #if UNITY_EDITOR
         /// <summary>

@@ -1,19 +1,21 @@
 ﻿using System;
 using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.Assertions;
 
 namespace Cube.Transport.Tests {
     public class LocalClientInterface : IClientNetworkInterface {
         public Action ConnectionRequestAccepted { get; set; }
         public Action<string> Disconnected { get; set; }
         public Action NetworkError { get; set; }
-        public Action<BitStream> ReceivedPacket { get; set; }
+        public Action<BitReader> ReceivedPacket { get; set; }
 
         public LocalServerInterface server;
         public Connection connection = Connection.Invalid;
 
         public bool IsConnected => connection != Connection.Invalid;
 
-        readonly Queue<BitStream> messageQueue = new Queue<BitStream>();
+        readonly Queue<byte[]> messageQueue = new Queue<byte[]>();
 
 
         public LocalClientInterface() { }
@@ -29,43 +31,46 @@ namespace Cube.Transport.Tests {
 
         public void Update() {
             ReceiveMessages();
-            BitStreamPool.FrameReset();
         }
 
+        Memory<uint> memory = new Memory<uint>(new uint[64]);
         void ReceiveMessages() {
             while (messageQueue.Count > 0) {
-                var bs = messageQueue.Dequeue();
+                var data = messageQueue.Dequeue();
+                var bs = new BitReader(data, memory);
                 ReceivedPacket(bs);
             }
         }
 
-        public void Send(BitStream bs, PacketReliability reliablity, int sequenceChannel = 0) {
+        public void Send(BitWriter bs, PacketReliability reliablity, int sequenceChannel = 0) {
             if (!IsConnected)
-                throw new Exception("Not connected.");
+                throw new Exception("Not connected");
 
             server.EnqueueMessage(connection, bs);
         }
 
         public void Connect(string address, ushort port) {
-            throw new Exception("Not required.");
+            throw new Exception("Not required");
         }
 
-        public void Connect(string address, ushort port, BitStream hailMessage) {
-            throw new Exception("Not required.");
+        public void Connect(string address, ushort port, BitWriter hailMessage) {
+            throw new Exception("Not required");
         }
 
         public void Disconnect() {
-            throw new Exception("Not required.");
+            throw new Exception("Not required");
         }
 
         public void Shutdown(uint blockDuration) {
-            throw new Exception("Not required.");
+            throw new Exception("Not required");
         }
 
         #region TestInterface
 
-        public void EnqueueMessage(BitStream bs) {
-            messageQueue.Enqueue(bs);
+        public void EnqueueMessage(BitWriter bs) {
+            bs.FlushBits();
+
+            messageQueue.Enqueue(bs.DataWritten.ToArray());
         }
 
         public void SetServer(LocalServerInterface server) {

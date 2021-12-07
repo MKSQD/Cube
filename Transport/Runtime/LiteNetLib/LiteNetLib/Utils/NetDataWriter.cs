@@ -1,5 +1,6 @@
-using System;
+﻿using System;
 using System.Net;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace LiteNetLib.Utils
@@ -11,10 +12,9 @@ namespace LiteNetLib.Utils
         private const int InitialSize = 64;
         private readonly bool _autoResize;
 
-        public int Capacity
-        {
-            get { return _data.Length; }
-        }
+        public int Capacity => _data.Length;
+        public byte[] Data => _data;
+        public int Length => _position;
 
         public NetDataWriter() : this(true, InitialSize)
         {
@@ -66,15 +66,22 @@ namespace LiteNetLib.Utils
             return netDataWriter;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ResizeIfNeed(int newSize)
         {
-            int len = _data.Length;
-            if (len < newSize)
+            if (_data.Length < newSize)
             {
-                while (len < newSize)
-                    len *= 2;
-                Array.Resize(ref _data, len);
+                Resize(newSize);
             }
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private void Resize(int newSize)
+        {
+            int len = _data.Length;
+            while (len < newSize)
+                len *= 2;
+            Array.Resize(ref _data, len);
         }
 
         public void Reset(int size)
@@ -93,16 +100,6 @@ namespace LiteNetLib.Utils
             byte[] resultData = new byte[_position];
             Buffer.BlockCopy(_data, 0, resultData, 0, _position);
             return resultData;
-        }
-
-        public byte[] Data
-        {
-            get { return _data; }
-        }
-
-        public int Length
-        {
-            get { return _position; }
         }
 
         /// <summary>
@@ -220,7 +217,7 @@ namespace LiteNetLib.Utils
             Buffer.BlockCopy(data, 0, _data, _position, data.Length);
             _position += data.Length;
         }
-        
+
         public void PutSBytesWithLength(sbyte[] data, int offset, int length)
         {
             if (_autoResize)
@@ -229,7 +226,7 @@ namespace LiteNetLib.Utils
             Buffer.BlockCopy(data, offset, _data, _position + 4, length);
             _position += length + 4;
         }
-        
+
         public void PutSBytesWithLength(sbyte[] data)
         {
             if (_autoResize)
@@ -372,18 +369,22 @@ namespace LiteNetLib.Utils
             }
 
             int length = value.Length > maxLength ? maxLength : value.Length;
-            //calculate max count
-            int bytesCount = Encoding.UTF8.GetByteCount(value);
+
+            int totalBytesCount = Encoding.UTF8.GetMaxByteCount(length); //gets max length irrespective of actual length
+
             if (_autoResize)
-                ResizeIfNeed(_position + bytesCount + 4);
+                ResizeIfNeed(_position + totalBytesCount + 4);
 
-            //put bytes count
-            Put(bytesCount);
+            int countPosition = _position; //save position where length needs to be stored
+            _position += 4;
 
-            //put string
-            Encoding.UTF8.GetBytes(value, 0, length, _data, _position);
+            int requiredBytesCount = Encoding.UTF8.GetBytes(value, 0, length, _data, _position); //put string here
+            int positionAfterWrite = _position + requiredBytesCount; //position where string data ends
 
-            _position += bytesCount;
+            _position = countPosition; //go to position where we need to write int value
+
+            Put(requiredBytesCount); //put length of substring
+            _position = positionAfterWrite; //reset position to final position
         }
 
         public void Put<T>(T obj) where T : INetSerializable

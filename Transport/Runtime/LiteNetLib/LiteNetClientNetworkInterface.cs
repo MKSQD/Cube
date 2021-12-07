@@ -9,7 +9,7 @@ namespace Cube.Transport {
         public Action ConnectionRequestAccepted { get; set; }
         public Action<string> Disconnected { get; set; }
         public Action NetworkError { get; set; }
-        public Action<BitStream> ReceivedPacket { get; set; }
+        public Action<BitReader> ReceivedPacket { get; set; }
 
         public bool IsConnected => true; // #todo
 
@@ -18,6 +18,7 @@ namespace Cube.Transport {
         public LiteNetClientNetworkInterface() {
             client = new NetManager(this);
             client.ChannelsCount = 3;
+            client.MaxConnectAttempts = 3;
 
 #if UNITY_EDITOR
             client.DisconnectTimeout = 5000000;
@@ -29,8 +30,10 @@ namespace Cube.Transport {
             client.Connect(address, port, "");
         }
 
-        public void Connect(string address, ushort port, BitStream hailMessage) {
-            var msg = NetDataWriter.FromBytes(hailMessage.Data, 0, hailMessage.Length);
+        public void Connect(string address, ushort port, BitWriter hailMessage) {
+            hailMessage.FlushBits();
+
+            var msg = NetDataWriter.FromBytes(hailMessage.DataWritten.Slice(0, hailMessage.BytesWritten).ToArray(), 0, hailMessage.BytesWritten);
             client.Connect(address, port, msg);
         }
 
@@ -42,8 +45,10 @@ namespace Cube.Transport {
             return time; // #todo
         }
 
-        public void Send(BitStream bs, PacketReliability reliablity, int sequenceChannel = 0) {
-            client.FirstPeer.Send(bs.Data, 0, bs.Length, (byte)sequenceChannel, GetDeliveryMethod(reliablity));
+        public void Send(BitWriter bs, PacketReliability reliablity, int sequenceChannel = 0) {
+            bs.FlushBits();
+
+            client.FirstPeer.Send(bs.DataWritten, (byte)sequenceChannel, GetDeliveryMethod(reliablity));
         }
 
         public void Shutdown(uint blockDuration) {
@@ -66,11 +71,10 @@ namespace Cube.Transport {
             NetworkError();
         }
 
-        public void OnNetworkReceive(NetPeer peer, NetPacketReader reader, DeliveryMethod deliveryMethod) {
-            var bs = BitStream.CreateWithExistingBuffer(reader.RawData,
-                reader.UserDataOffset * 8,
-                reader.RawDataSize * 8);
-
+        Memory<uint> memory = new Memory<uint>(new uint[64]);
+        public void OnNetworkReceive(NetPeer peer, NetPacketReader reader, byte channelNumber, DeliveryMethod deliveryMethod) {
+            var span = new ReadOnlySpan<byte>(reader.RawData, reader.UserDataOffset, reader.UserDataSize);
+            var bs = new BitReader(span, memory);
             ReceivedPacket(bs);
 
             reader.Recycle();

@@ -1,5 +1,5 @@
-﻿using UnityEngine;
-using BitStream = Cube.Transport.BitStream;
+﻿using Cube.Transport;
+using UnityEngine;
 
 namespace Cube.Replication {
     /// <summary>
@@ -47,7 +47,7 @@ namespace Cube.Replication {
             }
         }
 
-        public override void Serialize(BitStream bs, SerializeContext ctx) {
+        public override void Serialize(BitWriter bs, SerializeContext ctx) {
             bs.Write(transform.position);
 
             var euler = transform.rotation.eulerAngles;
@@ -73,7 +73,7 @@ namespace Cube.Replication {
             }
         }
 
-        public override void Deserialize(BitStream bs) {
+        public override void Deserialize(BitReader bs) {
             var position = bs.ReadVector3();
 
             var euler = new Vector3 {

@@ -3,50 +3,42 @@ using System.Collections.Generic;
 using UnityEngine;
 
 namespace Cube.Transport {
-    public delegate void ServerMessageHandler(Connection connection, BitStream bs);
+    public delegate void ServerMessageHandler(Connection connection, BitReader bs);
 
     public class ServerReactor {
-        readonly Dictionary<byte, List<ServerMessageHandler>> handlers;
+        readonly Dictionary<byte, ServerMessageHandler> handlers;
 
         public ServerReactor(IServerNetworkInterface networkInterface) {
-            handlers = new Dictionary<byte, List<ServerMessageHandler>>();
+            handlers = new Dictionary<byte, ServerMessageHandler>();
 
-            networkInterface.ReceivedPacket += (bs, connection) => {
-                var messageId = bs.ReadByte();
+            networkInterface.ReceivedPacket += OnReceivedPacket;
+        }
 
-                List<ServerMessageHandler> packetHandlers;
-                if (!handlers.TryGetValue(messageId, out packetHandlers) || packetHandlers.Count == 0) {
-                    Debug.Log("Received unknown packet: " + messageId);
-                    return;
-                }
+        void OnReceivedPacket(BitReader bs, Connection connection) {
+            var messageId = bs.ReadByte();
 
-                foreach (var handler in packetHandlers) {
-                    var pos = bs.Position;
+            ServerMessageHandler handler;
+            if (!handlers.TryGetValue(messageId, out handler)) {
+                Debug.Log("Received unknown packet: " + messageId);
+                return;
+            }
 
-                    try {
-                        handler(connection, bs);
-                    } catch (Exception e) {
-                        Debug.LogException(e);
-                    }
-
-                    bs.Position = pos;
-                }
-            };
+            try {
+                handler(connection, bs);
+            } catch (Exception e) {
+                Debug.LogException(e);
+            }
         }
 
         public void AddHandler(byte id, ServerMessageHandler handler) {
-            if (!handlers.TryGetValue(id, out List<ServerMessageHandler> existingHandlers)) {
-                existingHandlers = new List<ServerMessageHandler>();
-                handlers.Add(id, existingHandlers);
-            }
-            existingHandlers.Add(handler);
+            if (handlers.ContainsKey(id))
+                throw new Exception("Message handler already set");
+
+            handlers[id] = handler;
         }
 
         public void RemoveHandler(byte id, ServerMessageHandler handler) {
-            if (!handlers.TryGetValue(id, out List<ServerMessageHandler> existingHandlers))
-                return;
-
-            existingHandlers.Remove(handler);
+            handlers.Remove(id);
         }
     }
 }

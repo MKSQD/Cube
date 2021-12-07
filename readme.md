@@ -49,7 +49,7 @@ using Cube.Networking;
 using Cube.Replication;
 using Cube.Transport;
 using UnityEngine;
-using BitStream = Cube.Transport.BitStream;
+
 
 public class TestServerGame : ServerGame {
 	public GameObject prefab;

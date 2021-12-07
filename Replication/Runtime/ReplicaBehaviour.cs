@@ -1,6 +1,6 @@
 ﻿using Cube.Transport;
 using UnityEngine;
-using BitStream = Cube.Transport.BitStream;
+
 
 namespace Cube.Replication {
     public abstract class BaseReplicaBehaviour : MonoBehaviour {
@@ -30,11 +30,11 @@ namespace Cube.Replication {
 
         public IReplicaManager ReplicaManager => Replica.ReplicaManager;
 
-        public virtual void Serialize(BitStream bs, SerializeContext ctx) { }
-        public virtual void Deserialize(BitStream bs) { }
+        public virtual void Serialize(BitWriter bs, SerializeContext ctx) { }
+        public virtual void Deserialize(BitReader bs) { }
 
         /// Do NOT manually overwrite this. RpcPatcher will generate this dispatch table automatically.
-        public virtual void DispatchRpc(byte methodIdx, BitStream bs) {
+        public virtual void DispatchRpc(byte methodIdx, BitReader bs) {
             Debug.LogError("Pure virtual RPC called, RpcPatcher needs to run");
         }
     }

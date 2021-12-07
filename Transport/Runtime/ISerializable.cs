@@ -1,6 +1,6 @@
 ﻿namespace Cube.Transport {
     public interface ISerializable {
-        void Serialize(BitStream bs);
-        void Deserialize(BitStream bs);
+        void Serialize(BitWriter bs);
+        void Deserialize(BitReader bs);
     }
 }

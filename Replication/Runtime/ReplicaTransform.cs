@@ -1,5 +1,6 @@
-﻿using UnityEngine;
-using BitStream = Cube.Transport.BitStream;
+﻿using Cube.Transport;
+using UnityEngine;
+
 
 namespace Cube.Replication {
     /// <summary>
@@ -20,12 +21,12 @@ namespace Cube.Replication {
         State[] m_BufferedState = new State[20];
         int m_TimestampCount;
 
-        public override void Serialize(BitStream bs, SerializeContext ctx) {
+        public override void Serialize(BitWriter bs, SerializeContext ctx) {
             bs.Write(transform.position);
             bs.Write(transform.rotation);
         }
 
-        public override void Deserialize(BitStream bs) {
+        public override void Deserialize(BitReader bs) {
             var position = bs.ReadVector3();
             var rotation = bs.ReadQuaternion();
 

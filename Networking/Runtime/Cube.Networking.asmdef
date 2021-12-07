@@ -4,7 +4,6 @@
     "references": [
         "Cube.Replication",
         "Cube.Transport",
-        "Cube.Transport.Lidgren",
         "Cube.Transport.LiteNet",
         "GameCore"
     ],

@@ -5,7 +5,7 @@ namespace Cube.Transport {
         Action ConnectionRequestAccepted { get; set; }
         Action<string> Disconnected { get; set; }
         Action NetworkError { get; set; }
-        Action<BitStream> ReceivedPacket { get; set; }
+        Action<BitReader> ReceivedPacket { get; set; }
 
         bool IsConnected { get; }
 
@@ -14,14 +14,14 @@ namespace Cube.Transport {
         /// <exception cref="ClientConnectionAttemptException">Throw on connection error</exception>
         void Connect(string address, ushort port);
         /// <exception cref="ClientConnectionAttemptException">Throw on connection error</exception>
-        void Connect(string address, ushort port, BitStream hailMessage);
+        void Connect(string address, ushort port, BitWriter hailMessage);
         void Disconnect();
 
         void Update();
 
         void Shutdown(uint blockDuration);
 
-        void Send(BitStream bs, PacketReliability reliablity, int sequenceChannel = 0);
+        void Send(BitWriter bs, PacketReliability reliablity, int sequenceChannel = 0);
     }
 }
 

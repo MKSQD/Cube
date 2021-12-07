@@ -7,7 +7,7 @@ using UnityEngine.Assertions;
 using UnityEngine.AddressableAssets;
 using UnityEngine.ResourceManagement.AsyncOperations;
 using Cube.Transport;
-using BitStream = Cube.Transport.BitStream;
+
 
 namespace Cube.Replication {
     public sealed class ServerReplicaManager : IServerReplicaManager {
@@ -245,9 +245,11 @@ namespace Cube.Replication {
                         for (int i = 0; i < replica.queuedRpcs.Count; ++i) {
                             var queuedRpc = replica.queuedRpcs[i];
                             if (queuedRpc.target == RpcTarget.All) {
-                                var _ = queuedRpc.bs.ReadByte();
-                                var _2 = queuedRpc.bs.ReadReplicaId();
-                                replica.CallRpcServer(Connection.Invalid, queuedRpc.bs);
+                                var reader = new BitReader(queuedRpc.bs);
+
+                                var _ = reader.ReadByte();
+                                var _2 = reader.ReadReplicaId();
+                                replica.CallRpcServer(Connection.Invalid, reader);
                             }
                         }
                     } finally {
@@ -274,6 +276,7 @@ namespace Cube.Replication {
                         var relevance = replica.GetRelevance(replicaView);
                         replicaView.RelevantReplicas.Add(replica);
                         replicaView.RelevantReplicaPriorityAccumulator.Add(relevance * relevance * 2); // 2 to boost sending new Replicas
+                        replicaView.RelevantReplicaIndicesSortedByPriority.Add(replicaView.RelevantReplicas.Count - 1);
                     }
 
                 }
@@ -325,33 +328,49 @@ namespace Cube.Replication {
 
 
 
+        BitWriter updateBs = new BitWriter(32);
         void UpdateReplicaView(ReplicaView view) {
             // Clear dead Replicas so we dont have to check in following code
             {
                 var num = view.RelevantReplicas.Count;
+                var rebuild = false;
                 for (int i = 0; i < num;) {
-                    if (view.RelevantReplicas[i] == null) {
-                        view.RelevantReplicas[i] = view.RelevantReplicas[num - 1];
-                        view.RelevantReplicas.RemoveAt(num - 1);
-                        view.RelevantReplicaPriorityAccumulator[i] = view.RelevantReplicaPriorityAccumulator[num - 1];
-                        view.RelevantReplicaPriorityAccumulator.RemoveAt(num - 1);
-                        --num;
-                    } else {
+                    if (view.RelevantReplicas[i] != null) {
                         ++i;
+                        continue;
+                    }
+
+                    --num;
+                    view.RelevantReplicas[i] = view.RelevantReplicas[num];
+                    view.RelevantReplicas.RemoveAt(num);
+
+                    view.RelevantReplicaPriorityAccumulator[i] = view.RelevantReplicaPriorityAccumulator[num];
+                    view.RelevantReplicaPriorityAccumulator.RemoveAt(num);
+
+                    rebuild = true;
+                }
+
+                // #todo this is stupid
+                if (rebuild) {
+                    view.RelevantReplicaIndicesSortedByPriority.Clear();
+
+                    for (int i = 0; i < num; ++i) {
+                        view.RelevantReplicaIndicesSortedByPriority.Add(i);
                     }
                 }
+
+                Assert.AreEqual(view.RelevantReplicas.Count, view.RelevantReplicaPriorityAccumulator.Count);
+                Assert.AreEqual(view.RelevantReplicas.Count, view.RelevantReplicaIndicesSortedByPriority.Count);
             }
 
             UpdateRelevantReplicaPriorities(view);
-
-            List<int> sortedIndices = new List<int>();
-            CalculateRelevantReplicaIndices(view, sortedIndices);
+            CalculateRelevantReplicaIndices(view);
 
             int bytesSent = 0;
 
             int numSentLowRelevance = 0;
             for (int i = 0; i < settings.MaxReplicasPerPacket; ++i) {
-                var currentReplicaIdx = sortedIndices[i];
+                var currentReplicaIdx = view.RelevantReplicaIndicesSortedByPriority[i];
 
                 if (view.RelevantReplicaPriorityAccumulator[currentReplicaIdx] < 1)
                     break; // < 1 means we are still not over the DesiredUpdateRate interval
@@ -370,8 +389,7 @@ namespace Cube.Replication {
                 TransportDebugger.BeginScope("Update Replica " + replica.name);
 #endif
 
-
-                var updateBs = new BitStream();
+                updateBs.Clear();
                 updateBs.Write((byte)MessageId.ReplicaUpdate);
                 updateBs.Write(replica.isSceneReplica);
                 if (!replica.isSceneReplica) {
@@ -388,14 +406,16 @@ namespace Cube.Replication {
                 };
                 replica.Serialize(updateBs, serializeCtx);
 
+                updateBs.FlushBits();
+
 #if UNITY_EDITOR
-                TransportDebugger.EndScope(updateBs.LengthInBits);
+                TransportDebugger.EndScope(updateBs.BitsWritten);
 #endif
 
-                if (bytesSent + updateBs.Length >= settings.MaxBytesPerConnectionPerUpdate)
+                if (bytesSent + updateBs.BytesWritten >= settings.MaxBytesPerConnectionPerUpdate)
                     break; // Packet size exhausted
 
-                bytesSent += updateBs.Length;
+                bytesSent += updateBs.BytesWritten;
 
                 server.NetworkInterface.Send(updateBs, PacketReliability.Unreliable, view.Connection, MessageChannel.State);
 
@@ -404,11 +424,8 @@ namespace Cube.Replication {
             }
 
             // Rpcs
-            foreach (var currentReplicaIdx in sortedIndices) {
+            foreach (var currentReplicaIdx in view.RelevantReplicaIndicesSortedByPriority) {
                 var replica = view.RelevantReplicas[currentReplicaIdx];
-                if (replica == null || replica.Id == ReplicaId.Invalid)
-                    continue;
-
                 foreach (var queuedRpc in replica.queuedRpcs) {
                     var isRpcRelevant = (queuedRpc.target == RpcTarget.Owner && replica.Owner == view.Connection)
                         || queuedRpc.target == RpcTarget.All
@@ -417,7 +434,7 @@ namespace Cube.Replication {
                     if (!isRpcRelevant)
                         continue;
 
-                    if (bytesSent + queuedRpc.bs.Length >= settings.MaxBytesPerConnectionPerUpdate)
+                    if (bytesSent + queuedRpc.bs.BytesWritten >= settings.MaxBytesPerConnectionPerUpdate)
                         break; // Packet size exhausted
 
 #if UNITY_EDITOR
@@ -427,10 +444,10 @@ namespace Cube.Replication {
                     server.NetworkInterface.Send(queuedRpc.bs, PacketReliability.Unreliable, view.Connection, MessageChannel.Rpc);
 
 #if UNITY_EDITOR
-                    TransportDebugger.EndScope(queuedRpc.bs.LengthInBits);
+                    TransportDebugger.EndScope(queuedRpc.bs.BitsWritten);
 #endif
 
-                    bytesSent += queuedRpc.bs.Length;
+                    bytesSent += queuedRpc.bs.BytesWritten;
                 }
             }
         }
@@ -451,6 +468,12 @@ namespace Cube.Replication {
             foreach (var replica in view.RelevantReplicas) {
                 oldAccs.TryGetValue(replica, out float acc);
                 view.RelevantReplicaPriorityAccumulator.Add(acc);
+            }
+
+            // #todo Maybe we could reuse those too?
+            view.RelevantReplicaIndicesSortedByPriority.Clear();
+            for (int i = 0; i < view.RelevantReplicas.Count; ++i) {
+                view.RelevantReplicaIndicesSortedByPriority.Add(i);
             }
         }
 
@@ -492,19 +515,16 @@ namespace Cube.Replication {
             }
         }
 
-        static void CalculateRelevantReplicaIndices(ReplicaView view, List<int> sortedReplicaIndices) {
-            sortedReplicaIndices.Clear();
+        static void CalculateRelevantReplicaIndices(ReplicaView view) {
+            Assert.AreEqual(view.RelevantReplicas.Count, view.RelevantReplicaIndicesSortedByPriority.Count);
 
-            for (int i = 0; i < view.RelevantReplicas.Count; ++i) {
-                sortedReplicaIndices.Add(i);
-            }
-            sortedReplicaIndices.Sort((i1, i2) => (int)((view.RelevantReplicaPriorityAccumulator[i2] - view.RelevantReplicaPriorityAccumulator[i1]) * 100));
+            view.RelevantReplicaIndicesSortedByPriority.Sort((i1, i2) => (int)((view.RelevantReplicaPriorityAccumulator[i2] - view.RelevantReplicaPriorityAccumulator[i1]) * 100));
         }
 
         void SendDestroyedReplicasToReplicaView(ReplicaView view) {
             Assert.IsTrue(replicasInDestruction.Count > 0);
 
-            var destroyBs = BitStreamPool.Create();
+            var destroyBs = new BitWriter();
             destroyBs.Write((byte)MessageId.ReplicaDestroy);
 
             var send = false;
@@ -519,14 +539,13 @@ namespace Cube.Replication {
                 destroyBs.Write(replica.Id);
                 send = true;
 #if UNITY_EDITOR
-                TransportDebugger.EndScope(destroyBs.LengthInBits);
+                TransportDebugger.EndScope(destroyBs.BitsWritten);
 #endif
             }
 
             if (send) {
                 server.NetworkInterface.Send(destroyBs, PacketReliability.Unreliable, view.Connection, MessageChannel.State);
             }
-
         }
 
         public ReplicaView GetReplicaView(Connection connection) {
@@ -570,7 +589,7 @@ namespace Cube.Replication {
             replicaIdRecycleQueue.Enqueue(id.Data);
         }
 
-        void OnReplicaRpc(Connection connection, BitStream bs) {
+        void OnReplicaRpc(Connection connection, BitReader bs) {
             var replicaId = bs.ReadReplicaId();
 
             var replica = networkScene.GetReplicaById(replicaId);

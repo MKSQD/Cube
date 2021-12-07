@@ -5,14 +5,14 @@ namespace Cube.Transport.Tests {
     public class LocalServerInterface : IServerNetworkInterface {
         class Message {
             public Connection connection;
-            public BitStream bs;
+            public byte[] data;
         }
 
-        public Func<BitStream, ApprovalResult> ApproveConnection { get; set; }
+        public Func<BitReader, ApprovalResult> ApproveConnection { get; set; }
         public Action<Connection> NewConnectionEstablished { get; set; }
         public Action NetworkError { get; set; }
         public Action<Connection> DisconnectNotification { get; set; }
-        public Action<BitStream, Connection> ReceivedPacket { get; set; }
+        public Action<BitReader, Connection> ReceivedPacket { get; set; }
 
         public List<LocalClientInterface> clients = new List<LocalClientInterface>();
 
@@ -23,19 +23,21 @@ namespace Cube.Transport.Tests {
 
         public void Update() {
             ReceiveMessages();
-            BitStreamPool.FrameReset();
         }
 
+        Memory<uint> memory = new Memory<uint>(new uint[64]);
         void ReceiveMessages() {
             while (messageQueue.Count > 0) {
                 var msg = messageQueue.Dequeue();
-                ReceivedPacket.Invoke(msg.bs, msg.connection);
+                var bs = new BitReader(msg.data, memory);
+                ReceivedPacket.Invoke(bs, msg.connection);
             }
         }
 
-        public void Send(BitStream bs, PacketReliability reliablity, Connection connection, int sequenceChannel) {
-            LocalClientInterface targetClient = null;
+        public void Send(BitWriter bs, PacketReliability reliablity, Connection connection, int sequenceChannel) {
+            bs.FlushBits();
 
+            LocalClientInterface targetClient = null;
             foreach (var client in clients) {
                 if (client.connection == connection) {
                     targetClient = client;
@@ -49,7 +51,9 @@ namespace Cube.Transport.Tests {
             targetClient.EnqueueMessage(bs);
         }
 
-        public void BroadcastBitStream(BitStream bs, PacketReliability reliablity, int sequenceChannel) {
+        public void BroadcastBitStream(BitWriter bs, PacketReliability reliablity, int sequenceChannel) {
+            bs.FlushBits();
+
             foreach (var client in clients) {
                 client.EnqueueMessage(bs);
             }
@@ -72,10 +76,12 @@ namespace Cube.Transport.Tests {
             clients.Add(client);
         }
 
-        public void EnqueueMessage(Connection connection, BitStream bs) {
+        public void EnqueueMessage(Connection connection, BitWriter bs) {
+            bs.FlushBits();
+
             var message = new Message();
             message.connection = connection;
-            message.bs = bs;
+            message.data = bs.DataWritten.ToArray();
             messageQueue.Enqueue(message);
         }
 

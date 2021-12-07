@@ -2,15 +2,16 @@ using LiteNetLib;
 using System;
 using System.Net;
 using System.Net.Sockets;
+using System.Runtime.InteropServices;
 using UnityEngine;
 
 namespace Cube.Transport {
     public sealed class LiteNetServerNetworkInterface : IServerNetworkInterface, INetEventListener {
-        public Func<BitStream, ApprovalResult> ApproveConnection { get; set; }
+        public Func<BitReader, ApprovalResult> ApproveConnection { get; set; }
         public Action<Connection> NewConnectionEstablished { get; set; }
         public Action NetworkError { get; set; }
         public Action<Connection> DisconnectNotification { get; set; }
-        public Action<BitStream, Connection> ReceivedPacket { get; set; }
+        public Action<BitReader, Connection> ReceivedPacket { get; set; }
 
         public bool IsRunning => server.IsRunning;
 
@@ -28,13 +29,18 @@ namespace Cube.Transport {
             server.Start(port);
         }
 
-        public void BroadcastBitStream(BitStream bs, PacketReliability reliablity, int sequenceChannel = 0) {
-            server.SendToAll(bs.Data, 0, bs.Length, (byte)sequenceChannel, GetDeliveryMethod(reliablity));
+        public void BroadcastBitStream(BitWriter bs, PacketReliability reliablity, int sequenceChannel = 0) {
+            bs.FlushBits();
+
+            // #todo Incomplete LiteNet support for Span :(
+            server.SendToAll(bs.DataWritten.ToArray(), (byte)sequenceChannel, GetDeliveryMethod(reliablity));
         }
 
-        public void Send(BitStream bs, PacketReliability reliablity, Connection connection, int sequenceChannel = 0) {
+        public void Send(BitWriter bs, PacketReliability reliablity, Connection connection, int sequenceChannel = 0) {
+            bs.FlushBits();
+
             var peer = server.GetPeerById((int)connection.id);
-            peer.Send(bs.Data, 0, bs.Length, (byte)sequenceChannel, GetDeliveryMethod(reliablity));
+            peer.Send(bs.DataWritten, (byte)sequenceChannel, GetDeliveryMethod(reliablity));
         }
 
         public void Shutdown() {
@@ -43,7 +49,6 @@ namespace Cube.Transport {
 
         public void Update() {
             server.PollEvents();
-            BitStreamPool.FrameReset();
 
 #if UNITY_EDITOR
             TransportDebugger.CycleFrame();
@@ -77,10 +82,10 @@ namespace Cube.Transport {
             NetworkError();
         }
 
-        public void OnNetworkReceive(NetPeer peer, NetPacketReader reader, DeliveryMethod deliveryMethod) {
-            var bs = BitStream.CreateWithExistingBuffer(reader.RawData,
-                reader.UserDataOffset * 8,
-                reader.RawDataSize * 8);
+        Memory<uint> memory = new Memory<uint>(new uint[64]);
+        public void OnNetworkReceive(NetPeer peer, NetPacketReader reader, byte channelNumber, DeliveryMethod deliveryMethod) {
+            var span = new ReadOnlySpan<byte>(reader.RawData, reader.UserDataOffset, reader.UserDataSize);
+            var bs = new BitReader(span, memory);
 
             ReceivedPacket(bs, new Connection((ulong)peer.Id));
 
@@ -94,16 +99,17 @@ namespace Cube.Transport {
         }
 
         public void OnConnectionRequest(ConnectionRequest request) {
-            var bs = BitStream.CreateWithExistingBuffer(request.Data.RawData,
-                request.Data.UserDataOffset * 8,
-                request.Data.RawDataSize * 8);
+            var reader = request.Data;
+
+            var span = new ReadOnlySpan<byte>(reader.RawData, reader.UserDataOffset, reader.UserDataSize);
+            var bs = new BitReader(span, memory);
 
             var approvalResult = ApproveConnection.Invoke(bs);
             if (!approvalResult.Approved) {
                 Debug.Log($"[Server] Connection denied ({approvalResult.DenialReason})");
-                var deniedBs = BitStreamPool.Create();
+                var deniedBs = new BitWriter();
                 deniedBs.Write(approvalResult.DenialReason);
-                request.Reject(deniedBs.Data, 0, deniedBs.Length);
+                request.Reject(deniedBs.DataWritten.ToArray(), 0, deniedBs.BytesWritten);
                 return;
             }
 

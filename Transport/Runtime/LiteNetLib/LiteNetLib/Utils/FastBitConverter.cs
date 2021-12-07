@@ -1,9 +1,37 @@
+﻿using System;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace LiteNetLib.Utils
 {
     public static class FastBitConverter
     {
+#if (LITENETLIB_UNSAFE || LITENETLIB_UNSAFELIB || NETCOREAPP3_1 || NET5_0 || NETCOREAPP3_0_OR_GREATER) && !BIGENDIAN
+#if LITENETLIB_UNSAFE
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static unsafe void GetBytes<T>(byte[] bytes, int startIndex, T value) where T : unmanaged
+        {
+            if (bytes.Length < startIndex + sizeof(T))
+                ThrowIndexOutOfRangeException();
+#if LITENETLIB_UNSAFELIB || NETCOREAPP3_1 || NET5_0 || NETCOREAPP3_0_OR_GREATER
+            Unsafe.As<byte, T>(ref bytes[startIndex]) = value;
+#else
+            fixed (byte* ptr = &bytes[startIndex])
+                *(T*)ptr = value;
+#endif
+        }
+#else
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void GetBytes<T>(byte[] bytes, int startIndex, T value) where T : unmanaged
+        {
+            if (bytes.Length < startIndex + Unsafe.SizeOf<T>())
+                ThrowIndexOutOfRangeException();
+            Unsafe.As<byte, T>(ref bytes[startIndex]) = value;
+        }
+#endif
+
+        private static void ThrowIndexOutOfRangeException() => throw new IndexOutOfRangeException();
+#else
         [StructLayout(LayoutKind.Explicit)]
         private struct ConverterHelperDouble
         {
@@ -24,6 +52,7 @@ namespace LiteNetLib.Utils
             public float Afloat;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void WriteLittleEndian(byte[] buffer, int offset, ulong data)
         {
 #if BIGENDIAN
@@ -47,6 +76,7 @@ namespace LiteNetLib.Utils
 #endif
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void WriteLittleEndian(byte[] buffer, int offset, int data)
         {
 #if BIGENDIAN
@@ -62,6 +92,7 @@ namespace LiteNetLib.Utils
 #endif
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void WriteLittleEndian(byte[] buffer, int offset, short data)
         {
 #if BIGENDIAN
@@ -73,46 +104,55 @@ namespace LiteNetLib.Utils
 #endif
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void GetBytes(byte[] bytes, int startIndex, double value)
         {
             ConverterHelperDouble ch = new ConverterHelperDouble { Adouble = value };
             WriteLittleEndian(bytes, startIndex, ch.Along);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void GetBytes(byte[] bytes, int startIndex, float value)
         {
             ConverterHelperFloat ch = new ConverterHelperFloat { Afloat = value };
             WriteLittleEndian(bytes, startIndex, ch.Aint);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void GetBytes(byte[] bytes, int startIndex, short value)
         {
             WriteLittleEndian(bytes, startIndex, value);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void GetBytes(byte[] bytes, int startIndex, ushort value)
         {
             WriteLittleEndian(bytes, startIndex, (short)value);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void GetBytes(byte[] bytes, int startIndex, int value)
         {
             WriteLittleEndian(bytes, startIndex, value);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void GetBytes(byte[] bytes, int startIndex, uint value)
         {
             WriteLittleEndian(bytes, startIndex, (int)value);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void GetBytes(byte[] bytes, int startIndex, long value)
         {
             WriteLittleEndian(bytes, startIndex, (ulong)value);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void GetBytes(byte[] bytes, int startIndex, ulong value)
         {
             WriteLittleEndian(bytes, startIndex, value);
         }
+#endif
     }
 }

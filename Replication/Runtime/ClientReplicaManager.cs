@@ -5,7 +5,6 @@ using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.Assertions;
 using UnityEngine.SceneManagement;
-using BitStream = Cube.Transport.BitStream;
 
 namespace Cube.Replication {
     public sealed class ClientReplicaManager : IClientReplicaManager {
@@ -100,7 +99,7 @@ namespace Cube.Replication {
         }
 
         HashSet<ReplicaId> replicasInConstruction = new HashSet<ReplicaId>();
-        void OnReplicaUpdate(BitStream bs) {
+        void OnReplicaUpdate(BitReader bs) {
             var prefabIdx = ushort.MaxValue;
 
             var isSceneReplica = bs.ReadBool();
@@ -165,7 +164,7 @@ namespace Cube.Replication {
             return replica;
         }
 
-        void OnReplicaRpc(BitStream bs) {
+        void OnReplicaRpc(BitReader bs) {
             var replicaId = bs.ReadReplicaId();
 
             var replica = networkScene.GetReplicaById(replicaId);
@@ -179,8 +178,8 @@ namespace Cube.Replication {
             replica.CallRpcClient(bs);
         }
 
-        void OnReplicaDestroy(BitStream bs) {
-            while (!bs.IsExhausted) {
+        void OnReplicaDestroy(BitReader bs) {
+            while (!bs.WouldReadPastEnd(1)) { // #todo 1?
                 var replicaId = bs.ReadReplicaId();
                 var replica = networkScene.GetReplicaById(replicaId);
                 if (replica != null) {

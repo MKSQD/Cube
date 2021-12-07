@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
@@ -31,9 +31,8 @@ namespace LiteNetLib
         {
             if(hostStr == "localhost")
                 return IPAddress.Loopback;
-            
-            IPAddress ipAddress;
-            if (!IPAddress.TryParse(hostStr, out ipAddress))
+
+            if (!IPAddress.TryParse(hostStr, out var ipAddress))
             {
                 if (NetSocket.IPv6Support)
                     ipAddress = ResolveAddress(hostStr, AddressFamily.InterNetworkV6);
@@ -46,9 +45,9 @@ namespace LiteNetLib
             return ipAddress;
         }
 
-        private static IPAddress ResolveAddress(string hostStr, AddressFamily addressFamily)
+        public static IPAddress ResolveAddress(string hostStr, AddressFamily addressFamily)
         {
-            IPAddress[] addresses = ResolveAddresses(hostStr);
+            IPAddress[] addresses = Dns.GetHostEntry(hostStr).AddressList;
             foreach (IPAddress ip in addresses)
             {
                 if (ip.AddressFamily == addressFamily)
@@ -57,18 +56,6 @@ namespace LiteNetLib
                 }
             }
             return null;
-        }
-
-        private static IPAddress[] ResolveAddresses(string hostStr)
-        {
-#if NETSTANDARD || NETCOREAPP
-            var hostTask = Dns.GetHostEntryAsync(hostStr);
-            hostTask.GetAwaiter().GetResult();
-            var host = hostTask.Result;
-#else
-            var host = Dns.GetHostEntry(hostStr);
-#endif
-            return host.AddressList;
         }
 
         /// <summary>
@@ -97,7 +84,7 @@ namespace LiteNetLib
                 foreach (NetworkInterface ni in NetworkInterface.GetAllNetworkInterfaces())
                 {
                     //Skip loopback and disabled network interfaces
-                    if (ni.NetworkInterfaceType == NetworkInterfaceType.Loopback || 
+                    if (ni.NetworkInterfaceType == NetworkInterfaceType.Loopback ||
                         ni.OperationalStatus != OperationalStatus.Up)
                         continue;
 
@@ -124,7 +111,7 @@ namespace LiteNetLib
             //Fallback mode (unity android)
             if (targetList.Count == 0)
             {
-                IPAddress[] addresses = ResolveAddresses(Dns.GetHostName());
+                IPAddress[] addresses = Dns.GetHostEntry(Dns.GetHostName()).AddressList;
                 foreach (IPAddress ip in addresses)
                 {
                     if((ipv4 && ip.AddressFamily == AddressFamily.InterNetwork) ||
@@ -192,6 +179,15 @@ namespace LiteNetLib
         internal static int RelativeSequenceNumber(int number, int expected)
         {
             return (number - expected + NetConstants.MaxSequence + NetConstants.HalfMaxSequence) % NetConstants.MaxSequence - NetConstants.HalfMaxSequence;
+        }
+
+        internal static T[] AllocatePinnedUninitializedArray<T>(int count) where T : unmanaged
+        {
+#if NET5_0_OR_GREATER || NET5_0
+            return GC.AllocateUninitializedArray<T>(count, true);
+#else
+            return new T[count];
+#endif
         }
     }
 }

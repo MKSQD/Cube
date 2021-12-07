@@ -1,21 +1,38 @@
-﻿using NUnit.Framework;
+﻿using System;
+using NUnit.Framework;
 using UnityEngine;
 
 namespace Cube.Transport.Tests {
     public class TestBitStream {
         [Test]
-        public void Test_LossyFloat() {
-            var bs = new BitStream();
+        public void Test_WriteRead_Int() {
+            var bw = new BitWriter();
+            bw.Write(42);
 
-            for (int i = -32; i < 32; ++i) {
-                bs.WriteLossyFloat(i, -32, 32, 1);
-                Assert.AreEqual(i, bs.ReadLossyFloat(-32, 32, 1));
-            }
-
-            bs.WriteLossyFloat(1.5f, 0, 3, 0.5f);
-            Assert.AreEqual(1.5f, bs.ReadLossyFloat(0, 3, 0.5f));
+            var br = new BitReader(bw);
+            Assert.AreEqual(42, br.ReadInt());
         }
 
+        [Test]
+        public void Test_LossyFloat() {
+            for (int i = -32; i < 32; ++i) {
+                var bw = new BitWriter();
+                bw.WriteLossyFloat(i, -32, 32, 1);
+                bw.FlushBits();
+
+                var br = new BitReader(bw);
+                Assert.AreEqual(i, br.ReadLossyFloat(-32, 32, 1));
+            }
+            {
+                var bw = new BitWriter();
+                bw.WriteLossyFloat(1.5f, 0, 3, 0.5f);
+                bw.FlushBits();
+
+                var br = new BitReader(bw);
+                Assert.AreEqual(1.5f, br.ReadLossyFloat(0, 3, 0.5f));
+            }
+        }
+        /*
         [Test]
         public void Test_QuantizeFloat() {
             var bs = new BitStream();
@@ -32,39 +49,41 @@ namespace Cube.Transport.Tests {
             bs.WriteLossyFloat(0.125f, -32, 32, 0.5f);
             Assert.AreEqual(BitStream.QuantizeFloat(0.125f, -32, 32, 0.5f), bs.ReadLossyFloat(-32, 32, 0.5f));
         }
+        */
 
         [Test]
         public void Test_IntInRange() {
-            var bs = new BitStream();
-
             for (int i = -32; i < 32; ++i) {
-                bs.WriteIntInRange(i, -32, 32);
-                Assert.AreEqual(i, bs.ReadIntInRange(-32, 32));
+                var bw = new BitWriter();
+                bw.WriteIntInRange(i, -32, 32);
+
+                var br = new BitReader(bw);
+                Assert.AreEqual(i, br.ReadIntInRange(-32, 32));
             }
 
-            bs.WriteIntInRange(-33, -32, 32);
-            Assert.AreEqual(-32, bs.ReadIntInRange(-32, 32));
+            {
+                var bw = new BitWriter();
+                bw.WriteIntInRange(-33, -32, 32);
 
-            bs.WriteIntInRange(33, -32, 32);
-            Assert.AreEqual(32, bs.ReadIntInRange(-32, 32));
+                var br = new BitReader(bw);
+                Assert.AreEqual(-32, br.ReadIntInRange(-32, 32));
+            }
 
-            bs.WriteIntInRange(15, 0, 32);
-            Assert.AreEqual(15, bs.ReadIntInRange(0, 32));
+            {
+                var bw = new BitWriter();
+                bw.WriteIntInRange(33, -32, 32);
 
-            bs.Write(true); // Make bitstream unaligned
-            bs.ReadBool();
+                var br = new BitReader(bw);
+                Assert.AreEqual(32, br.ReadIntInRange(-32, 32));
+            }
 
-            bs.WriteIntInRange(0, 0, 3);
-            Assert.AreEqual(0, bs.ReadIntInRange(0, 3));
+            {
+                var bw = new BitWriter();
+                bw.WriteIntInRange(15, 0, 32);
 
-            bs.WriteIntInRange(1, 0, 3);
-            Assert.AreEqual(1, bs.ReadIntInRange(0, 3));
-
-            bs.WriteIntInRange(2, 0, 3);
-            Assert.AreEqual(2, bs.ReadIntInRange(0, 3));
-
-            bs.WriteIntInRange(3, 0, 3);
-            Assert.AreEqual(3, bs.ReadIntInRange(0, 3));
+                var br = new BitReader(bw);
+                Assert.AreEqual(15, br.ReadIntInRange(0, 32));
+            }
         }
 
         [Test]
@@ -75,33 +94,27 @@ namespace Cube.Transport.Tests {
                 "1.4.0",
                 "foooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo" };
             foreach (var str in strings) {
-                var bs = new BitStream();
-                bs.Write(str);
-                Assert.AreEqual(bs.ReadString(), str);
+                {
+                    var bw = new BitWriter(512);
+                    bw.Write(str);
 
-                var bs2 = new BitStream();
-                bs2.Write(true);
-                bs2.Write(str);
-                bs2.ReadBool();
-                Assert.AreEqual(bs2.ReadString(), str);
+                    var br = new BitReader(bw);
+                    Assert.AreEqual(br.ReadString(), str);
+                }
+                {
+                    var bw = new BitWriter(512);
+                    bw.Write(true);
+                    bw.Write(str);
 
-                var bs3 = new BitStream();
-                bs3.Write(true);
-                bs3.Write(true);
-                bs3.Write(str);
-                bs3.ReadBool();
-                bs3.ReadBool();
-                Assert.AreEqual(bs3.ReadString(), str);
+                    var br = new BitReader(bw);
+                    br.ReadBool();
+                    Assert.AreEqual(br.ReadString(), str);
+                }
             }
         }
 
-        [Test]
-        public void Test_WriteRead_Int() {
-            var bs = new BitStream();
-
-            bs.Write(42);
-            Assert.AreEqual(42, bs.ReadInt());
-        }
+        /*
+        
 
         [Test]
         public void Test_WriteRead_Float() {
@@ -160,5 +173,18 @@ namespace Cube.Transport.Tests {
             Assert.AreEqual(false, bs.ReadBool());
             Assert.AreEqual(42, bs.ReadInt());
         }
+
+        [Test]
+        public void Test_Clear_Simple() {
+            var bs = new BitStream();
+
+            bs.Write(45678);
+
+            bs.Clear();
+
+            bs.Write(42);
+            Assert.AreEqual(42, bs.ReadInt());
+        }
+        */
     }
 }

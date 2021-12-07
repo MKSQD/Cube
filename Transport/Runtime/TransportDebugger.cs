@@ -155,11 +155,11 @@ namespace Cube.Transport {
             activeDebugger.CurrentFrame = newChild;
         }
 
-        public static void EndScope(int bits = 0) {
+        public static void EndScope(int numBits = 0) {
             if (activeDebugger == null)
                 return;
 
-            activeDebugger.CurrentFrame.Bits = bits;
+            activeDebugger.CurrentFrame.Bits = numBits;
             activeDebugger.CurrentFrame = activeDebugger.CurrentFrame.Parent;
         }
 
