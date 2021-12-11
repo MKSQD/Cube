@@ -203,85 +203,66 @@ namespace Cube.Replication {
             return networkScene.GetReplicaById(id);
         }
 
-        public void Update() {
-            RecycleReplicaIdsAfterDelay();
-
-            // Update set of relevant Replicas
+        public void Tick() {
             for (int i = 0; i < replicaViews.Count; ++i) {
                 var replicaView = replicaViews[i];
                 if (replicaView.IsLoadingLevel)
                     continue;
 
-                if (Time.timeAsDouble >= replicaView.NextPriorityUpdateTime) {
-                    replicaView.NextPriorityUpdateTime = Time.timeAsDouble + settings.ReplicaRelevantSetUpdateRate;
-                    UpdateRelevantReplicas(replicaView);
+#if UNITY_EDITOR
+                TransportDebugger.BeginScope("Update " + replicaView.name);
+#endif
+
+                UpdateReplicaView(replicaView);
+
+#if UNITY_EDITOR
+                TransportDebugger.EndScope();
+#endif
+            }
+
+            foreach (var replica in networkScene.Replicas) {
+                try {
+                    // Call RpcTarget.All RPCs on the server
+                    // This is done in case the RPC destroys the Replica the RPC had a chance to be send
+                    for (int i = 0; i < replica.queuedRpcs.Count; ++i) {
+                        var queuedRpc = replica.queuedRpcs[i];
+                        if (queuedRpc.target == RpcTarget.All) {
+                            var reader = new BitReader(queuedRpc.bs);
+
+                            var _ = reader.ReadByte();
+                            var _2 = reader.ReadReplicaId();
+                            replica.CallRpcServer(Connection.Invalid, reader);
+                        }
+                    }
+                } finally {
+                    replica.queuedRpcs.Clear();
                 }
             }
 
-            // Network tick
-            if (Time.timeAsDouble >= nextUpdateTime) {
-                nextUpdateTime = Time.timeAsDouble + settings.ReplicaUpdateRate;
+            foreach (var idReplicaPair in replicasInConstruction) {
+                var replica = idReplicaPair.Value;
+                if (replica == null)
+                    continue;
 
+                networkScene.AddReplica(replica);
+
+                // Don't wait for relevant Replica set update, takes far too long for a newly spawned Replica
                 for (int i = 0; i < replicaViews.Count; ++i) {
                     var replicaView = replicaViews[i];
                     if (replicaView.IsLoadingLevel)
                         continue;
 
-#if UNITY_EDITOR
-                    TransportDebugger.BeginScope("Update " + replicaView.name);
-#endif
-
-                    UpdateReplicaView(replicaView);
-
-#if UNITY_EDITOR
-                    TransportDebugger.EndScope();
-#endif
-                }
-
-                foreach (var replica in networkScene.Replicas) {
-                    try {
-                        // Call RpcTarget.All RPCs on the server
-                        // This is done in case the RPC destroys the Replica the RPC had a chance to be send
-                        for (int i = 0; i < replica.queuedRpcs.Count; ++i) {
-                            var queuedRpc = replica.queuedRpcs[i];
-                            if (queuedRpc.target == RpcTarget.All) {
-                                var reader = new BitReader(queuedRpc.bs);
-
-                                var _ = reader.ReadByte();
-                                var _2 = reader.ReadReplicaId();
-                                replica.CallRpcServer(Connection.Invalid, reader);
-                            }
-                        }
-                    } finally {
-                        replica.queuedRpcs.Clear();
-                    }
-                }
-
-                foreach (var idReplicaPair in replicasInConstruction) {
-                    var replica = idReplicaPair.Value;
-                    if (replica == null)
+                    if (!IsReplicaRelevantForView(replica, replicaView))
                         continue;
 
-                    networkScene.AddReplica(replica);
-
-                    // Don't wait for relevant Replica set update, takes far too long for a newly spawned Replica
-                    for (int i = 0; i < replicaViews.Count; ++i) {
-                        var replicaView = replicaViews[i];
-                        if (replicaView.IsLoadingLevel)
-                            continue;
-
-                        if (!IsReplicaRelevantForView(replica, replicaView))
-                            continue;
-
-                        var relevance = replica.GetRelevance(replicaView);
-                        replicaView.RelevantReplicas.Add(replica);
-                        replicaView.RelevantReplicaPriorityAccumulator.Add(relevance * relevance * 2); // 2 to boost sending new Replicas
-                        replicaView.RelevantReplicaIndicesSortedByPriority.Add(replicaView.RelevantReplicas.Count - 1);
-                    }
-
+                    var relevance = replica.GetRelevance(replicaView);
+                    replicaView.NumRelevantReplicas++;
+                    replicaView.RelevantReplicas.Add(replica);
+                    replicaView.RelevantReplicaPriorityAccumulator.Add(relevance * relevance * 2); // 2 to boost sending new Replicas
                 }
-                replicasInConstruction.Clear();
+
             }
+            replicasInConstruction.Clear();
 
             // Actually destroy queued Replicas
             if (replicasInDestruction.Count > 0) {
@@ -303,6 +284,22 @@ namespace Cube.Replication {
                     }
                 } finally {
                     replicasInDestruction.Clear();
+                }
+            }
+        }
+
+        public void Update() {
+            RecycleReplicaIdsAfterDelay();
+
+            // Update set of relevant Replicas
+            for (int i = 0; i < replicaViews.Count; ++i) {
+                var replicaView = replicaViews[i];
+                if (replicaView.IsLoadingLevel)
+                    continue;
+
+                if (Time.timeAsDouble >= replicaView.NextPriorityUpdateTime) {
+                    replicaView.NextPriorityUpdateTime = Time.timeAsDouble + settings.ReplicaRelevantSetUpdateRate;
+                    UpdateRelevantReplicas(replicaView);
                 }
             }
         }
@@ -329,48 +326,36 @@ namespace Cube.Replication {
 
 
         BitWriter updateBs = new BitWriter(32);
+        List<int> indicesSortedByPriority = new(512);
         void UpdateReplicaView(ReplicaView view) {
             // Clear dead Replicas so we dont have to check in following code
             {
-                var num = view.RelevantReplicas.Count;
-                var rebuild = false;
-                for (int i = 0; i < num;) {
+                for (int i = 0; i < view.NumRelevantReplicas;) {
                     if (view.RelevantReplicas[i] != null) {
                         ++i;
                         continue;
                     }
 
-                    --num;
-                    view.RelevantReplicas[i] = view.RelevantReplicas[num];
-                    view.RelevantReplicas.RemoveAt(num);
+                    --view.NumRelevantReplicas;
+                    view.RelevantReplicas[i] = view.RelevantReplicas[view.NumRelevantReplicas];
+                    view.RelevantReplicas.RemoveAt(view.NumRelevantReplicas);
 
-                    view.RelevantReplicaPriorityAccumulator[i] = view.RelevantReplicaPriorityAccumulator[num];
-                    view.RelevantReplicaPriorityAccumulator.RemoveAt(num);
-
-                    rebuild = true;
+                    view.RelevantReplicaPriorityAccumulator[i] = view.RelevantReplicaPriorityAccumulator[view.NumRelevantReplicas];
+                    view.RelevantReplicaPriorityAccumulator.RemoveAt(view.NumRelevantReplicas);
                 }
 
-                // #todo this is stupid
-                if (rebuild) {
-                    view.RelevantReplicaIndicesSortedByPriority.Clear();
-
-                    for (int i = 0; i < num; ++i) {
-                        view.RelevantReplicaIndicesSortedByPriority.Add(i);
-                    }
-                }
-
+                Assert.AreEqual(view.RelevantReplicas.Count, view.NumRelevantReplicas);
                 Assert.AreEqual(view.RelevantReplicas.Count, view.RelevantReplicaPriorityAccumulator.Count);
-                Assert.AreEqual(view.RelevantReplicas.Count, view.RelevantReplicaIndicesSortedByPriority.Count);
             }
 
             UpdateRelevantReplicaPriorities(view);
-            CalculateRelevantReplicaIndices(view);
+            CalculateRelevantReplicaIndices(view, indicesSortedByPriority);
 
             int bytesSent = 0;
 
             int numSentLowRelevance = 0;
-            for (int i = 0; i < settings.MaxReplicasPerPacket; ++i) {
-                var currentReplicaIdx = view.RelevantReplicaIndicesSortedByPriority[i];
+            for (int i = 0; i < Math.Min(settings.MaxReplicasPerPacket, view.NumRelevantReplicas); ++i) {
+                var currentReplicaIdx = indicesSortedByPriority[i];
 
                 if (view.RelevantReplicaPriorityAccumulator[currentReplicaIdx] < 1)
                     break; // < 1 means we are still not over the DesiredUpdateRate interval
@@ -424,7 +409,7 @@ namespace Cube.Replication {
             }
 
             // Rpcs
-            foreach (var currentReplicaIdx in view.RelevantReplicaIndicesSortedByPriority) {
+            foreach (var currentReplicaIdx in indicesSortedByPriority) {
                 var replica = view.RelevantReplicas[currentReplicaIdx];
                 foreach (var queuedRpc in replica.queuedRpcs) {
                     var isRpcRelevant = (queuedRpc.target == RpcTarget.Owner && replica.Owner == view.Connection)
@@ -457,23 +442,18 @@ namespace Cube.Replication {
         /// </summary>
         void UpdateRelevantReplicas(ReplicaView view) {
             var oldAccs = new Dictionary<Replica, float>(view.RelevantReplicas.Count);
-            for (int i = 0; i < view.RelevantReplicas.Count; ++i) {
+            for (int i = 0; i < view.NumRelevantReplicas; ++i) {
                 var replica = view.RelevantReplicas[i];
                 oldAccs.Add(replica, view.RelevantReplicaPriorityAccumulator[i]);
             }
 
             GatherRelevantReplicas(networkScene.Replicas, view, view.RelevantReplicas);
+            view.NumRelevantReplicas = view.RelevantReplicas.Count;
 
             view.RelevantReplicaPriorityAccumulator.Clear();
             foreach (var replica in view.RelevantReplicas) {
                 oldAccs.TryGetValue(replica, out float acc);
                 view.RelevantReplicaPriorityAccumulator.Add(acc);
-            }
-
-            // #todo Maybe we could reuse those too?
-            view.RelevantReplicaIndicesSortedByPriority.Clear();
-            for (int i = 0; i < view.RelevantReplicas.Count; ++i) {
-                view.RelevantReplicaIndicesSortedByPriority.Add(i);
             }
         }
 
@@ -506,7 +486,7 @@ namespace Cube.Replication {
         void UpdateRelevantReplicaPriorities(ReplicaView view) {
             // This function is called with a rate of settings.replicaUpdateRateMS
 
-            for (int i = 0; i < view.RelevantReplicas.Count; ++i) {
+            for (int i = 0; i < view.NumRelevantReplicas; ++i) {
                 var replica = view.RelevantReplicas[i];
                 var relevance = replica.GetRelevance(view);
 
@@ -515,10 +495,13 @@ namespace Cube.Replication {
             }
         }
 
-        static void CalculateRelevantReplicaIndices(ReplicaView view) {
-            Assert.AreEqual(view.RelevantReplicas.Count, view.RelevantReplicaIndicesSortedByPriority.Count);
+        static void CalculateRelevantReplicaIndices(ReplicaView view, List<int> list) {
+            list.Clear();
+            for (int i = 0; i < view.NumRelevantReplicas; ++i) {
+                list.Add(i);
+            }
 
-            view.RelevantReplicaIndicesSortedByPriority.Sort((i1, i2) => (int)((view.RelevantReplicaPriorityAccumulator[i2] - view.RelevantReplicaPriorityAccumulator[i1]) * 100));
+            list.Sort((i1, i2) => (int)((view.RelevantReplicaPriorityAccumulator[i2] - view.RelevantReplicaPriorityAccumulator[i1]) * 100));
         }
 
         void SendDestroyedReplicasToReplicaView(ReplicaView view) {

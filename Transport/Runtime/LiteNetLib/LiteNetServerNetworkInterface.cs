@@ -2,7 +2,6 @@ using LiteNetLib;
 using System;
 using System.Net;
 using System.Net.Sockets;
-using System.Runtime.InteropServices;
 using UnityEngine;
 
 namespace Cube.Transport {
@@ -19,7 +18,7 @@ namespace Cube.Transport {
 
         public LiteNetServerNetworkInterface(ushort port) {
             server = new NetManager(this);
-            server.ChannelsCount = 3;
+            server.ChannelsCount = 4;
 
 #if UNITY_EDITOR
             server.EnableStatistics = true;

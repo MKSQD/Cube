@@ -2,6 +2,7 @@ namespace Cube.Replication {
     public static class MessageChannel {
         public static readonly int State = 0;
         public static readonly int Rpc = 1;
-        public static readonly int SceneLoad = 2;
+        public static readonly int Move = 2;
+        public static readonly int SceneLoad = 3;
     }
 }

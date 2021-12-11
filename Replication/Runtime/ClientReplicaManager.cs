@@ -2,7 +2,6 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.AddressableAssets;
 using UnityEngine.Assertions;
 using UnityEngine.SceneManagement;
 
@@ -16,8 +15,6 @@ namespace Cube.Replication {
 
         NetworkScene networkScene;
         NetworkPrefabLookup networkPrefabLookup;
-
-        float nextUpdateTime;
 
         public ClientReplicaManager(ICubeClient client, NetworkPrefabLookup networkPrefabLookup) {
             Assert.IsNotNull(networkPrefabLookup);
@@ -77,12 +74,7 @@ namespace Cube.Replication {
             return networkScene.GetReplicaById(id);
         }
 
-        public void Update() {
-            if (Time.time < nextUpdateTime)
-                return;
-
-            nextUpdateTime = Time.time + 1;
-
+        public void Tick() {
             var replicas = networkScene.Replicas;
             for (int i = 0; i < replicas.Count; ++i) {
                 var replica = replicas[i];

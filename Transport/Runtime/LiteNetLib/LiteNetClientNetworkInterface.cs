@@ -17,7 +17,7 @@ namespace Cube.Transport {
 
         public LiteNetClientNetworkInterface() {
             client = new NetManager(this);
-            client.ChannelsCount = 3;
+            client.ChannelsCount = 4;
             client.MaxConnectAttempts = 3;
 
 #if UNITY_EDITOR

@@ -25,9 +25,14 @@ namespace Cube.Networking {
             ReplicaManager = new ServerReplicaManager(this, replicaParentTransform, replicaManagerSettings);
         }
 
+
         public void Update() {
             ReplicaManager.Update();
             NetworkInterface.Update();
+        }
+
+        public void Tick() {
+            ReplicaManager.Tick();
         }
 
         public void Shutdown() {
@@ -37,6 +42,8 @@ namespace Cube.Networking {
             Reactor = null;
             NetworkInterface = null;
         }
+
+        protected virtual void TickImpl() { }
 
         void OnNewConnectionEstablished(Connection connection) {
             connections.Add(connection);

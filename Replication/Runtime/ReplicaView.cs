@@ -21,10 +21,9 @@ namespace Cube.Replication {
 
 
         // These Lists are in sync
+        public int NumRelevantReplicas = 0;
         public List<Replica> RelevantReplicas = new List<Replica>();
         public List<float> RelevantReplicaPriorityAccumulator = new List<float>();
-        public List<int> RelevantReplicaIndicesSortedByPriority = new List<int>();
-
 
 #if UNITY_EDITOR
         /// <summary>

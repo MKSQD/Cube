@@ -72,7 +72,7 @@ namespace Cube.Networking.Tests {
             server.replicaManager.Update();
 
             client.client.Update();
-            client.replicaManager.Update();
+            client.replicaManager.Tick();
         }
 
         public static IEnumerator RunServerAndClientFor(ServerObjects server, ClientObjects client, float seconds) {

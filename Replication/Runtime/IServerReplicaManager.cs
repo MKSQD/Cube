@@ -8,9 +8,9 @@ using UnityEngine.SceneManagement;
 
 namespace Cube.Replication {
     public interface IServerReplicaManager : IReplicaManager {
-        List<ReplicaView> ReplicaViews { get; }
         ReadOnlyCollection<Replica> Replicas { get; }
 
+        void Tick();
         void Update();
 
 
