@@ -46,7 +46,7 @@ namespace Cube.Transport {
         public uint ReadBits(int bits) {
             Assert.IsTrue(bits > 0);
             Assert.IsTrue(bits <= 32);
-            Assert.IsTrue(_bitsRead + bits <= _numBits);
+            Assert.IsTrue(_bitsRead + bits <= _numBits, "exhausted");
 
             _bitsRead += bits;
 

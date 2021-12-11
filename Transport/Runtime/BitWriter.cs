@@ -186,8 +186,7 @@ namespace Cube.Transport {
             val = Mathf.Clamp(val, minInclusive, maxInclusive);
 
             var bits = BitUtil.ComputeRequiredIntBits(minInclusive, maxInclusive);
-            var mask = (uint)((1L << bits) - 1);
-            var data = (uint)(val - minInclusive) & mask;
+            var data = (uint)(val - minInclusive) & (uint)((1L << bits) - 1);
             WriteBits(data, bits);
         }
 

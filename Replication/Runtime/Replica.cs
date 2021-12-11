@@ -39,15 +39,8 @@ namespace Cube.Replication {
         /// The connection (client) owning this Replica, or Connection.Invalid if the server owns it.
         /// Only valid on the server.
         /// </summary>
-        public Connection Owner {
-            get;
-            internal set;
-        }
-
-        public bool IsOwner {
-            get;
-            internal set;
-        }
+        public Connection Owner { get; private set; }
+        public bool IsOwner { get; private set; }
 
         ReplicaBehaviour[] replicaBehaviours;
 
