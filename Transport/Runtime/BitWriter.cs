@@ -134,10 +134,17 @@ namespace Cube.Transport {
         }
 
 
-        public void Write(bool val) => WriteBits((uint)(val ? 0x00000001 : 0x00000000), 1);
-        public void Write(byte val) => WriteBits((uint)val, 8);
-        public void Write(ushort val) => WriteBits(val, 16);
-        public void Write(float val) => WriteBits(BitUtil.CastFloatToUInt(val), 32);
+        public void WriteBool(bool val) => WriteBits((uint)(val ? 0x00000001 : 0x00000000), 1);
+        public void WriteByte(byte val) => WriteBits((uint)val, 8);
+
+        public void WriteByte(int val) {
+            Assert.IsTrue(val >= 0);
+            Assert.IsTrue(val < 255);
+            WriteByte((byte)val);
+        }
+
+        public void WriteUShort(ushort val) => WriteBits(val, 16);
+        public void WriteFloat(float val) => WriteBits(BitUtil.CastFloatToUInt(val), 32);
 
 
         public void WriteLossyFloat(float val, float min, float max, float precision = 0.1f) {
@@ -169,10 +176,10 @@ namespace Cube.Transport {
             Assert.IsTrue(val > -1.01f && val < 1.01f);
 
             val = Mathf.Clamp(val, -1f, 1f);
-            Write((ushort)((val + 1f) * 32767.5f));
+            WriteUShort((ushort)((val + 1f) * 32767.5f));
         }
 
-        public void Write(int val) => WriteBits((uint)val, 32);
+        public void WriteInt(int val) => WriteBits((uint)val, 32);
 
         public void WriteIntInRange(int val, int minInclusive, int maxInclusive) {
 #if UNITY_EDITOR
@@ -190,36 +197,36 @@ namespace Cube.Transport {
             WriteBits(data, bits);
         }
 
-        public void Write(uint val) => WriteBits(val, 32);
+        public void WriteUInt(uint val) => WriteBits(val, 32);
 
-        public void Write(string val) {
+        public void WriteString(string val) {
             if (val.Length <= 32) {
-                Write(true);
+                WriteBool(true);
                 WriteIntInRange(val.Length, 0, 32);
             } else if (val.Length <= 256) {
-                Write(false);
-                Write(true);
+                WriteBool(false);
+                WriteBool(true);
                 WriteIntInRange(val.Length, 0, 256);
             } else {
-                Write(false);
-                Write(false);
-                Write((ushort)val.Length);
+                WriteBool(false);
+                WriteBool(false);
+                WriteUShort((ushort)val.Length);
             }
 
             for (int i = 0; i < val.Length; ++i) {
-                WriteBits((uint)val[i], 16);
+                WriteIntInRange((int)val[i], 0x0020, 0x007E);
             }
         }
 
-        public void Write(Vector2 val) {
-            Write(val.x);
-            Write(val.y);
+        public void WriteVector2(Vector2 val) {
+            WriteFloat(val.x);
+            WriteFloat(val.y);
         }
 
-        public void Write(Vector3 val) {
-            Write(val.x);
-            Write(val.y);
-            Write(val.z);
+        public void WriteVector3(Vector3 val) {
+            WriteFloat(val.x);
+            WriteFloat(val.y);
+            WriteFloat(val.z);
         }
 
         public void WriteNormalised(Vector3 val) {
@@ -228,7 +235,7 @@ namespace Cube.Transport {
             WriteNormalised(val.z);
         }
 
-        public void Write(Quaternion val) {
+        public void WriteQuaternion(Quaternion val) {
             int largest = 0;
             float a, b, c;
 
@@ -284,10 +291,10 @@ namespace Cube.Transport {
             integerValue = (uint)Mathf.Floor(normalizedValue * maxIntegerValueF + 0.5f);
             sentData = sentData | (integerValue & maxIntegerValue);
 
-            Write(sentData);
+            WriteUInt(sentData);
         }
 
-        public void Write(ISerializable obj) {
+        public void WriteSerializable(ISerializable obj) {
             obj.Serialize(this);
         }
 

@@ -48,7 +48,7 @@ namespace Cube.Replication {
         }
 
         public override void Serialize(BitWriter bs, SerializeContext ctx) {
-            bs.Write(transform.position);
+            bs.WriteVector3(transform.position);
 
             var euler = transform.rotation.eulerAngles;
             euler.x = Mathf.Repeat(euler.x, 360);
@@ -59,7 +59,7 @@ namespace Cube.Replication {
             bs.WriteLossyFloat(euler.z, 0, 360);
 
             var sleeping = rigidbody.IsSleeping();
-            bs.Write(sleeping);
+            bs.WriteBool(sleeping);
             if (!sleeping) {
                 var velocity = rigidbody.velocity;
                 bs.WriteLossyFloat(velocity.x, -maxVelocity, maxVelocity);

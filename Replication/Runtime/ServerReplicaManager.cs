@@ -375,16 +375,16 @@ namespace Cube.Replication {
 #endif
 
                 updateBs.Clear();
-                updateBs.Write((byte)MessageId.ReplicaUpdate);
-                updateBs.Write(replica.isSceneReplica);
+                updateBs.WriteByte((byte)MessageId.ReplicaUpdate);
+                updateBs.WriteBool(replica.isSceneReplica);
                 if (!replica.isSceneReplica) {
-                    updateBs.Write(replica.prefabIdx);
+                    updateBs.WriteUShort(replica.prefabIdx);
                 }
 
-                updateBs.Write(replica.Id);
+                updateBs.WriteReplicaId(replica.Id);
 
                 bool isOwner = replica.Owner == view.Connection;
-                updateBs.Write(isOwner);
+                updateBs.WriteBool(isOwner);
 
                 var serializeCtx = new ReplicaBehaviour.SerializeContext() {
                     IsOwner = isOwner
@@ -437,11 +437,12 @@ namespace Cube.Replication {
             }
         }
 
+        Dictionary<Replica, float> oldAccs = new();
         /// <summary>
         /// Build a list of relevant Replicas for this ReplicaView.
         /// </summary>
         void UpdateRelevantReplicas(ReplicaView view) {
-            var oldAccs = new Dictionary<Replica, float>(view.RelevantReplicas.Count);
+            oldAccs.Clear();
             for (int i = 0; i < view.NumRelevantReplicas; ++i) {
                 var replica = view.RelevantReplicas[i];
                 oldAccs.Add(replica, view.RelevantReplicaPriorityAccumulator[i]);
@@ -508,7 +509,7 @@ namespace Cube.Replication {
             Assert.IsTrue(replicasInDestruction.Count > 0);
 
             var destroyBs = new BitWriter();
-            destroyBs.Write((byte)MessageId.ReplicaDestroy);
+            destroyBs.WriteByte((byte)MessageId.ReplicaDestroy);
 
             var send = false;
             foreach (var replica in replicasInDestruction) {
@@ -519,7 +520,7 @@ namespace Cube.Replication {
 #if UNITY_EDITOR
                 TransportDebugger.BeginScope("ReplicaDestroy");
 #endif
-                destroyBs.Write(replica.Id);
+                destroyBs.WriteReplicaId(replica.Id);
                 send = true;
 #if UNITY_EDITOR
                 TransportDebugger.EndScope(destroyBs.BitsWritten);

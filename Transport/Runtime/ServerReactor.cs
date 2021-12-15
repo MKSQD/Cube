@@ -37,7 +37,7 @@ namespace Cube.Transport {
             handlers[id] = handler;
         }
 
-        public void RemoveHandler(byte id, ServerMessageHandler handler) {
+        public void RemoveHandler(byte id) {
             handlers.Remove(id);
         }
     }

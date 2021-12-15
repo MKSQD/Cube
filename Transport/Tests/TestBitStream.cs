@@ -7,7 +7,7 @@ namespace Cube.Transport.Tests {
         [Test]
         public void Test_WriteRead_Int() {
             var bw = new BitWriter();
-            bw.Write(42);
+            bw.WriteInt(42);
 
             var br = new BitReader(bw);
             Assert.AreEqual(42, br.ReadInt());
@@ -96,15 +96,15 @@ namespace Cube.Transport.Tests {
             foreach (var str in strings) {
                 {
                     var bw = new BitWriter(512);
-                    bw.Write(str);
+                    bw.WriteString(str);
 
                     var br = new BitReader(bw);
                     Assert.AreEqual(br.ReadString(), str);
                 }
                 {
                     var bw = new BitWriter(512);
-                    bw.Write(true);
-                    bw.Write(str);
+                    bw.WriteBool(true);
+                    bw.WriteString(str);
 
                     var br = new BitReader(bw);
                     br.ReadBool();

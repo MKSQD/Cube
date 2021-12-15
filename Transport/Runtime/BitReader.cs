@@ -181,7 +181,7 @@ namespace Cube.Transport {
 
             var chars = new char[length];
             for (int i = 0; i < length; ++i) {
-                chars[i] = (char)ReadBits(16);
+                chars[i] = (char)ReadIntInRange(0x0020, 0x007E);
             }
             return new string(chars);
         }

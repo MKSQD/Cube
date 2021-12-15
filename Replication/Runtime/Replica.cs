@@ -14,9 +14,9 @@ namespace Cube.Replication {
             public BitWriter bs;
         }
 
-        public static ReplicaSettings defaultReplicaSettings;
+        public static ReplicaSettings DefaultReplicaSettings;
         public ReplicaSettings settings;
-        public ReplicaSettings settingsOrDefault => settings != null ? settings : defaultReplicaSettings;
+        public ReplicaSettings SettingsOrDefault => settings != null ? settings : DefaultReplicaSettings;
 
         [HideInInspector]
         public ReplicaId Id = ReplicaId.Invalid;
@@ -43,6 +43,9 @@ namespace Cube.Replication {
         public bool IsOwner { get; private set; }
 
         ReplicaBehaviour[] replicaBehaviours;
+#if UNITY_EDITOR
+        string[] replicaBehavioursNames;
+#endif
 
         /// <summary>
         /// Used on the client to remove Replicas which received no updates for a long time.
@@ -130,16 +133,17 @@ namespace Cube.Replication {
         }
 
         public void Serialize(BitWriter bs, ReplicaBehaviour.SerializeContext ctx) {
-            foreach (var component in replicaBehaviours) {
+            for (int i = 0; i < replicaBehaviours.Length; ++i) {
+                var replicaBehaviour = replicaBehaviours[i];
 #if UNITY_EDITOR
-                TransportDebugger.BeginScope(component.ToString());
+                TransportDebugger.BeginScope(replicaBehavioursNames[i]);
                 var startSize = bs.BitsWritten;
 #endif
 
-                component.Serialize(bs, ctx);
+                replicaBehaviour.Serialize(bs, ctx);
 
 #if UNITY_EDITOR || DEVELOPMENT
-                bs.Write((byte)0b10101010);
+                bs.WriteByte((byte)0b10101010);
 #endif
 
 #if UNITY_EDITOR
@@ -171,6 +175,9 @@ namespace Cube.Replication {
             var brbs = GetComponentsInChildren<BaseReplicaBehaviour>();
 
             var rbs = new List<ReplicaBehaviour>();
+#if UNITY_EDITOR
+            var rbNames = new List<string>();
+#endif
 
             byte idx = 0;
             foreach (var brb in brbs) {
@@ -179,19 +186,25 @@ namespace Cube.Replication {
                 if (brb is ReplicaBehaviour rb) {
                     rb.replicaComponentIdx = idx++;
                     rbs.Add(rb);
+#if UNITY_EDITOR
+                    rbNames.Add(rb.ToString());
+#endif
                 }
             }
 
             replicaBehaviours = rbs.ToArray();
+#if UNITY_EDITOR
+            replicaBehavioursNames = rbNames.ToArray();
+#endif
         }
 
         void Awake() {
             if (settings == null) {
-                if (defaultReplicaSettings == null) {
-                    defaultReplicaSettings = ScriptableObject.CreateInstance<ReplicaSettings>();
+                if (DefaultReplicaSettings == null) {
+                    DefaultReplicaSettings = ScriptableObject.CreateInstance<ReplicaSettings>();
                 }
 
-                settings = defaultReplicaSettings;
+                settings = DefaultReplicaSettings;
             }
 
             RebuildCaches();

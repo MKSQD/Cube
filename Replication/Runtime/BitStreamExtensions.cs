@@ -1,23 +1,20 @@
 ﻿using Cube.Transport;
 using UnityEngine;
+using UnityEngine.Assertions;
 
 namespace Cube.Replication {
     public static class BitStreamExtensions {
-        public static void Write(this BitWriter bs, ReplicaId id) {
-            bs.Write(id.Data);
+        public static void WriteReplicaId(this BitWriter bs, Replica replica) {
+            Assert.IsNotNull(replica);
+            bs.WriteUShort(replica.Id.Data);
         }
+        public static void WriteReplicaId(this BitWriter bs, ReplicaId id) => bs.WriteUShort(id.Data);
 
-        public static void Read(this BitReader bs, ref ReplicaId val) {
-            val = bs.ReadReplicaId();
-        }
+        public static void Read(this BitReader bs, ref ReplicaId val) => val = bs.ReadReplicaId();
 
         public static ReplicaId ReadReplicaId(this BitReader bs) {
             var id = bs.ReadUShort();
             return ReplicaId.CreateFromExisting(id);
-        }
-
-        public static void Write(this BitWriter bs, NetworkObject networkObject) {
-            WriteNetworkObject(bs, networkObject);
         }
 
         public static void WriteNetworkObject(this BitWriter bs, NetworkObject networkObject) {

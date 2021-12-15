@@ -107,7 +107,7 @@ namespace Cube.Transport {
             if (!approvalResult.Approved) {
                 Debug.Log($"[Server] Connection denied ({approvalResult.DenialReason})");
                 var deniedBs = new BitWriter();
-                deniedBs.Write(approvalResult.DenialReason);
+                deniedBs.WriteString(approvalResult.DenialReason);
                 request.Reject(deniedBs.DataWritten.ToArray(), 0, deniedBs.BytesWritten);
                 return;
             }

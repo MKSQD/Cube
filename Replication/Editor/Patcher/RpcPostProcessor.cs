@@ -51,9 +51,19 @@ class RpcPostProcessor : PostProcessor {
             bitWriterType = GetTypeDefinitionByName(transportAssembly, "Cube.Transport.BitWriter");
             bitWriterCTorMethod = Import(GetMethodDefinitionByName(bitWriterType, ".ctor"));
 
-            foreach (var writeMethod in Import(GetMethodDefinitionsByName(bitWriterType, "Write"))) {
-                bitStreamWrite[writeMethod.Parameters[0].ParameterType.Name] = writeMethod;
+            foreach (var writeMethod in bitWriterType.Methods.Where(m => m.Name.StartsWith("Write"))) {
+                if (writeMethod.Name.Contains("Normalised") || writeMethod.Name.Contains("Lossy"))
+                    continue;
+
+                if (writeMethod.Parameters.Count == 0)
+                    continue;
+
+                bitStreamWrite[writeMethod.Parameters[0].ParameterType.Name] = Import(writeMethod);
             }
+
+            //foreach (var writeMethod in Import(GetMethodDefinitionsByName(bitWriterType, "Write"))) {
+            //    bitStreamWrite[writeMethod.Parameters[0].ParameterType.Name] = writeMethod;
+            //}
         }
         {
             bitReaderType = GetTypeDefinitionByName(transportAssembly, "Cube.Transport.BitReader");
@@ -62,7 +72,7 @@ class RpcPostProcessor : PostProcessor {
                 if (readMethod.Name.Contains("Normalised") || readMethod.Name.Contains("Lossy"))
                     continue;
 
-                bitStreamRead[readMethod.ReturnType.Name] = readMethod;
+                bitStreamRead[readMethod.ReturnType.Name] = Import(readMethod);
             }
             readSerializable = GetMethodDefinitionByName(bitReaderType, "ReadSerializable");
         }
@@ -75,11 +85,11 @@ class RpcPostProcessor : PostProcessor {
 
 
         var bitStreamExtensionsType = GetTypeDefinitionByName(replicationAssembly, "Cube.Replication.BitStreamExtensions");
-        foreach (var writeMethod in Import(GetMethodDefinitionsByName(bitStreamExtensionsType, "Write"))) {
-            bitStreamWrite[writeMethod.Parameters[1].ParameterType.Name] = writeMethod;
+        foreach (var writeMethod in bitStreamExtensionsType.Methods.Where(m => m.Name.StartsWith("Write"))) {
+            bitStreamWrite[writeMethod.Parameters[1].ParameterType.Name] = Import(writeMethod);
         }
         foreach (var readMethod in bitStreamExtensionsType.Methods.Where(m => m.Name.StartsWith("Read"))) {
-            bitStreamRead[readMethod.ReturnType.Name] = readMethod;
+            bitStreamRead[readMethod.ReturnType.Name] = Import(readMethod);
         }
 
         readNetworkObject = GetMethodDefinitionByName(bitStreamExtensionsType, "ReadNetworkObject");

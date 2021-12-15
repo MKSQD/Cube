@@ -22,8 +22,8 @@ namespace Cube.Replication {
         int m_TimestampCount;
 
         public override void Serialize(BitWriter bs, SerializeContext ctx) {
-            bs.Write(transform.position);
-            bs.Write(transform.rotation);
+            bs.WriteVector3(transform.position);
+            bs.WriteQuaternion(transform.rotation);
         }
 
         public override void Deserialize(BitReader bs) {
