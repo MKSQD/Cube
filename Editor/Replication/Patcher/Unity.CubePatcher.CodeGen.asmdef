@@ -1,0 +1,19 @@
+{
+    "name": "Unity.CubePatcher.CodeGen",
+    "rootNamespace": "",
+    "references": [
+        "Unity.CompilationPipeline.Common.dll",
+        "Cube"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
