@@ -14,15 +14,29 @@ namespace Cube.Transport {
 
         public bool IsRunning => server.IsRunning;
 
+        public int NumClientsConnected => server.ConnectedPeersCount;
+
+        public int NumMaxClients { get; private set; }
+
         readonly NetManager server;
 
-        public LiteNetServerNetworkInterface() {
+        public LiteNetServerNetworkInterface(int numMaxClients, SimulatedLagSettings lagSettings) {
+            NumMaxClients = numMaxClients;
+
             server = new NetManager(this);
             server.ChannelsCount = 4;
 
 #if UNITY_EDITOR
             server.EnableStatistics = true;
             server.DisconnectTimeout = 5000000;
+
+            if (lagSettings.enabled) {
+                server.SimulatePacketLoss = true;
+                server.SimulateLatency = true;
+                server.SimulationMinLatency = (int)(lagSettings.minimumLatencyMs * 1000);
+                server.SimulationMaxLatency = (int)((lagSettings.minimumLatencyMs + lagSettings.additionalRandomLatencyMs) * 1000);
+                server.SimulationPacketLossChance = (int)(lagSettings.simulatedLossPercent * 100);
+            }
 #endif
         }
 
@@ -59,14 +73,14 @@ namespace Cube.Transport {
                 f /= 1024; // b -> kb
                 var f2 = Mathf.RoundToInt(f * 100) * 0.01f;
 
-                TransportDebugger.ReportStatistic($"out {server.Statistics.PacketsSent} {f2}k/s");
+                TransportDebugger.ReportStatistic($"out {server.Statistics.PacketsSent} {f2}kb/s");
             }
             {
                 var f = server.Statistics.BytesReceived / Time.time;
                 f /= 1024; // b -> kb
                 var f2 = Mathf.RoundToInt(f * 100) * 0.01f;
 
-                TransportDebugger.ReportStatistic($"in {server.Statistics.PacketsSent} {f2}k/s");
+                TransportDebugger.ReportStatistic($"in {server.Statistics.PacketsSent} {f2}kb/s");
             }
 #endif
         }
@@ -100,6 +114,11 @@ namespace Cube.Transport {
         }
 
         public void OnConnectionRequest(ConnectionRequest request) {
+            if (NumClientsConnected >= NumMaxClients) {
+                request.Reject();
+                return;
+            }
+
             var reader = request.Data;
 
             var span = new ReadOnlySpan<byte>(reader.RawData, reader.UserDataOffset, reader.UserDataSize);

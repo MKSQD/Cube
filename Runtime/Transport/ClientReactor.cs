@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Assertions;
 
 namespace Cube.Transport {
     public delegate void ClientMessageHandler(BitReader bs);
@@ -31,8 +32,7 @@ namespace Cube.Transport {
         }
 
         public void AddHandler(byte id, ClientMessageHandler handler) {
-            if (handlers.ContainsKey(id))
-                throw new Exception("Message handler already set");
+            Assert.IsFalse(handlers.ContainsKey(id), "message handler already set");
 
             handlers[id] = handler;
         }

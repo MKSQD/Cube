@@ -28,8 +28,6 @@ namespace Cube.Replication {
 
         readonly ServerReplicaManagerSettings settings;
 
-        double nextUpdateTime;
-
         ushort nextLocalReplicaId = FirstLocalReplicaId;
         readonly Queue<ushort> freeReplicaIds = new Queue<ushort>();
 
@@ -304,7 +302,7 @@ namespace Cube.Replication {
 
 
 
-        BitWriter updateBs = new BitWriter(32);
+
         List<int> indicesSortedByPriority = new(512);
         void UpdateReplicaView(ReplicaView view) {
             // Clear dead Replicas so we dont have to check in following code
@@ -353,6 +351,7 @@ namespace Cube.Replication {
                 TransportDebugger.BeginScope("Update Replica " + replica.name);
 #endif
 
+                var updateBs = new BitWriter(32);
                 updateBs.Clear();
                 updateBs.WriteByte((byte)MessageId.ReplicaUpdate);
                 updateBs.WriteBool(replica.isSceneReplica);

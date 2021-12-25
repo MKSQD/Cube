@@ -19,6 +19,7 @@ namespace Cube.Transport {
             client = new NetManager(this);
             client.ChannelsCount = 4;
             client.MaxConnectAttempts = 3;
+            client.NatPunchEnabled = true;
 
 #if UNITY_EDITOR
             client.DisconnectTimeout = 5000000;

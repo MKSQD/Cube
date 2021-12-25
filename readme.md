@@ -8,7 +8,7 @@ GameObject based network replication library for [Unity3d](https://unity.com/).
 - Prefabs for networked objects and ScriptableObject assets are discovered automatically, no factory functions to implement or lists to manually maintain
 - Networked static scene objects
 - RPCs as normal function calls (using Cecil to patch assemblies)
-- Transport layer currently either [LiteNetLib](https://github.com/RevenantX/LiteNetLib) or [Lidgren](https://github.com/lidgren/lidgren-network-gen3)
+- Pluggable transport layer; currently [LiteNetLib](https://github.com/RevenantX/LiteNetLib)
 
 ![Transport Debugger](Docs/TransportDebugger.png)
 ![Replication Settings](Docs/ReplicationSettings.png)

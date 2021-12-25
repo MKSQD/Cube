@@ -4,6 +4,6 @@ namespace Cube.Transport.LiteNet {
     public class LiteNetTransport : MonoBehaviour, ITransport {
         public IClientNetworkInterface CreateClient() => new LiteNetClientNetworkInterface();
 
-        public IServerNetworkInterface CreateServer() => new LiteNetServerNetworkInterface();
+        public IServerNetworkInterface CreateServer(int numMaxClients, SimulatedLagSettings lagSettings) => new LiteNetServerNetworkInterface(numMaxClients, lagSettings);
     }
 }

@@ -24,6 +24,8 @@ namespace Cube.Transport {
         Action<BitReader, Connection> ReceivedPacket { get; set; }
 
         bool IsRunning { get; }
+        int NumClientsConnected { get; }
+        int NumMaxClients { get; }
 
         void Start(ushort port);
 

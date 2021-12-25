@@ -12,7 +12,7 @@ namespace Cube {
         void Start() {
             var transport = GetComponent<ITransport>();
 
-            var networkInterface = transport.CreateServer();
+            var networkInterface = transport.CreateServer(30, new SimulatedLagSettings());
             networkInterface.Start(60000);
 
             var settings = new ServerReplicaManagerSettings();

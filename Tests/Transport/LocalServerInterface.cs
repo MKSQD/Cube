@@ -21,6 +21,10 @@ namespace Cube.Transport.Tests {
 
         public bool IsRunning => true;
 
+        public int NumClientsConnected => clients.Count;
+
+        public int NumMaxClients => 30;
+
         public void Start(ushort port) {
         }
 

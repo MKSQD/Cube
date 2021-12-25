@@ -156,8 +156,13 @@ namespace Cube.Replication {
 
 #if UNITY_EDITOR || DEVELOPMENT
                 try {
-                    if (bs.WouldReadPastEnd(8) || bs.ReadByte() != 0b10101010) {
-                        Debug.LogError($"{component} violated serialization guard");
+                    if (bs.WouldReadPastEnd(8)) {
+                        Debug.LogError($"{component} violated serialization guard: read too much");
+                        return;
+                    }
+
+                    if (bs.ReadByte() != 0b10101010) {
+                        Debug.LogError($"{component} violated serialization guard: read too little");
                         return;
                     }
                 } catch (InvalidOperationException) {

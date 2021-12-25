@@ -6,7 +6,7 @@ namespace Cube.Transport.Tests {
     public class TestNaiveClientServer {
         [Test]
         public void StartAndShutdownServer() {
-            var server = new LiteNetServerNetworkInterface();
+            var server = new LiteNetServerNetworkInterface(30, new SimulatedLagSettings());
             server.Start(42000);
 
             Assert.IsTrue(server.IsRunning);
@@ -18,7 +18,7 @@ namespace Cube.Transport.Tests {
 
         [UnityTest]
         public IEnumerator ClientServerConnect() {
-            var server = new LiteNetServerNetworkInterface();
+            var server = new LiteNetServerNetworkInterface(30, new SimulatedLagSettings());
             server.NewConnectionEstablished += peer => { };
             server.ApproveConnection += bs => { return new ApprovalResult() { Approved = true }; };
 
