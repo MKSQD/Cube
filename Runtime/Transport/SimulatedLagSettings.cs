@@ -6,12 +6,12 @@ namespace Cube.Transport {
     public struct SimulatedLagSettings {
         public bool enabled;
         [Range(0, 100)]
-        public float simulatedLossPercent;
+        public int simulatedLossPercent;
         [Range(0, 100)]
-        public float duplicatesChancePercent;
+        public int duplicatesChancePercent;
         [Range(0, 500)]
-        public float minimumLatencyMs;
+        public int minimumLatencyMs;
         [Range(0, 500)]
-        public float additionalRandomLatencyMs;
+        public int additionalRandomLatencyMs;
     }
 }

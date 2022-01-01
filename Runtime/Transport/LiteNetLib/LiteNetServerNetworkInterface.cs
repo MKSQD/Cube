@@ -33,9 +33,9 @@ namespace Cube.Transport {
             if (lagSettings.enabled) {
                 server.SimulatePacketLoss = true;
                 server.SimulateLatency = true;
-                server.SimulationMinLatency = (int)(lagSettings.minimumLatencyMs * 1000);
-                server.SimulationMaxLatency = (int)((lagSettings.minimumLatencyMs + lagSettings.additionalRandomLatencyMs) * 1000);
-                server.SimulationPacketLossChance = (int)(lagSettings.simulatedLossPercent * 100);
+                server.SimulationMinLatency = lagSettings.minimumLatencyMs;
+                server.SimulationMaxLatency = lagSettings.minimumLatencyMs + lagSettings.additionalRandomLatencyMs;
+                server.SimulationPacketLossChance = lagSettings.simulatedLossPercent;
             }
 #endif
         }
