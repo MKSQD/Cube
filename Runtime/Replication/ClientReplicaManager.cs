@@ -48,7 +48,9 @@ namespace Cube.Replication {
         }
 
         public void ProcessSceneReplicasInScene(Scene scene) {
-            Debug.Log("[Client] <b>Scene loaded</b>");
+#if UNITY_EDITOR
+            ProcessSceneReplicasInSceneInternal(scene);
+#endif
 
             var sceneReplicas = new List<Replica>();
             foreach (var go in scene.GetRootGameObjects()) {
