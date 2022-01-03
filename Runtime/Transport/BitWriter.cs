@@ -4,15 +4,8 @@ using UnityEngine;
 using UnityEngine.Assertions;
 
 namespace Cube.Transport {
-    public class BitWriter {
+    public sealed class BitWriter : IBitWriter {
         // All goodness from yojimbo network library. All bugs belong to us.
-
-        ulong _scratch = 0;
-        int _scratchBits = 0;
-        int _wordIndex = 0;
-        int _bitsWritten = 0;
-        int _numBits => _data.Length * 32;
-        Memory<uint> _data;
 
         public ReadOnlySpan<byte> DataWritten {
             get {
@@ -35,6 +28,13 @@ namespace Cube.Transport {
                 return (_bitsWritten + 7) / 8;
             }
         }
+
+        ulong _scratch = 0;
+        int _scratchBits = 0;
+        int _wordIndex = 0;
+        int _bitsWritten = 0;
+        int _numBits => _data.Length * 32;
+        Memory<uint> _data;
 
         public BitWriter(int numWords = 16) {
             _data = new uint[numWords];
@@ -143,106 +143,85 @@ namespace Cube.Transport {
             WriteByte((byte)val);
         }
 
-        public void WriteUShort(ushort val) => WriteBits(val, 16);
-        public void WriteFloat(float val) => WriteBits(BitUtil.CastFloatToUInt(val), 32);
+        public void WriteUShort(ushort value) => WriteBits(value, 16);
+        public void WriteFloat(float value) => WriteBits(BitUtil.CastFloatToUInt(value), 32);
 
 
-        public void WriteLossyFloat(float val, float min, float max, float precision = 0.1f) {
-            val = Mathf.Clamp(val, min, max);
+        public void WriteLossyFloat(float value, float min, float max, float precision = 0.1f) {
+            value = Mathf.Clamp(value, min, max);
 
             var inv = 1 / precision;
-            WriteIntInRange((int)(val * inv), (int)(min * inv), (int)(max * inv));
+            WriteIntInRange((int)(value * inv), (int)(min * inv), (int)(max * inv));
         }
 
-        public static float QuantizeFloat(float val, float min, float max, float precision = 0.1f) {
-            val = Mathf.Clamp(val, min, max);
+        public static float QuantizeFloat(float value, float min, float max, float precision = 0.1f) {
+            value = Mathf.Clamp(value, min, max);
 
             var inv = 1 / precision;
 
             var bits = BitUtil.ComputeRequiredIntBits((int)(min * inv), (int)(max * inv));
             var mask = (uint)((1L << bits) - 1);
-            var data = (uint)((int)(val * inv) - (int)(min * inv)) & mask;
+            var data = (uint)((int)(value * inv) - (int)(min * inv)) & mask;
 
             return (data + (int)(min * inv)) * precision;
         }
 
+        public void WriteInt(int value) => WriteBits((uint)value, 32);
 
-
-
-        /// <summary>
-        /// Write float in the range [-1,1] with 2 bytes.
-        /// </summary>
-        public void WriteNormalised(float val) {
-            Assert.IsTrue(val > -1.01f && val < 1.01f);
-
-            val = Mathf.Clamp(val, -1f, 1f);
-            WriteUShort((ushort)((val + 1f) * 32767.5f));
-        }
-
-        public void WriteInt(int val) => WriteBits((uint)val, 32);
-
-        public void WriteIntInRange(int val, int minInclusive, int maxInclusive) {
+        public void WriteIntInRange(int value, int minInclusive, int maxInclusive) {
 #if UNITY_EDITOR
-            if (val < minInclusive || val > maxInclusive) {
+            if (value < minInclusive || value > maxInclusive) {
 
-                Debug.LogWarning("Clamped value " + val + " to (" + minInclusive + "," + maxInclusive + ")");
-
-
+                Debug.LogWarning("Clamped value " + value + " to (" + minInclusive + "," + maxInclusive + ")");
             }
 #endif
-            val = Mathf.Clamp(val, minInclusive, maxInclusive);
+            value = Mathf.Clamp(value, minInclusive, maxInclusive);
 
             var bits = BitUtil.ComputeRequiredIntBits(minInclusive, maxInclusive);
-            var data = (uint)(val - minInclusive) & (uint)((1L << bits) - 1);
+            var data = (uint)(value - minInclusive) & (uint)((1L << bits) - 1);
             WriteBits(data, bits);
         }
 
-        public void WriteUInt(uint val) => WriteBits(val, 32);
+        public void WriteUInt(uint value) => WriteBits(value, 32);
 
-        public void WriteString(string val) {
-            if (val.Length <= 32) {
+        public void WriteString(string value) {
+            if (value.Length <= 32) {
                 WriteBool(true);
-                WriteIntInRange(val.Length, 0, 32);
-            } else if (val.Length <= 256) {
+                WriteIntInRange(value.Length, 0, 32);
+            } else if (value.Length <= 256) {
                 WriteBool(false);
                 WriteBool(true);
-                WriteIntInRange(val.Length, 0, 256);
+                WriteIntInRange(value.Length, 0, 256);
             } else {
                 WriteBool(false);
                 WriteBool(false);
-                WriteUShort((ushort)val.Length);
+                WriteUShort((ushort)value.Length);
             }
 
-            for (int i = 0; i < val.Length; ++i) {
-                WriteIntInRange((int)val[i], 0x0020, 0x007E);
+            for (int i = 0; i < value.Length; ++i) {
+                WriteIntInRange((int)value[i], 0x0020, 0x007E);
             }
         }
 
-        public void WriteVector2(Vector2 val) {
-            WriteFloat(val.x);
-            WriteFloat(val.y);
+        public void WriteVector2(Vector2 value) {
+            WriteFloat(value.x);
+            WriteFloat(value.y);
         }
 
-        public void WriteVector3(Vector3 val) {
-            WriteFloat(val.x);
-            WriteFloat(val.y);
-            WriteFloat(val.z);
+        public void WriteVector3(Vector3 value) {
+            WriteFloat(value.x);
+            WriteFloat(value.y);
+            WriteFloat(value.z);
         }
 
-        public void WriteNormalised(Vector3 val) {
-            WriteNormalised(val.x);
-            WriteNormalised(val.y);
-            WriteNormalised(val.z);
-        }
-
-        public void WriteQuaternion(Quaternion val) {
+        public void WriteQuaternion(Quaternion value) {
             int largest = 0;
             float a, b, c;
 
-            float abs_w = Mathf.Abs(val.w);
-            float abs_x = Mathf.Abs(val.x);
-            float abs_y = Mathf.Abs(val.y);
-            float abs_z = Mathf.Abs(val.z);
+            float abs_w = Mathf.Abs(value.w);
+            float abs_x = Mathf.Abs(value.x);
+            float abs_y = Mathf.Abs(value.y);
+            float abs_z = Mathf.Abs(value.z);
 
             float largest_value = abs_x;
 
@@ -258,14 +237,14 @@ namespace Cube.Transport {
                 largest = 3;
                 largest_value = abs_w;
             }
-            if (val[largest] >= 0f) {
-                a = val[(largest + 1) % 4];
-                b = val[(largest + 2) % 4];
-                c = val[(largest + 3) % 4];
+            if (value[largest] >= 0f) {
+                a = value[(largest + 1) % 4];
+                b = value[(largest + 2) % 4];
+                c = value[(largest + 3) % 4];
             } else {
-                a = -val[(largest + 1) % 4];
-                b = -val[(largest + 2) % 4];
-                c = -val[(largest + 3) % 4];
+                a = -value[(largest + 1) % 4];
+                b = -value[(largest + 2) % 4];
+                c = -value[(largest + 3) % 4];
             }
 
             // serialize
@@ -294,7 +273,7 @@ namespace Cube.Transport {
             WriteUInt(sentData);
         }
 
-        public void WriteSerializable(ISerializable obj) {
+        public void WriteSerializable(IBitSerializable obj) {
             obj.Serialize(this);
         }
 

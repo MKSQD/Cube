@@ -21,7 +21,7 @@ namespace Cube.Replication {
         State[] m_BufferedState = new State[20];
         int m_TimestampCount;
 
-        public override void Serialize(BitWriter bs, SerializeContext ctx) {
+        public override void Serialize(IBitWriter bs, SerializeContext ctx) {
             bs.WriteVector3(transform.position);
             bs.WriteQuaternion(transform.rotation);
         }

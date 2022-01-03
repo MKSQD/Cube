@@ -4,11 +4,11 @@ using UnityEngine.Assertions;
 
 namespace Cube.Replication {
     public static class BitStreamExtensions {
-        public static void WriteReplicaId(this BitWriter bs, Replica replica) {
+        public static void WriteReplicaId(this IBitWriter bs, Replica replica) {
             Assert.IsNotNull(replica);
             bs.WriteUShort(replica.Id.Data);
         }
-        public static void WriteReplicaId(this BitWriter bs, ReplicaId id) => bs.WriteUShort(id.Data);
+        public static void WriteReplicaId(this IBitWriter bs, ReplicaId id) => bs.WriteUShort(id.Data);
 
         public static void Read(this BitReader bs, ref ReplicaId val) => val = bs.ReadReplicaId();
 
@@ -17,7 +17,7 @@ namespace Cube.Replication {
             return ReplicaId.CreateFromExisting(id);
         }
 
-        public static void WriteNetworkObject(this BitWriter bs, NetworkObject networkObject) {
+        public static void WriteNetworkObject(this IBitWriter bs, NetworkObject networkObject) {
             var max = NetworkObjectLookup.Instance.Entries.Length;
             var idx = networkObject != null ? networkObject.networkAssetId : -1;
             bs.WriteIntInRange(idx, -1, max);

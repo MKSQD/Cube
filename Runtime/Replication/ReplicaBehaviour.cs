@@ -30,7 +30,7 @@ namespace Cube.Replication {
 
         public IReplicaManager ReplicaManager => Replica.ReplicaManager;
 
-        public virtual void Serialize(BitWriter bs, SerializeContext ctx) { }
+        public virtual void Serialize(IBitWriter bs, SerializeContext ctx) { }
         public virtual void Deserialize(BitReader bs) { }
 
         /// Do NOT manually overwrite this. RpcPatcher will generate this dispatch table automatically.

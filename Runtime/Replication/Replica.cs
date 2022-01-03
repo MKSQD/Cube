@@ -130,12 +130,16 @@ namespace Cube.Replication {
             server.ReplicaManager.RemoveReplica(this);
         }
 
-        public void Serialize(BitWriter bs, ReplicaBehaviour.SerializeContext ctx) {
+        public void Serialize(IBitWriter bs, ReplicaBehaviour.SerializeContext ctx) {
             for (int i = 0; i < replicaBehaviours.Length; ++i) {
                 var replicaBehaviour = replicaBehaviours[i];
 #if UNITY_EDITOR
-                TransportDebugger.BeginScope(replicaBehavioursNames[i]);
-                var startSize = bs.BitsWritten;
+                int startSize = 0;
+                var isDummy = bs is DummyBitWriter;
+                if (!isDummy) {
+                    TransportDebugger.BeginScope(replicaBehavioursNames[i]);
+                    startSize = bs.BitsWritten;
+                }
 #endif
 
                 replicaBehaviour.Serialize(bs, ctx);
@@ -145,7 +149,9 @@ namespace Cube.Replication {
 #endif
 
 #if UNITY_EDITOR
-                TransportDebugger.EndScope(bs.BitsWritten - startSize);
+                if (!isDummy) {
+                    TransportDebugger.EndScope(bs.BitsWritten - startSize);
+                }
 #endif
             }
         }

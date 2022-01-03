@@ -59,10 +59,6 @@ class RpcPostProcessor : PostProcessor {
 
                 bitStreamWrite[writeMethod.Parameters[0].ParameterType.Name] = Import(writeMethod);
             }
-
-            //foreach (var writeMethod in Import(GetMethodDefinitionsByName(bitWriterType, "Write"))) {
-            //    bitStreamWrite[writeMethod.Parameters[0].ParameterType.Name] = writeMethod;
-            //}
         }
         {
             bitReaderType = GetTypeDefinitionByName(cubeAssembly, "Cube.Transport.BitReader");
@@ -173,7 +169,8 @@ class RpcPostProcessor : PostProcessor {
             }
 
             CopyMethodBody(method, implMethod);
-            ClearMethodBody(method);
+
+            method.Body.Instructions.Clear();
 
             if (IsRpcMethodValid(method, out string error)) {
                 InjectSendRpcInstructions(nextRpcMethodId, method, implMethod);
@@ -247,7 +244,7 @@ class RpcPostProcessor : PostProcessor {
                 MethodReference result = null;
                 bool isReplica = param.ParameterType.Name == "Replica";
                 bool isNetworkObject = TypeInheritsFrom(typeDef, "Cube.Replication.NetworkObject");
-                bool isSerializable = typeDef.Interfaces.Any(type => type.InterfaceType.FullName == typeof(Cube.Transport.ISerializable).FullName);
+                bool isSerializable = typeDef.Interfaces.Any(type => type.InterfaceType.FullName == typeof(Cube.Transport.IBitSerializable).FullName);
                 if (isReplica) {
                     result = bitStreamRead["ReplicaId"];
                 } else if (isNetworkObject) {
@@ -399,14 +396,14 @@ class RpcPostProcessor : PostProcessor {
             TypeDefinition typeDef = param.ParameterType.Resolve();
             bool isReplica = param.ParameterType.Name == "Replica";
             bool isNetworkObject = TypeInheritsFrom(typeDef, "Cube.Replication.NetworkObject");
-            bool isSerializable = typeDef.Interfaces.Any(type => type.InterfaceType.FullName == typeof(Cube.Transport.ISerializable).FullName);
+            bool isSerializable = typeDef.Interfaces.Any(type => type.InterfaceType.FullName == typeof(Cube.Transport.IBitSerializable).FullName);
             if (isReplica) {
                 result = bitStreamWrite["ReplicaId"];
             } else if (isNetworkObject) {
                 result = bitStreamWrite["NetworkObject"];
             } else if (isSerializable) {
                 // #todo slow: bs.Write((ISerializable)...) should be: arg.Serialize(bs);
-                result = bitStreamWrite["ISerializable"];
+                result = bitStreamWrite["IBitSerializable"];
             } else {
                 if (typeDef.IsEnum) {
                     typeDef = GetEnumUnderlyingType(typeDef).Resolve();
@@ -448,15 +445,6 @@ class RpcPostProcessor : PostProcessor {
             il.Emit(OpCodes.Ldc_I4, (int)rpcTarget);
             il.Emit(OpCodes.Callvirt, queueServerRpcMethod);
         }
-        /*
-                if (rpcTarget == RpcTarget.All) {
-                    il.Emit(OpCodes.Ldarg_0);
-                    for (int i = 0; i < method.Parameters.Count; ++i) { // 0 == this
-                        il.Emit(OpCodes.Ldarg, i + 1);
-                    }
-                    il.Emit(OpCodes.Callvirt, implMethod);
-                }
-                */
 
         il.Emit(OpCodes.Ret);
     }

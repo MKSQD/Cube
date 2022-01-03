@@ -4,7 +4,7 @@ using UnityEngine;
 using UnityEngine.Assertions;
 
 namespace Cube.Transport {
-    public class BitReader {
+    public sealed class BitReader {
         // All goodness from yojimbo network library. All bugs belong to us.
 
         ulong _scratch = 0;
@@ -260,11 +260,11 @@ namespace Cube.Transport {
             return value;
         }
 
-        public void Read(ref ISerializable obj) {
+        public void Read(ref IBitSerializable obj) {
             ReadSerializable(obj);
         }
 
-        public void ReadSerializable(ISerializable obj) {
+        public void ReadSerializable(IBitSerializable obj) {
             obj.Deserialize(this);
         }
 
