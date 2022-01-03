@@ -58,7 +58,7 @@ namespace Cube.Replication {
         }
 
         /// Scan a newly loaded Scene for scene Replicas.
-        void ProcessSceneReplicasInScene(Scene scene) {
+        public void ProcessSceneReplicasInScene(Scene scene) {
             var sceneReplicas = new List<Replica>();
             foreach (var go in scene.GetRootGameObjects()) {
                 foreach (var replica in go.GetComponentsInChildren<Replica>()) {
@@ -348,7 +348,7 @@ namespace Cube.Replication {
                 }
 
 #if UNITY_EDITOR
-                TransportDebugger.BeginScope("Update Replica " + replica.name);
+                TransportDebugger.BeginScope($"Update Replica {replica.name}");
 #endif
 
                 var updateBs = new BitWriter(32);
@@ -468,7 +468,7 @@ namespace Cube.Replication {
                 var replica = view.RelevantReplicas[i];
                 var relevance = replica.GetRelevance(view);
 
-                var a = (settings.ReplicaUpdateRateMS / replica.settings.DesiredUpdateRateMS) * (relevance * relevance);
+                var a = (settings.ReplicaUpdateRateMS / replica.Settings.DesiredUpdateRateMS) * (relevance * relevance);
                 view.RelevantReplicaPriorityAccumulator[i] += a;
             }
         }

@@ -15,8 +15,8 @@ namespace Cube.Replication {
         }
 
         public static ReplicaSettings DefaultReplicaSettings;
-        public ReplicaSettings settings;
-        public ReplicaSettings SettingsOrDefault => settings != null ? settings : DefaultReplicaSettings;
+        public ReplicaSettings Settings;
+        public ReplicaSettings SettingsOrDefault => Settings != null ? Settings : DefaultReplicaSettings;
 
         [HideInInspector]
         public ReplicaId Id = ReplicaId.Invalid;
@@ -87,17 +87,17 @@ namespace Cube.Replication {
             if (!isSceneReplica && Owner == view.Connection)
                 return 1;
 
-            if ((settings.priorityFlags & ReplicaPriorityFlag.IgnorePosition) == ReplicaPriorityFlag.IgnorePosition)
+            if ((Settings.priorityFlags & ReplicaPriorityFlag.IgnorePosition) == ReplicaPriorityFlag.IgnorePosition)
                 return 1;
 
             var diff = new Vector2(transform.position.x - view.transform.position.x,
                 transform.position.z - view.transform.position.z);
 
             var sqrMagnitude = diff.sqrMagnitude;
-            if (sqrMagnitude > settings.SqrMaxViewDistance)
+            if (sqrMagnitude > Settings.SqrMaxViewDistance)
                 return 0; // No costly calculations
 
-            var distanceRelevance = 1f - Mathf.Pow(sqrMagnitude / settings.SqrMaxViewDistance, 0.9f);
+            var distanceRelevance = 1f - Mathf.Pow(sqrMagnitude / Settings.SqrMaxViewDistance, 0.9f);
 
             var viewForward = new Vector2(view.transform.forward.x, view.transform.forward.z).normalized;
             var dotRelevance = Vector2.Dot(viewForward, diff.normalized);
@@ -202,12 +202,12 @@ namespace Cube.Replication {
         }
 
         void Awake() {
-            if (settings == null) {
+            if (Settings == null) {
                 if (DefaultReplicaSettings == null) {
                     DefaultReplicaSettings = ScriptableObject.CreateInstance<ReplicaSettings>();
                 }
 
-                settings = DefaultReplicaSettings;
+                Settings = DefaultReplicaSettings;
             }
 
             RebuildCaches();

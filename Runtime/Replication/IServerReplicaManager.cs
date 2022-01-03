@@ -3,10 +3,13 @@ using System.Collections.ObjectModel;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.ResourceManagement.AsyncOperations;
+using UnityEngine.SceneManagement;
 
 namespace Cube.Replication {
     public interface IServerReplicaManager : IReplicaManager {
         ReadOnlyCollection<Replica> Replicas { get; }
+
+        void ProcessSceneReplicasInScene(Scene scene);
 
         void Tick();
         void Update();

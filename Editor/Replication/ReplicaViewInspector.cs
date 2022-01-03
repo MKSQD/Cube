@@ -66,7 +66,7 @@ namespace Cube.Replication.Editor {
                 info.prorityDescription = string.Format("{0:0.00}/{1:0.00}/{2}",
                     info.finalPriority,
                     info.relevance,
-                    replica.settings.DesiredUpdateRateMS);
+                    replica.Settings.DesiredUpdateRateMS);
 
                 _debugPriorities[replica] = info;
             }
