@@ -40,7 +40,7 @@ using UnityEngine;
 
 
 public class TestServerGame : ServerGame {
-	public GameObject prefab;
+    public GameObject prefab;
 
     protected override void OnNewIncomingConnection(Connection connection, BitStream bs) {
         // Create a new ReplicaView for this Connection
