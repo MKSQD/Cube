@@ -100,7 +100,7 @@ class RpcPostProcessor : PostProcessor {
 
         queueServerRpcMethod = Import(GetMethodDefinitionByName(replicaType, "QueueServerRpc"));
 
-        replicaComponentIdxField = Import(GetFieldDefinitionByName(replicaBehaviourType, "replicaComponentIdx"));
+        replicaComponentIdxField = Import(GetFieldDefinitionByName(replicaBehaviourType, "ReplicaComponentIdx"));
         replicaField = Import(GetFieldDefinitionByName(baseReplicaBehaviourType, "Replica"));
 
         isServerProperty = GetPropertyDefinitionByName(baseReplicaBehaviourType, "isServer");

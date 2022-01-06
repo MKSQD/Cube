@@ -193,7 +193,7 @@ namespace Cube.Replication {
                 brb.Replica = this;
 
                 if (brb is ReplicaBehaviour rb) {
-                    rb.replicaComponentIdx = idx++;
+                    rb.ReplicaComponentIdx = idx++;
                     rbs.Add(rb);
 #if UNITY_EDITOR
                     rbNames.Add(rb.ToString());
@@ -263,7 +263,7 @@ namespace Cube.Replication {
                 }
             }
 
-            ReplicaBehaviour.rpcConnection = connection;
+            ReplicaBehaviour.RpcConnection = connection;
             try {
                 var componentIdx = bs.ReadByte();
                 var methodId = bs.ReadByte();
@@ -271,7 +271,7 @@ namespace Cube.Replication {
                 var replicaBehaviour = replicaBehaviours[componentIdx];
                 replicaBehaviour.DispatchRpc(methodId, bs);
             } finally {
-                ReplicaBehaviour.rpcConnection = Connection.Invalid;
+                ReplicaBehaviour.RpcConnection = Connection.Invalid;
             }
         }
 

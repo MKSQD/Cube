@@ -24,9 +24,9 @@ namespace Cube.Replication {
         }
 
         [HideInInspector]
-        public byte replicaComponentIdx;
+        public byte ReplicaComponentIdx;
 
-        public static Connection rpcConnection = Connection.Invalid;
+        public static Connection RpcConnection = Connection.Invalid;
 
         public IReplicaManager ReplicaManager => Replica.ReplicaManager;
 
@@ -34,8 +34,6 @@ namespace Cube.Replication {
         public virtual void Deserialize(BitReader bs) { }
 
         /// Do NOT manually overwrite this. RpcPatcher will generate this dispatch table automatically.
-        public virtual void DispatchRpc(byte methodIdx, BitReader bs) {
-            Debug.LogError("Pure virtual RPC called, RpcPatcher needs to run");
-        }
+        public virtual void DispatchRpc(byte methodIdx, BitReader bs) => throw new System.Exception("pure virtual call");
     }
 }
