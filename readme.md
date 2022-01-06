@@ -1,14 +1,11 @@
 # Cube
-GameObject based network replication library for [Unity3d](https://unity.com/).
+Cube is a complete library for game multiplayer support for [Unity](https://unity.com/) games. It's simple to use while being robust and scalable.
 
-## Features
-- Very scalable and robust, eventual consistency based network model (loosely based on [GDC Vault: I Shot You First! Gameplay Networking in Halo: Reach](http://www.gdcvault.com/play/1014345/I-Shot-You-First-Networking))
-- Integration with [Unreal-style gameplay framework](https://github.com/NoDogsInc/GameFramework)
-- Develop server and client at the same time in editor
-- Prefabs for networked objects and ScriptableObject assets are discovered automatically, no factory functions to implement or lists to manually maintain
-- Networked static scene objects
-- RPCs as normal function calls (using Cecil to patch assemblies)
-- Pluggable transport layer; currently [LiteNetLib](https://github.com/RevenantX/LiteNetLib)
+The network model is mainly based on the Tribes network model and [GDC Vault: I Shot You First! Gameplay Networking in Halo: Reach](http://www.gdcvault.com/play/1014345/I-Shot-You-First-Networking). This means the bandwith per connection is predefined and only the most important, priorized information is stuffed into each single packet. The lower the available bandwidth the least detailed the client simulation becomes.
+
+More importantly, in-editor client server development is supported. Prefabs for network objects are discovered automatically together with tagged ScriptableObjects. Networked objects can be placed into a scene. Rpcs, used as unreliable flavour events, are normal function calls rewritten via Cecil.
+
+The transport layer is based on a plugin mechanism. Currently there's [LiteNetLib](https://github.com/RevenantX/LiteNetLib) support.
 
 ![Transport Debugger](Docs/TransportDebugger.png)
 ![Replication Settings](Docs/ReplicationSettings.png)
