@@ -1,5 +1,5 @@
 # Cube
-Cube is a complete library for game multiplayer support for [Unity](https://unity.com/) games. It's simple to use while being robust and scalable (16+ players).
+Cube is a complete library for game multiplayer support for [Unity](https://unity.com/) games. It's simple to use while being robust and scalable (16+ players). It's best suited for action games with little static data.
 
 The network model is mainly based on the Tribes network model and [GDC Vault: I Shot You First! Gameplay Networking in Halo: Reach](http://www.gdcvault.com/play/1014345/I-Shot-You-First-Networking). This means the bandwith per connection is predefined and only the most important, priorized information is stuffed into each single packet. The lower the available bandwidth the least detailed the client simulation becomes.
 
