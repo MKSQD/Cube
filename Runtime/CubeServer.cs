@@ -1,41 +1,55 @@
+using System.Collections.Generic;
 using Cube.Replication;
 using Cube.Transport;
-using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Assertions;
 
 namespace Cube {
-    public class CubeServer : ICubeServer {
+    public class CubeServer : MonoBehaviour, ICubeServer {
         public IServerNetworkInterface NetworkInterface { get; private set; }
         public ServerReactor Reactor { get; private set; }
         public IServerReplicaManager ReplicaManager { get; private set; }
         public List<Connection> connections { get; private set; }
+        public Transform ReplicaParentTransform => transform;
 
-        public CubeServer(Transform replicaParentTransform, IServerNetworkInterface networkInterface, ServerReplicaManagerSettings replicaManagerSettings) {
-            Assert.IsNotNull(replicaParentTransform);
+        public ushort Port = 60000;
+        public int NumMaxClients = 30;
+        public SimulatedLagSettings LagSettings;
+        public ServerReplicaManagerSettings ReplicaManagerSettings;
+        ServerReplicaManagerSettings ICubeServer.ReplicaManagerSettings => ReplicaManagerSettings;
 
+        double _nextNetworkTick;
+
+        protected virtual void Awake() {
             connections = new List<Connection>();
 
-            NetworkInterface = networkInterface;
-            networkInterface.NewConnectionEstablished += OnNewConnectionEstablished;
-            networkInterface.DisconnectNotification += OnDisconnectNotification;
+            var transport = GetComponent<ITransport>();
 
-            Reactor = new ServerReactor(networkInterface);
+            NetworkInterface = transport.CreateServer(NumMaxClients, LagSettings);
+            NetworkInterface.Start(Port);
 
-            ReplicaManager = new ServerReplicaManager(this, replicaParentTransform, replicaManagerSettings);
+            NetworkInterface.NewConnectionEstablished += OnNewConnectionEstablished;
+            NetworkInterface.DisconnectNotification += OnDisconnectNotification;
+
+            Reactor = new ServerReactor(NetworkInterface);
+
+            ReplicaManager = new ServerReplicaManager(this);
         }
 
-
-        public void Update() {
+        protected virtual void Update() {
             ReplicaManager.Update();
             NetworkInterface.Update();
+
+            if (Time.timeAsDouble >= _nextNetworkTick) {
+                _nextNetworkTick = Time.timeAsDouble + Constants.TickRate;
+                Tick();
+            }
         }
 
-        public void Tick() {
+        protected virtual void Tick() {
             ReplicaManager.Tick();
         }
 
-        public void Shutdown() {
+        protected virtual void OnApplicationQuit() {
             NetworkInterface.Shutdown();
 
             ReplicaManager = null;

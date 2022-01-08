@@ -1,7 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
+using UnityEngine;
 
 namespace Cube.Transport.Tests {
+    public class LocalTransport : MonoBehaviour, ITransport {
+        public IClientNetworkInterface CreateClient() => new LocalClientInterface();
+
+        public IServerNetworkInterface CreateServer(int numMaxClients, SimulatedLagSettings lagSettings) => new LocalServerInterface();
+    }
+
     public class LocalServerInterface : IServerNetworkInterface {
         class Message {
             public Connection connection;

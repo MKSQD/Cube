@@ -5,7 +5,6 @@ namespace Cube.Replication {
     static class ReplicaUtils {
         public static List<Replica> GatherSceneReplicas(Scene scene) {
             var result = new List<Replica>();
-            var sceneReplicas = new List<Replica>();
             foreach (var go in scene.GetRootGameObjects()) {
                 foreach (var replica in go.GetComponentsInChildren<Replica>()) {
                     if (!replica.isSceneReplica)

@@ -1,30 +1,39 @@
 using Cube.Replication;
 using Cube.Transport;
+using UnityEngine;
 
 namespace Cube {
-    public class CubeClient : ICubeClient {
+    public class CubeClient : MonoBehaviour, ICubeClient {
         public IClientNetworkInterface NetworkInterface { get; private set; }
         public ClientReactor Reactor { get; private set; }
         public IClientReplicaManager ReplicaManager { get; private set; }
-        public IWorld World { get; private set; }
+        public Transform ReplicaParentTransform => transform;
 
-        public CubeClient(IWorld world, IClientNetworkInterface networkInterface) {
-            World = world;
-            NetworkInterface = networkInterface;
-            Reactor = new ClientReactor(networkInterface);
+        double _nextNetworkTick;
+
+        protected virtual void Awake() {
+            var transport = GetComponent<ITransport>();
+            NetworkInterface = transport.CreateClient();
+
+            Reactor = new ClientReactor(NetworkInterface);
             ReplicaManager = new ClientReplicaManager(this, NetworkPrefabLookup.Instance);
         }
 
-
-        public void Update() {
+        protected virtual void Update() {
             NetworkInterface.Update();
+
+            if (Time.timeAsDouble >= _nextNetworkTick) {
+                _nextNetworkTick = Time.timeAsDouble + Constants.TickRate;
+
+                Tick();
+            }
         }
 
-        public void Tick() {
+        protected virtual void Tick() {
             ReplicaManager.Tick();
         }
 
-        public void Shutdown() {
+        protected virtual void OnApplicationQuit() {
             NetworkInterface.Shutdown(0);
         }
     }

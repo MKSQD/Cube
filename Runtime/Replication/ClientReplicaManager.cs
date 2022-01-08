@@ -1,6 +1,6 @@
-﻿using Cube.Transport;
-using System;
+﻿using System;
 using System.Collections.Generic;
+using Cube.Transport;
 using UnityEngine;
 using UnityEngine.Assertions;
 using UnityEngine.SceneManagement;
@@ -17,6 +17,7 @@ namespace Cube.Replication {
         NetworkPrefabLookup networkPrefabLookup;
 
         public ClientReplicaManager(ICubeClient client, NetworkPrefabLookup networkPrefabLookup) {
+            Assert.IsNotNull(client);
             Assert.IsNotNull(networkPrefabLookup);
 
             this.networkPrefabLookup = networkPrefabLookup;
@@ -38,9 +39,6 @@ namespace Cube.Replication {
         void ProcessSceneReplicasInSceneInternal(Scene scene) {
             var sceneReplicas = ReplicaUtils.GatherSceneReplicas(scene);
             foreach (var replica in sceneReplicas) {
-                if (!replica.isSceneReplica)
-                    continue;
-
                 replica.client = client;
             }
         }
@@ -85,7 +83,7 @@ namespace Cube.Replication {
             }
         }
 
-        HashSet<ReplicaId> replicasInConstruction = new HashSet<ReplicaId>();
+        HashSet<ReplicaId> _replicasInConstruction = new HashSet<ReplicaId>();
         void OnReplicaUpdate(BitReader bs) {
             var prefabIdx = ushort.MaxValue;
 
@@ -101,7 +99,7 @@ namespace Cube.Replication {
                 if (isSceneReplica)
                     return; // Don't construct scene Replicas
 
-                if (replicasInConstruction.Contains(replicaId))
+                if (_replicasInConstruction.Contains(replicaId))
                     return;
 
                 replica = ConstructReplica(prefabIdx, replicaId);
@@ -134,9 +132,9 @@ namespace Cube.Replication {
             if (!networkPrefabLookup.TryGetClientPrefabForIndex(prefabIdx, out prefab))
                 throw new Exception($"Prefab for index {prefabIdx} not found!");
 
-            replicasInConstruction.Add(replicaId);
+            _replicasInConstruction.Add(replicaId);
 
-            var newGameObject = GameObject.Instantiate(prefab, client.World.transform);
+            var newGameObject = GameObject.Instantiate(prefab, client.ReplicaParentTransform);
 
             var replica = newGameObject.GetComponent<Replica>();
             if (replica == null)
@@ -145,7 +143,7 @@ namespace Cube.Replication {
             replica.client = client;
             replica.Id = replicaId;
 
-            replicasInConstruction.Remove(replicaId);
+            _replicasInConstruction.Remove(replicaId);
             networkScene.AddReplica(replica);
 
             return replica;
