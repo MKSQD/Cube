@@ -36,14 +36,12 @@ namespace Cube.Replication {
         }
 
         void ProcessSceneReplicasInSceneInternal(Scene scene) {
-            var sceneReplicas = new List<Replica>();
-            foreach (var go in scene.GetRootGameObjects()) {
-                foreach (var replica in go.GetComponentsInChildren<Replica>()) {
-                    if (!replica.isSceneReplica)
-                        continue;
+            var sceneReplicas = ReplicaUtils.GatherSceneReplicas(scene);
+            foreach (var replica in sceneReplicas) {
+                if (!replica.isSceneReplica)
+                    continue;
 
-                    replica.client = client;
-                }
+                replica.client = client;
             }
         }
 
@@ -52,15 +50,10 @@ namespace Cube.Replication {
             ProcessSceneReplicasInSceneInternal(scene);
 #endif
 
-            var sceneReplicas = new List<Replica>();
-            foreach (var go in scene.GetRootGameObjects()) {
-                foreach (var replica in go.GetComponentsInChildren<Replica>()) {
-                    if (!replica.isSceneReplica)
-                        continue;
-
-                    replica.Id = ReplicaId.CreateFromExisting(replica.sceneIdx);
-                    networkScene.AddReplica(replica);
-                }
+            var sceneReplicas = ReplicaUtils.GatherSceneReplicas(scene);
+            foreach (var replica in sceneReplicas) {
+                replica.Id = ReplicaId.CreateFromExisting(replica.sceneIdx);
+                networkScene.AddReplica(replica);
             }
         }
 

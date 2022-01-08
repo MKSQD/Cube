@@ -1,12 +1,12 @@
 ﻿using System;
-using System.Collections.ObjectModel;
 using System.Collections.Generic;
-using UnityEngine.SceneManagement;
-using UnityEngine;
-using UnityEngine.Assertions;
-using UnityEngine.AddressableAssets;
-using UnityEngine.ResourceManagement.AsyncOperations;
+using System.Collections.ObjectModel;
 using Cube.Transport;
+using UnityEngine;
+using UnityEngine.AddressableAssets;
+using UnityEngine.Assertions;
+using UnityEngine.ResourceManagement.AsyncOperations;
+using UnityEngine.SceneManagement;
 
 
 namespace Cube.Replication {
@@ -59,16 +59,11 @@ namespace Cube.Replication {
 
         /// Scan a newly loaded Scene for scene Replicas.
         public void ProcessSceneReplicasInScene(Scene scene) {
-            var sceneReplicas = new List<Replica>();
-            foreach (var go in scene.GetRootGameObjects()) {
-                foreach (var replica in go.GetComponentsInChildren<Replica>()) {
-                    if (!replica.isSceneReplica)
-                        continue;
-
-                    replica.Id = ReplicaId.CreateFromExisting(replica.sceneIdx);
-                    replica.server = server;
-                    networkScene.AddReplica(replica);
-                }
+            var sceneReplicas = ReplicaUtils.GatherSceneReplicas(scene);
+            foreach (var replica in sceneReplicas) {
+                replica.Id = ReplicaId.CreateFromExisting(replica.sceneIdx);
+                replica.server = server;
+                networkScene.AddReplica(replica);
             }
         }
 
