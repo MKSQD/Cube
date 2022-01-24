@@ -6,6 +6,5 @@ namespace Cube.Replication {
         IClientReplicaManager ReplicaManager { get; }
         ClientReactor Reactor { get; }
         IClientNetworkInterface NetworkInterface { get; }
-        Transform ReplicaParentTransform { get; }
     }
 }

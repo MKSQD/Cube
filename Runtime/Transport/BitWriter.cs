@@ -45,80 +45,21 @@ namespace Cube.Transport {
             _data = preallocatedMemory;
         }
 
-        void WriteBits(uint value, int bits) {
-            Assert.IsTrue(bits > 0);
-            Assert.IsTrue(bits <= 32);
-            Assert.IsTrue(_bitsWritten + bits <= _numBits, "exhausted");
-            Assert.IsTrue(((ulong)value) <= (((ulong)(1) << bits) - 1));
-
-            _scratch |= (ulong)(value) << _scratchBits;
-            _scratchBits += bits;
-
-            if (_scratchBits >= 32) {
-                Assert.IsTrue(_wordIndex < _data.Length);
-                _data.Span[_wordIndex] = host_to_network((uint)_scratch & 0xFFFFFFFF);
-                _scratch >>= 32;
-                _scratchBits -= 32;
-                _wordIndex++;
-            }
-
-            _bitsWritten += bits;
-        }
-
         public void WriteAlign() {
             int remainderBits = _bitsWritten % 8;
             if (remainderBits != 0) {
                 uint zero = 0;
                 WriteBits(zero, 8 - remainderBits);
+
                 Assert.IsTrue((_bitsWritten % 8) == 0);
             }
-        }
-
-        void WriteBytes(Span<byte> data) {
-            Assert.IsTrue(AlignBits == 0);
-            Assert.IsTrue(_bitsWritten + data.Length * 8 <= _numBits);
-            Assert.IsTrue((_bitsWritten % 32) == 0 || (_bitsWritten % 32) == 8 || (_bitsWritten % 32) == 16 || (_bitsWritten % 32) == 24);
-
-            int headBytes = (4 - (_bitsWritten % 32) / 8) % 4;
-            if (headBytes > data.Length)
-                headBytes = data.Length;
-            for (int i = 0; i < headBytes; ++i)
-                WriteBits(data[i], 8);
-            if (headBytes == data.Length)
-                return;
-
-            FlushBits();
-
-            Assert.IsTrue(AlignBits == 0);
-
-            int numWords = (data.Length - headBytes) / 4;
-            if (numWords > 0) {
-                Assert.IsTrue((_bitsWritten % 32) == 0);
-
-                data.Slice(headBytes, numWords * 4).CopyTo(MemoryMarshal.AsBytes(_data.Span.Slice(_wordIndex)));
-                //memcpy(&m_data[m_wordIndex], data + headBytes, numWords * 4);
-                _bitsWritten += numWords * 32;
-                _wordIndex += numWords;
-                _scratch = 0;
-            }
-
-            Assert.IsTrue(AlignBits == 0);
-
-            int tailStart = headBytes + numWords * 4;
-            int tailBytes = data.Length - tailStart;
-            Assert.IsTrue(tailBytes >= 0 && tailBytes < 4);
-            for (int i = 0; i < tailBytes; ++i)
-                WriteBits(data[tailStart + i], 8);
-
-            Assert.IsTrue(AlignBits == 0);
-
-            Assert.IsTrue(headBytes + numWords * 4 + tailBytes == data.Length);
         }
 
         public void FlushBits() {
             if (_scratchBits != 0) {
                 Assert.IsTrue(_scratchBits <= 32);
                 Assert.IsTrue(_wordIndex < _data.Length);
+
                 _data.Span[_wordIndex] = host_to_network((uint)(_scratch & 0xFFFFFFFF));
                 _scratch >>= 32;
                 _scratchBits = 0;
@@ -275,6 +216,67 @@ namespace Cube.Transport {
 
         public void WriteSerializable(IBitSerializable obj) {
             obj.Serialize(this);
+        }
+
+        void WriteBits(uint value, int bits) {
+            Assert.IsTrue(bits > 0);
+            Assert.IsTrue(bits <= 32);
+            Assert.IsTrue(_bitsWritten + bits <= _numBits, "exhausted");
+            Assert.IsTrue(((ulong)value) <= (((ulong)(1) << bits) - 1));
+
+            _scratch |= (ulong)(value) << _scratchBits;
+            _scratchBits += bits;
+
+            if (_scratchBits >= 32) {
+                Assert.IsTrue(_wordIndex < _data.Length);
+                _data.Span[_wordIndex] = host_to_network((uint)_scratch & 0xFFFFFFFF);
+                _scratch >>= 32;
+                _scratchBits -= 32;
+                _wordIndex++;
+            }
+
+            _bitsWritten += bits;
+        }
+
+        void WriteBytes(Span<byte> data) {
+            Assert.IsTrue(AlignBits == 0);
+            Assert.IsTrue(_bitsWritten + data.Length * 8 <= _numBits);
+            Assert.IsTrue((_bitsWritten % 32) == 0 || (_bitsWritten % 32) == 8 || (_bitsWritten % 32) == 16 || (_bitsWritten % 32) == 24);
+
+            int headBytes = (4 - (_bitsWritten % 32) / 8) % 4;
+            if (headBytes > data.Length)
+                headBytes = data.Length;
+            for (int i = 0; i < headBytes; ++i)
+                WriteBits(data[i], 8);
+            if (headBytes == data.Length)
+                return;
+
+            FlushBits();
+
+            Assert.IsTrue(AlignBits == 0);
+
+            int numWords = (data.Length - headBytes) / 4;
+            if (numWords > 0) {
+                Assert.IsTrue((_bitsWritten % 32) == 0);
+
+                data.Slice(headBytes, numWords * 4).CopyTo(MemoryMarshal.AsBytes(_data.Span.Slice(_wordIndex)));
+                //memcpy(&m_data[m_wordIndex], data + headBytes, numWords * 4);
+                _bitsWritten += numWords * 32;
+                _wordIndex += numWords;
+                _scratch = 0;
+            }
+
+            Assert.IsTrue(AlignBits == 0);
+
+            int tailStart = headBytes + numWords * 4;
+            int tailBytes = data.Length - tailStart;
+            Assert.IsTrue(tailBytes >= 0 && tailBytes < 4);
+            for (int i = 0; i < tailBytes; ++i)
+                WriteBits(data[tailStart + i], 8);
+
+            Assert.IsTrue(AlignBits == 0);
+
+            Assert.IsTrue(headBytes + numWords * 4 + tailBytes == data.Length);
         }
 
         // #todo

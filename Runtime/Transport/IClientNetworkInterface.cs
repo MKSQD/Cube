@@ -12,9 +12,9 @@ namespace Cube.Transport {
         float GetRemoteTime(float time);
 
         /// <exception cref="ClientConnectionAttemptException">Throw on connection error</exception>
-        void Connect(string address, ushort port);
+        void Connect(string address);
         /// <exception cref="ClientConnectionAttemptException">Throw on connection error</exception>
-        void Connect(string address, ushort port, BitWriter hailMessage);
+        void Connect(string address, BitWriter hailMessage);
         void Disconnect();
 
         void Update();

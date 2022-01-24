@@ -1,13 +1,15 @@
 ﻿using System.Collections;
-using UnityEngine.TestTools;
+using Cube.Transport.LiteNet;
 using NUnit.Framework;
+using UnityEngine.TestTools;
 
 namespace Cube.Transport.Tests {
     public class TestNaiveClientServer {
+        static LiteNetTransport Transport => new LiteNetTransport() { Port = 42000 };
+
         [Test]
         public void StartAndShutdownServer() {
-            var server = new LiteNetServerNetworkInterface(30, new SimulatedLagSettings());
-            server.Start(42000);
+            var server = new LiteNetServerNetworkInterface(Transport);
 
             Assert.IsTrue(server.IsRunning);
 
@@ -18,16 +20,14 @@ namespace Cube.Transport.Tests {
 
         [UnityTest]
         public IEnumerator ClientServerConnect() {
-            var server = new LiteNetServerNetworkInterface(30, new SimulatedLagSettings());
+            var server = new LiteNetServerNetworkInterface(Transport);
             server.NewConnectionEstablished += peer => { };
             server.ApproveConnection += bs => { return new ApprovalResult() { Approved = true }; };
 
-            server.Start(42000);
-
-            var client = new LiteNetClientNetworkInterface();
+            var client = new LiteNetClientNetworkInterface(Transport);
             client.ConnectionRequestAccepted += () => { };
 
-            client.Connect("127.0.0.1", 42000);
+            client.Connect("127.0.0.1");
 
             yield return Utils.RunTill(() => {
                 server.Update();

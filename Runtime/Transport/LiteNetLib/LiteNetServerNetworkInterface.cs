@@ -1,10 +1,10 @@
-using LiteNetLib;
 using System;
 using System.Net;
 using System.Net.Sockets;
+using LiteNetLib;
 using UnityEngine;
 
-namespace Cube.Transport {
+namespace Cube.Transport.LiteNet {
     public sealed class LiteNetServerNetworkInterface : IServerNetworkInterface, INetEventListener {
         public Func<BitReader, ApprovalResult> ApproveConnection { get; set; }
         public Action<Connection> NewConnectionEstablished { get; set; }
@@ -16,12 +16,12 @@ namespace Cube.Transport {
 
         public int NumClientsConnected => server.ConnectedPeersCount;
 
-        public int NumMaxClients { get; private set; }
+        public LiteNetTransport Transport { get; private set; }
 
         readonly NetManager server;
 
-        public LiteNetServerNetworkInterface(int numMaxClients, SimulatedLagSettings lagSettings) {
-            NumMaxClients = numMaxClients;
+        public LiteNetServerNetworkInterface(LiteNetTransport transport) {
+            Transport = transport;
 
             server = new NetManager(this);
             server.ChannelsCount = 4;
@@ -30,18 +30,16 @@ namespace Cube.Transport {
             server.EnableStatistics = true;
             server.DisconnectTimeout = 5000000;
 
-            if (lagSettings.enabled) {
+            if (transport.LagSettings.enabled) {
                 server.SimulatePacketLoss = true;
                 server.SimulateLatency = true;
-                server.SimulationMinLatency = lagSettings.minimumLatencyMs;
-                server.SimulationMaxLatency = lagSettings.minimumLatencyMs + lagSettings.additionalRandomLatencyMs;
-                server.SimulationPacketLossChance = lagSettings.simulatedLossPercent;
+                server.SimulationMinLatency = transport.LagSettings.minimumLatencyMs;
+                server.SimulationMaxLatency = transport.LagSettings.minimumLatencyMs + transport.LagSettings.additionalRandomLatencyMs;
+                server.SimulationPacketLossChance = transport.LagSettings.simulatedLossPercent;
             }
 #endif
-        }
 
-        public void Start(ushort port) {
-            server.Start(port);
+            server.Start(transport.Port);
         }
 
         public void BroadcastBitStream(BitWriter bs, PacketReliability reliablity, int sequenceChannel = 0) {
@@ -114,7 +112,7 @@ namespace Cube.Transport {
         }
 
         public void OnConnectionRequest(ConnectionRequest request) {
-            if (NumClientsConnected >= NumMaxClients) {
+            if (NumClientsConnected >= Transport.MaxClients) {
                 request.Reject();
                 return;
             }

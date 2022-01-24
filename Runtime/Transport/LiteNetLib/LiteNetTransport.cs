@@ -1,9 +1,14 @@
 using UnityEngine;
 
 namespace Cube.Transport.LiteNet {
-    public class LiteNetTransport : MonoBehaviour, ITransport {
-        public IClientNetworkInterface CreateClient() => new LiteNetClientNetworkInterface();
+    [CreateAssetMenu(menuName = "Cube/LiteNetTransport")]
+    public class LiteNetTransport : Transport {
+        public ushort Port = 60000;
+        public int MaxClients = 30;
+        public SimulatedLagSettings LagSettings;
 
-        public IServerNetworkInterface CreateServer(int numMaxClients, SimulatedLagSettings lagSettings) => new LiteNetServerNetworkInterface(numMaxClients, lagSettings);
+        public override IClientNetworkInterface CreateClient() => new LiteNetClientNetworkInterface(this);
+
+        public override IServerNetworkInterface CreateServer() => new LiteNetServerNetworkInterface(this);
     }
 }

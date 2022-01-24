@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using UnityEngine;
-using UnityEngine.Assertions;
 
 namespace Cube.Transport.Tests {
     public class LocalClientInterface : IClientNetworkInterface {
@@ -49,11 +47,11 @@ namespace Cube.Transport.Tests {
             server.EnqueueMessage(connection, bs);
         }
 
-        public void Connect(string address, ushort port) {
+        public void Connect(string address) {
             throw new Exception("Not required");
         }
 
-        public void Connect(string address, ushort port, BitWriter hailMessage) {
+        public void Connect(string address, BitWriter hailMessage) {
             throw new Exception("Not required");
         }
 

@@ -13,14 +13,8 @@ The transport layer is based on a plugin mechanism. Currently there's [LiteNetLi
 ## Getting Started
 Clone the git repository into your **Assets** folder.
 
-### Connecting server and client in editor
-Create new GameObject *ClientGame* in the scene and add the *Cube/ClientGame* component.
-Create another new GameObject *ServerGame* and add the *Cube/ServerGame* component. 
-When you start the game now you should see log output of the client connecting to the server.
+Put CubeClient and CubeServer components on 2 GameObjects in the scene.
 
-Note that the automatic connection to the server in ClientGame is just enabled in the Unity editor.
-
-Now that we've got a connection we can start looking at ...
 
 ## Replication
 A **Replica** is replicated from the server to all clients. Replicas must always be instances of prefabs for Cube to be able to create client instances of them.

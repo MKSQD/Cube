@@ -1,10 +1,10 @@
-using LiteNetLib;
-using LiteNetLib.Utils;
 using System;
 using System.Net;
 using System.Net.Sockets;
+using LiteNetLib;
+using LiteNetLib.Utils;
 
-namespace Cube.Transport {
+namespace Cube.Transport.LiteNet {
     public class LiteNetClientNetworkInterface : IClientNetworkInterface, INetEventListener {
         public Action ConnectionRequestAccepted { get; set; }
         public Action<string> Disconnected { get; set; }
@@ -13,9 +13,13 @@ namespace Cube.Transport {
 
         public bool IsConnected => true; // #todo
 
+        public LiteNetTransport Transport { get; private set; }
+
         readonly NetManager client;
 
-        public LiteNetClientNetworkInterface() {
+        public LiteNetClientNetworkInterface(LiteNetTransport transport) {
+            Transport = transport;
+
             client = new NetManager(this);
             client.ChannelsCount = 4;
             client.MaxConnectAttempts = 3;
@@ -27,15 +31,15 @@ namespace Cube.Transport {
             client.Start();
         }
 
-        public void Connect(string address, ushort port) {
-            client.Connect(address, port, "");
+        public void Connect(string address) {
+            client.Connect(address, Transport.Port, "");
         }
 
-        public void Connect(string address, ushort port, BitWriter hailMessage) {
+        public void Connect(string address, BitWriter hailMessage) {
             hailMessage.FlushBits();
 
             var msg = NetDataWriter.FromBytes(hailMessage.DataWritten.Slice(0, hailMessage.BytesWritten).ToArray(), 0, hailMessage.BytesWritten);
-            client.Connect(address, port, msg);
+            client.Connect(address, Transport.Port, msg);
         }
 
         public void Disconnect() {

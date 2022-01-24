@@ -55,6 +55,7 @@ namespace Cube.Replication {
             foreach (var replica in sceneReplicas) {
                 replica.Id = ReplicaId.CreateFromExisting(replica.sceneIdx);
                 replica.server = _server;
+
                 _networkScene.AddReplica(replica);
             }
         }

@@ -11,64 +11,59 @@ namespace Cube.Replication {
         public static List<ClientReplicaManager> All = new List<ClientReplicaManager>();
 #endif
 
-        ICubeClient client;
+        ICubeClient _client;
+        Transform _instantiateTransform;
 
-        NetworkScene networkScene;
-        NetworkPrefabLookup networkPrefabLookup;
+        NetworkScene _networkScene;
+        NetworkPrefabLookup _networkPrefabLookup;
 
-        public ClientReplicaManager(ICubeClient client, NetworkPrefabLookup networkPrefabLookup) {
+        public ClientReplicaManager(ICubeClient client, Transform instantiateTransform, NetworkPrefabLookup networkPrefabLookup) {
             Assert.IsNotNull(client);
+            Assert.IsNotNull(instantiateTransform);
             Assert.IsNotNull(networkPrefabLookup);
 
-            this.networkPrefabLookup = networkPrefabLookup;
-            this.client = client;
+            _networkPrefabLookup = networkPrefabLookup;
+            _instantiateTransform = instantiateTransform;
+            _client = client;
 
             client.Reactor.AddHandler((byte)MessageId.ReplicaUpdate, OnReplicaUpdate);
             client.Reactor.AddHandler((byte)MessageId.ReplicaRpc, OnReplicaRpc);
             client.Reactor.AddHandler((byte)MessageId.ReplicaDestroy, OnReplicaDestroy);
 
-            networkScene = new NetworkScene();
+            _networkScene = new NetworkScene();
 
-            SceneManager.sceneLoaded += (scene, mode) => ProcessSceneReplicasInSceneInternal(scene);
+            SceneManager.sceneLoaded += (scene, mode) => OnSceneLoaded(scene);
 
 #if UNITY_EDITOR
             All.Add(this);
 #endif
         }
 
-        void ProcessSceneReplicasInSceneInternal(Scene scene) {
+        void OnSceneLoaded(Scene scene) {
             var sceneReplicas = ReplicaUtils.GatherSceneReplicas(scene);
             foreach (var replica in sceneReplicas) {
-                replica.client = client;
+                replica.client = _client;
             }
         }
 
         public void ProcessSceneReplicasInScene(Scene scene) {
-#if UNITY_EDITOR
-            ProcessSceneReplicasInSceneInternal(scene);
-#endif
-
             var sceneReplicas = ReplicaUtils.GatherSceneReplicas(scene);
             foreach (var replica in sceneReplicas) {
                 replica.Id = ReplicaId.CreateFromExisting(replica.sceneIdx);
-                networkScene.AddReplica(replica);
+                _networkScene.AddReplica(replica);
             }
         }
 
-        public void Reset() {
-            networkScene.DestroyAll();
-        }
+        public void Reset() => _networkScene.DestroyAll();
 
-        public void RemoveReplica(Replica replica) {
-            networkScene.RemoveReplica(replica);
-        }
+        public void RemoveReplica(Replica replica) => _networkScene.RemoveReplica(replica);
 
         public Replica GetReplica(ReplicaId id) {
-            return networkScene.GetReplicaById(id);
+            return _networkScene.GetReplicaById(id);
         }
 
         public void Tick() {
-            var replicas = networkScene.Replicas;
+            var replicas = _networkScene.Replicas;
             for (int i = 0; i < replicas.Count; ++i) {
                 var replica = replicas[i];
                 if (replica == null || replica.isSceneReplica)
@@ -94,7 +89,7 @@ namespace Cube.Replication {
 
             var replicaId = bs.ReadReplicaId();
 
-            var replica = networkScene.GetReplicaById(replicaId);
+            var replica = _networkScene.GetReplicaById(replicaId);
             if (replica == null) {
                 if (isSceneReplica)
                     return; // Don't construct scene Replicas
@@ -129,22 +124,22 @@ namespace Cube.Replication {
 
         Replica ConstructReplica(ushort prefabIdx, ReplicaId replicaId) {
             GameObject prefab;
-            if (!networkPrefabLookup.TryGetClientPrefabForIndex(prefabIdx, out prefab))
+            if (!_networkPrefabLookup.TryGetClientPrefabForIndex(prefabIdx, out prefab))
                 throw new Exception($"Prefab for index {prefabIdx} not found!");
 
             _replicasInConstruction.Add(replicaId);
 
-            var newGameObject = GameObject.Instantiate(prefab, client.ReplicaParentTransform);
+            var newGameObject = GameObject.Instantiate(prefab, _instantiateTransform);
 
             var replica = newGameObject.GetComponent<Replica>();
             if (replica == null)
                 throw new Exception("Replica component missing on " + prefab);
 
-            replica.client = client;
+            replica.client = _client;
             replica.Id = replicaId;
 
             _replicasInConstruction.Remove(replicaId);
-            networkScene.AddReplica(replica);
+            _networkScene.AddReplica(replica);
 
             return replica;
         }
@@ -152,7 +147,7 @@ namespace Cube.Replication {
         void OnReplicaRpc(BitReader bs) {
             var replicaId = bs.ReadReplicaId();
 
-            var replica = networkScene.GetReplicaById(replicaId);
+            var replica = _networkScene.GetReplicaById(replicaId);
             if (replica == null) {
 #if CUBE_DEBUG
                 Debug.LogError("Replica with id " + replicaId + " missing on client");
@@ -166,7 +161,7 @@ namespace Cube.Replication {
         void OnReplicaDestroy(BitReader bs) {
             while (!bs.WouldReadPastEnd(1)) { // #todo 1?
                 var replicaId = bs.ReadReplicaId();
-                var replica = networkScene.GetReplicaById(replicaId);
+                var replica = _networkScene.GetReplicaById(replicaId);
                 if (replica != null) {
                     UnityEngine.Object.Destroy(replica.gameObject);
                 }

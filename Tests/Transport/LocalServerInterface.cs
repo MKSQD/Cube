@@ -5,8 +5,7 @@ using UnityEngine;
 namespace Cube.Transport.Tests {
     public class LocalTransport : MonoBehaviour, ITransport {
         public IClientNetworkInterface CreateClient() => new LocalClientInterface();
-
-        public IServerNetworkInterface CreateServer(int numMaxClients, SimulatedLagSettings lagSettings) => new LocalServerInterface();
+        public IServerNetworkInterface CreateServer() => new LocalServerInterface();
     }
 
     public class LocalServerInterface : IServerNetworkInterface {

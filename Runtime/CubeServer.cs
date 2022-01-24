@@ -2,31 +2,29 @@ using System.Collections.Generic;
 using Cube.Replication;
 using Cube.Transport;
 using UnityEngine;
+using UnityEngine.Assertions;
 
 namespace Cube {
     public class CubeServer : MonoBehaviour, ICubeServer {
+        public Transport.Transport Transport;
+
         public IServerNetworkInterface NetworkInterface { get; private set; }
         public ServerReactor Reactor { get; private set; }
         public IServerReplicaManager ReplicaManager { get; private set; }
-        public List<Connection> connections { get; private set; }
+        public List<Connection> Connections { get; private set; }
         public Transform ReplicaParentTransform => transform;
 
-        public ushort Port = 60000;
-        public int NumMaxClients = 30;
-        public SimulatedLagSettings LagSettings;
         public ServerReplicaManagerSettings ReplicaManagerSettings;
         ServerReplicaManagerSettings ICubeServer.ReplicaManagerSettings => ReplicaManagerSettings;
 
         double _nextNetworkTick;
 
         protected virtual void Awake() {
-            connections = new List<Connection>();
+            Connections = new List<Connection>();
 
-            var transport = GetComponent<ITransport>();
+            Assert.IsNotNull(Transport);
 
-            NetworkInterface = transport.CreateServer(NumMaxClients, LagSettings);
-            NetworkInterface.Start(Port);
-
+            NetworkInterface = Transport.CreateServer();
             NetworkInterface.NewConnectionEstablished += OnNewConnectionEstablished;
             NetworkInterface.DisconnectNotification += OnDisconnectNotification;
 
@@ -60,11 +58,11 @@ namespace Cube {
         protected virtual void TickImpl() { }
 
         void OnNewConnectionEstablished(Connection connection) {
-            connections.Add(connection);
+            Connections.Add(connection);
         }
 
         void OnDisconnectNotification(Connection connection) {
-            connections.Remove(connection);
+            Connections.Remove(connection);
         }
     }
 }

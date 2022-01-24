@@ -1,6 +1,6 @@
-﻿using Cube.Transport;
-using System;
+﻿using System;
 using System.Collections.Generic;
+using Cube.Transport;
 using UnityEngine;
 using UnityEngine.Assertions;
 
@@ -97,11 +97,11 @@ namespace Cube.Replication {
             if (sqrMagnitude > Settings.SqrMaxViewDistance)
                 return 0; // No costly calculations
 
-            var distanceRelevance = 1f - Mathf.Pow(sqrMagnitude / Settings.SqrMaxViewDistance, 0.9f);
+            var distanceRelevance = 1f - Mathf.Pow(sqrMagnitude / Settings.SqrMaxViewDistance, 0.8f);
 
             var viewForward = new Vector2(view.transform.forward.x, view.transform.forward.z).normalized;
             var dotRelevance = Vector2.Dot(viewForward, diff.normalized);
-            dotRelevance = dotRelevance > 0 ? 1 : 0.5f;
+            dotRelevance = dotRelevance > 0 ? 1 : 0.8f;
 
             return distanceRelevance * dotRelevance;
         }
@@ -163,16 +163,16 @@ namespace Cube.Replication {
 #if UNITY_EDITOR || DEVELOPMENT
                 try {
                     if (bs.WouldReadPastEnd(8)) {
-                        Debug.LogError($"{component} violated serialization guard (exhausted)");
+                        Debug.LogError($"{component} violated serialization guard (exhausted)", gameObject);
                         return;
                     }
 
                     if (bs.ReadByte() != 0b10101010) {
-                        Debug.LogError($"{component} violated serialization guard (invalid guard byte)");
+                        Debug.LogError($"{component} violated serialization guard (invalid guard byte)", gameObject);
                         return;
                     }
                 } catch (InvalidOperationException) {
-                    Debug.LogError($"{component} violated serialization guard (exception)");
+                    Debug.LogError($"{component} violated serialization guard (exception)", gameObject);
                     return;
                 }
 #endif
