@@ -1,8 +1,8 @@
 ﻿#if UNITY_EDITOR && SERVER
+using System;
+using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
-using System.Collections.Generic;
-using System;
 
 namespace Cube.Replication.Editor {
     /// <summary>
@@ -52,8 +52,8 @@ namespace Cube.Replication.Editor {
                 info = new ReplicaDebugInfo();
             }
 
-            if (Time.time >= info.nextDebugTextUpdateTime) {
-                info.nextDebugTextUpdateTime = Time.time + 0.1f;
+            if (Time.unscaledTime >= info.nextDebugTextUpdateTime) {
+                info.nextDebugTextUpdateTime = Time.unscaledTime + 0.1f;
 
                 info.relevance = replica.GetRelevance(ReplicaView.Debug);
 
