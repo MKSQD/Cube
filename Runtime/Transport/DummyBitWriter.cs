@@ -42,5 +42,7 @@ namespace Cube.Transport {
         }
 
         public void WriteQuaternion(Quaternion value) => WriteUInt(0);
+
+        public void WriteSerializable(IBitSerializable obj) => obj.Serialize(this);
     }
 }

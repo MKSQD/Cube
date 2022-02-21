@@ -14,5 +14,6 @@ namespace Cube.Transport {
         void WriteFloat(float value);
         void WriteLossyFloat(float value, float min, float max, float precision = 0.1f);
         void WriteQuaternion(Quaternion value);
+        void WriteSerializable(IBitSerializable obj);
     }
 }
