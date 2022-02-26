@@ -25,7 +25,7 @@ namespace Cube {
         protected virtual void Update() {
             NetworkInterface.Update();
 
-            if (Time.timeAsDouble >= _nextNetworkTick) {
+            if (Time.unscaledTimeAsDouble >= _nextNetworkTick) {
                 _nextNetworkTick = Time.timeAsDouble + Constants.TickRate;
 
                 Tick();
