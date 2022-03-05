@@ -7,6 +7,9 @@ using UnityEngine.Assertions;
 namespace Cube {
     public class CubeServer : MonoBehaviour, ICubeServer {
         public Transport.Transport Transport;
+#if UNITY_EDITOR
+        public Transport.Transport TransportInEditor;
+#endif
 
         public IServerNetworkInterface NetworkInterface { get; private set; }
         public ServerReactor Reactor { get; private set; }
@@ -22,14 +25,16 @@ namespace Cube {
         protected virtual void Awake() {
             Connections = new List<Connection>();
 
-            Assert.IsNotNull(Transport);
-
+#if UNITY_EDITOR
+            NetworkInterface = TransportInEditor.CreateServer();
+#else
             NetworkInterface = Transport.CreateServer();
+#endif
+
             NetworkInterface.NewConnectionEstablished += OnNewConnectionEstablished;
             NetworkInterface.DisconnectNotification += OnDisconnectNotification;
 
             Reactor = new ServerReactor(NetworkInterface);
-
             ReplicaManager = new ServerReplicaManager(this);
         }
 

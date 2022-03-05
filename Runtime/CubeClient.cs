@@ -6,6 +6,9 @@ using UnityEngine.Assertions;
 namespace Cube {
     public class CubeClient : MonoBehaviour, ICubeClient {
         public Transport.Transport Transport;
+#if UNITY_EDITOR
+        public Transport.Transport TransportInEditor;
+#endif
 
         public IClientNetworkInterface NetworkInterface { get; private set; }
         public ClientReactor Reactor { get; private set; }
@@ -14,9 +17,11 @@ namespace Cube {
         double _nextNetworkTick;
 
         protected virtual void Awake() {
-            Assert.IsNotNull(Transport);
-
+#if UNITY_EDITOR
+            NetworkInterface = TransportInEditor.CreateClient();
+#else
             NetworkInterface = Transport.CreateClient();
+#endif
 
             Reactor = new ClientReactor(NetworkInterface);
             ReplicaManager = new ClientReplicaManager(this, transform, NetworkPrefabLookup.Instance);
