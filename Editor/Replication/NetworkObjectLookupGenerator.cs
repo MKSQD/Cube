@@ -7,7 +7,7 @@ using UnityEngine.AddressableAssets;
 
 namespace Cube.Replication {
     public class NetworkObjectLookupGenerator : AssetPostprocessor {
-        [MenuItem("Cube/Internal/Force refresh NetworkObjectLookup")]
+        [MenuItem("Tools/Cube/Internal/Force refresh NetworkObjectLookup")]
         static void Force() {
             Generate();
             Debug.Log("Done");

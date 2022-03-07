@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using Cube.Replication;
 using Cube.Transport;
 using UnityEngine;
-using UnityEngine.Assertions;
 
 namespace Cube {
     public class CubeServer : MonoBehaviour, ICubeServer {

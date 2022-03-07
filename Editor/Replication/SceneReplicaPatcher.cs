@@ -12,7 +12,7 @@ namespace Cube.Replication.Editor {
             UnityEditor.SceneManagement.EditorSceneManager.sceneSaving += OnSceneSaving;
         }
 
-        [MenuItem("Cube/Internal/Reset Scene Replica IDs")]
+        [MenuItem("Tools/Cube/Internal/Reset Scene Replica IDs")]
         static void Force() {
             if (Application.isPlaying)
                 return;

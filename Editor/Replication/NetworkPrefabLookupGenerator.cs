@@ -35,7 +35,7 @@ namespace Cube.Replication.Editor {
             */
         }
 
-        [MenuItem("Cube/Refresh NetworkPrefabLookup")]
+        [MenuItem("Tools/Cube/Refresh NetworkPrefabLookup")]
         static void Force() {
             Generate();
             Debug.Log("Done");

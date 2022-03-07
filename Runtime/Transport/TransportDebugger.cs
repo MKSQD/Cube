@@ -1,9 +1,9 @@
 ﻿#if UNITY_EDITOR
-using UnityEditor;
-using UnityEngine;
-using UnityEditor.IMGUI.Controls;
 using System;
 using System.Collections.Generic;
+using UnityEditor;
+using UnityEditor.IMGUI.Controls;
+using UnityEngine;
 
 namespace Cube.Transport {
     public class TransportDebugger : EditorWindow {
@@ -110,7 +110,7 @@ namespace Cube.Transport {
         TreeViewState treeViewState;
         static TransportDebugger activeDebugger;
 
-        [MenuItem("Cube/Transport Debugger")]
+        [MenuItem("Tools/Cube/Transport Debugger")]
         public static void ShowWindow() {
             var debugger = GetWindow<TransportDebugger>();
             debugger.titleContent = new GUIContent("Transport Debugger");
