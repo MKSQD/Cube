@@ -8,19 +8,20 @@ namespace Cube.Transport.Tests {
         public Action NetworkError { get; set; }
         public Action<BitReader> ReceivedPacket { get; set; }
 
-        public LocalServerInterface server;
+        LocalServerInterface _server;
         public Connection connection = Connection.Invalid;
+        public float Ping => 0;
 
         public bool IsConnected => connection != Connection.Invalid;
 
-        readonly Queue<byte[]> messageQueue = new Queue<byte[]>();
+        readonly Queue<byte[]> _messageQueue = new();
 
 
         public LocalClientInterface() { }
 
         public LocalClientInterface(LocalServerInterface server) {
-            this.server = server;
-            this.server.AddClient(this);
+            this._server = server;
+            this._server.AddClient(this);
         }
 
         public float GetRemoteTime(float time) {
@@ -33,8 +34,8 @@ namespace Cube.Transport.Tests {
 
         Memory<uint> memory = new Memory<uint>(new uint[64]);
         void ReceiveMessages() {
-            while (messageQueue.Count > 0) {
-                var data = messageQueue.Dequeue();
+            while (_messageQueue.Count > 0) {
+                var data = _messageQueue.Dequeue();
                 var bs = new BitReader(data, memory);
                 ReceivedPacket(bs);
             }
@@ -44,7 +45,7 @@ namespace Cube.Transport.Tests {
             if (!IsConnected)
                 throw new Exception("Not connected");
 
-            server.EnqueueMessage(connection, bs);
+            _server.EnqueueMessage(connection, bs);
         }
 
         public void Connect(string address) {
@@ -68,12 +69,12 @@ namespace Cube.Transport.Tests {
         public void EnqueueMessage(BitWriter bs) {
             bs.FlushBits();
 
-            messageQueue.Enqueue(bs.DataWritten.ToArray());
+            _messageQueue.Enqueue(bs.DataWritten.ToArray());
         }
 
         public void SetServer(LocalServerInterface server) {
-            this.server = server;
-            this.server.AddClient(this);
+            this._server = server;
+            this._server.AddClient(this);
         }
 
         #endregion

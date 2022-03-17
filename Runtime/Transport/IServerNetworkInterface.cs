@@ -25,6 +25,7 @@ namespace Cube.Transport {
 
         bool IsRunning { get; }
         int NumClientsConnected { get; }
+        int NumMaxClients { get; }
 
         void Send(BitWriter bs, PacketReliability reliablity, Connection connection, int sequenceChannel = 0);
         void BroadcastBitStream(BitWriter bs, PacketReliability reliablity, int sequenceChannel = 0);

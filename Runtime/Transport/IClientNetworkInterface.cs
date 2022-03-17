@@ -8,6 +8,7 @@ namespace Cube.Transport {
         Action<BitReader> ReceivedPacket { get; set; }
 
         bool IsConnected { get; }
+        float Ping { get; }
 
         float GetRemoteTime(float time);
 

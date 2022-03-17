@@ -12,73 +12,74 @@ namespace Cube.Transport.LiteNet {
         public Action<Connection> DisconnectNotification { get; set; }
         public Action<BitReader, Connection> ReceivedPacket { get; set; }
 
-        public bool IsRunning => server.IsRunning;
+        public bool IsRunning => _server.IsRunning;
 
-        public int NumClientsConnected => server.ConnectedPeersCount;
+        public int NumClientsConnected => _server.ConnectedPeersCount;
+        public int NumMaxClients => Transport.MaxClients;
 
         public LiteNetTransport Transport { get; private set; }
 
-        readonly NetManager server;
+        readonly NetManager _server;
 
         public LiteNetServerNetworkInterface(LiteNetTransport transport) {
             Transport = transport;
 
-            server = new NetManager(this);
-            server.ChannelsCount = 4;
+            _server = new NetManager(this);
+            _server.ChannelsCount = 4;
 
 #if UNITY_EDITOR
-            server.EnableStatistics = true;
-            server.DisconnectTimeout = 5000000;
+            _server.EnableStatistics = true;
+            _server.DisconnectTimeout = 5000000;
 
             if (transport.LagSettings.enabled) {
-                server.SimulatePacketLoss = true;
-                server.SimulateLatency = true;
-                server.SimulationMinLatency = transport.LagSettings.minimumLatencyMs;
-                server.SimulationMaxLatency = transport.LagSettings.minimumLatencyMs + transport.LagSettings.additionalRandomLatencyMs;
-                server.SimulationPacketLossChance = transport.LagSettings.simulatedLossPercent;
+                _server.SimulatePacketLoss = true;
+                _server.SimulateLatency = true;
+                _server.SimulationMinLatency = transport.LagSettings.minimumLatencyMs;
+                _server.SimulationMaxLatency = transport.LagSettings.minimumLatencyMs + transport.LagSettings.additionalRandomLatencyMs;
+                _server.SimulationPacketLossChance = transport.LagSettings.simulatedLossPercent;
             }
 #endif
 
-            server.Start(transport.Port);
+            _server.Start(transport.Port);
         }
 
         public void BroadcastBitStream(BitWriter bs, PacketReliability reliablity, int sequenceChannel = 0) {
             bs.FlushBits();
 
             // #todo Incomplete LiteNet support for Span :(
-            server.SendToAll(bs.DataWritten.ToArray(), (byte)sequenceChannel, GetDeliveryMethod(reliablity));
+            _server.SendToAll(bs.DataWritten.ToArray(), (byte)sequenceChannel, GetDeliveryMethod(reliablity));
         }
 
         public void Send(BitWriter bs, PacketReliability reliablity, Connection connection, int sequenceChannel = 0) {
             bs.FlushBits();
 
-            var peer = server.GetPeerById((int)connection.id);
+            var peer = _server.GetPeerById((int)connection.id);
             peer.Send(bs.DataWritten, (byte)sequenceChannel, GetDeliveryMethod(reliablity));
         }
 
         public void Shutdown() {
-            server.Stop();
+            _server.Stop();
         }
 
         public void Update() {
-            server.PollEvents();
+            _server.PollEvents();
 
 #if UNITY_EDITOR
             TransportDebugger.CycleFrame();
 
             {
-                var f = server.Statistics.BytesSent / Time.time;
+                var f = _server.Statistics.BytesSent / Time.time;
                 f /= 1024; // b -> kb
                 var f2 = Mathf.RoundToInt(f * 100) * 0.01f;
 
-                TransportDebugger.ReportStatistic($"out {server.Statistics.PacketsSent} {f2}kb/s");
+                TransportDebugger.ReportStatistic($"out {_server.Statistics.PacketsSent} {f2}kb/s");
             }
             {
-                var f = server.Statistics.BytesReceived / Time.time;
+                var f = _server.Statistics.BytesReceived / Time.time;
                 f /= 1024; // b -> kb
                 var f2 = Mathf.RoundToInt(f * 100) * 0.01f;
 
-                TransportDebugger.ReportStatistic($"in {server.Statistics.PacketsSent} {f2}kb/s");
+                TransportDebugger.ReportStatistic($"in {_server.Statistics.PacketsSent} {f2}kb/s");
             }
 #endif
         }

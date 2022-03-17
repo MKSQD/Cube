@@ -15,6 +15,7 @@ namespace Cube.Transport.Local {
         public bool IsRunning => true;
 
         public int NumClientsConnected => _clients.Count;
+        public int NumMaxClients => 0;
 
         public LocalTransport Transport { get; private set; }
 

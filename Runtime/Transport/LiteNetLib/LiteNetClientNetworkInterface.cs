@@ -12,38 +12,39 @@ namespace Cube.Transport.LiteNet {
         public Action<BitReader> ReceivedPacket { get; set; }
 
         public bool IsConnected => true; // #todo
+        public float Ping => _client.FirstPeer.Ping * 0.001f;
 
         public LiteNetTransport Transport { get; private set; }
 
-        readonly NetManager client;
+        readonly NetManager _client;
 
         public LiteNetClientNetworkInterface(LiteNetTransport transport) {
             Transport = transport;
 
-            client = new NetManager(this);
-            client.ChannelsCount = 4;
-            client.MaxConnectAttempts = 3;
-            client.NatPunchEnabled = true;
+            _client = new NetManager(this);
+            _client.ChannelsCount = 4;
+            _client.MaxConnectAttempts = 3;
+            _client.NatPunchEnabled = true;
 
 #if UNITY_EDITOR
-            client.DisconnectTimeout = 5000000;
+            _client.DisconnectTimeout = 5000000;
 #endif
-            client.Start();
+            _client.Start();
         }
 
         public void Connect(string address) {
-            client.Connect(address, Transport.Port, "");
+            _client.Connect(address, Transport.Port, "");
         }
 
         public void Connect(string address, BitWriter hailMessage) {
             hailMessage.FlushBits();
 
             var msg = NetDataWriter.FromBytes(hailMessage.DataWritten.Slice(0, hailMessage.BytesWritten).ToArray(), 0, hailMessage.BytesWritten);
-            client.Connect(address, Transport.Port, msg);
+            _client.Connect(address, Transport.Port, msg);
         }
 
         public void Disconnect() {
-            client.DisconnectAll();
+            _client.DisconnectAll();
         }
 
         public float GetRemoteTime(float time) {
@@ -53,15 +54,15 @@ namespace Cube.Transport.LiteNet {
         public void Send(BitWriter bs, PacketReliability reliablity, int sequenceChannel = 0) {
             bs.FlushBits();
 
-            client.FirstPeer.Send(bs.DataWritten, (byte)sequenceChannel, GetDeliveryMethod(reliablity));
+            _client.FirstPeer.Send(bs.DataWritten, (byte)sequenceChannel, GetDeliveryMethod(reliablity));
         }
 
         public void Shutdown(uint blockDuration) {
-            client.Stop();
+            _client.Stop();
         }
 
         public void Update() {
-            client.PollEvents();
+            _client.PollEvents();
         }
 
         public void OnPeerConnected(NetPeer peer) {

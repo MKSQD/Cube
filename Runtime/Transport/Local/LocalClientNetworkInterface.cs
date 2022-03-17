@@ -1,6 +1,4 @@
 using System;
-using System.Net;
-using System.Net.Sockets;
 
 namespace Cube.Transport.Local {
     public class LocalClientNetworkInterface : IClientNetworkInterface {
@@ -10,6 +8,7 @@ namespace Cube.Transport.Local {
         public Action<BitReader> ReceivedPacket { get; set; }
 
         public bool IsConnected => true; // #todo
+        public float Ping => 0;
 
         public LocalTransport Transport { get; private set; }
 
@@ -35,9 +34,7 @@ namespace Cube.Transport.Local {
             Transport.RunningServer.OnPeerDisconnected(this);
         }
 
-        public float GetRemoteTime(float time) {
-            return time; // #todo
-        }
+        public float GetRemoteTime(float time) => time;
 
         public void Send(BitWriter bs, PacketReliability reliablity, int sequenceChannel = 0) {
             bs.FlushBits();
