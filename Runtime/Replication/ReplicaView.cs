@@ -1,8 +1,8 @@
-﻿using UnityEngine;
-using System;
-using Cube.Transport;
+﻿using System;
 using System.Collections.Generic;
+using Cube.Transport;
 using UnityEditor;
+using UnityEngine;
 
 namespace Cube.Replication {
     [Serializable]
@@ -22,8 +22,8 @@ namespace Cube.Replication {
 
         // These Lists are in sync
         public int NumRelevantReplicas = 0;
-        public List<Replica> RelevantReplicas = new List<Replica>();
-        public List<float> RelevantReplicaPriorityAccumulator = new List<float>();
+        public List<Replica> RelevantReplicas = new();
+        public List<float> RelevantReplicaPriorityAccumulator = new();
 
 #if UNITY_EDITOR
         /// <summary>
