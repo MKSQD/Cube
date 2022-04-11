@@ -12,27 +12,62 @@ namespace Cube.Replication.Editor {
         const string CLIENT_PREFAB_PREFIX = "Client_";
         const string SERVER_PREFAB_PREFIX = "Server_";
 
+        static bool IsReplica(string assetPath, out GameObject gameObject) {
+            gameObject = null;
+
+            if (!assetPath.EndsWith(".prefab"))
+                return false;
+
+            gameObject = AssetDatabase.LoadAssetAtPath<GameObject>(assetPath);
+            if (gameObject == null)
+                return false;
+
+            if (gameObject.GetComponent<Replica>() == null)
+                return false;
+
+            return true;
+        }
+
         static void OnPostprocessAllAssets(string[] importedAssets, string[] deletedAssets, string[] movedAssets, string[] movedFromAssetPaths) {
-            /*
-            var found = false;
+            var hasChanged = false;
+            var prefabs = NetworkPrefabLookup.Instance.Prefabs.ToList();
 
-            var foos = new string[][] { importedAssets, deletedAssets, movedAssets };
-            foreach (var foo in foos) {
-                if (found)
-                    break;
+            foreach (var importedAsset in importedAssets) {
+                if (!IsReplica(importedAsset, out GameObject gameObject))
+                    continue;
 
-                foreach (var s in foo) {
-                    if (s.EndsWith(".prefab", StringComparison.InvariantCultureIgnoreCase)) {
-                        found = true;
-                        break;
-                    }
+                if (NetworkPrefabLookup.Instance == null) {
+                    Generate();
+                    return;
                 }
+
+                if (prefabs.Contains(gameObject))
+                    continue;
+
+                prefabs.Add(gameObject);
+                hasChanged = true;
             }
 
-            if (found) {
-                Generate();
+            foreach (var deletedAsset in deletedAssets) {
+                if (!IsReplica(deletedAsset, out GameObject gameObject))
+                    continue;
+
+                if (NetworkPrefabLookup.Instance == null) {
+                    Generate();
+                    return;
+                }
+
+                if (!prefabs.Contains(gameObject))
+                    continue;
+
+                prefabs.Remove(gameObject);
+                hasChanged = true;
             }
-            */
+
+            if (hasChanged) {
+                NetworkPrefabLookup.Instance.Prefabs = prefabs.ToArray();
+                EditorUtility.SetDirty(NetworkPrefabLookup.Instance);
+            }
         }
 
         [MenuItem("Tools/Cube/Refresh NetworkPrefabLookup")]
