@@ -42,9 +42,9 @@ namespace Cube.Replication {
         public Connection Owner { get; private set; }
         public bool IsOwner { get; private set; }
 
-        ReplicaBehaviour[] replicaBehaviours;
+        ReplicaBehaviour[] _replicaBehaviours;
 #if UNITY_EDITOR
-        string[] replicaBehavioursNames;
+        string[] _replicaBehavioursNames;
 #endif
 
         /// <summary>
@@ -82,7 +82,7 @@ namespace Cube.Replication {
             return gameObject.activeInHierarchy;
         }
 
-        /// [0,1]
+        // [0,1]
         public virtual float GetRelevance(ReplicaView view) {
             if (!isSceneReplica && Owner == view.Connection)
                 return 1;
@@ -131,13 +131,13 @@ namespace Cube.Replication {
         }
 
         public void Serialize(IBitWriter bs, ReplicaBehaviour.SerializeContext ctx) {
-            for (int i = 0; i < replicaBehaviours.Length; ++i) {
-                var replicaBehaviour = replicaBehaviours[i];
+            for (int i = 0; i < _replicaBehaviours.Length; ++i) {
+                var replicaBehaviour = _replicaBehaviours[i];
 #if UNITY_EDITOR
                 int startSize = 0;
                 var isDummy = bs is DummyBitWriter;
                 if (!isDummy) {
-                    TransportDebugger.BeginScope(replicaBehavioursNames[i]);
+                    TransportDebugger.BeginScope(_replicaBehavioursNames[i]);
                     startSize = bs.BitsWritten;
                 }
 #endif
@@ -157,7 +157,7 @@ namespace Cube.Replication {
         }
 
         public void Deserialize(BitReader bs) {
-            foreach (var component in replicaBehaviours) {
+            foreach (var component in _replicaBehaviours) {
                 component.Deserialize(bs);
 
 #if UNITY_EDITOR || DEVELOPMENT
@@ -201,9 +201,9 @@ namespace Cube.Replication {
                 }
             }
 
-            replicaBehaviours = rbs.ToArray();
+            _replicaBehaviours = rbs.ToArray();
 #if UNITY_EDITOR
-            replicaBehavioursNames = rbNames.ToArray();
+            _replicaBehavioursNames = rbNames.ToArray();
 #endif
         }
 
@@ -268,7 +268,7 @@ namespace Cube.Replication {
                 var componentIdx = bs.ReadByte();
                 var methodId = bs.ReadByte();
 
-                var replicaBehaviour = replicaBehaviours[componentIdx];
+                var replicaBehaviour = _replicaBehaviours[componentIdx];
                 replicaBehaviour.DispatchRpc(methodId, bs);
             } finally {
                 ReplicaBehaviour.RpcConnection = Connection.Invalid;
@@ -279,7 +279,7 @@ namespace Cube.Replication {
             var componentIdx = bs.ReadByte();
             var methodId = bs.ReadByte();
 
-            var replicaBehaviour = replicaBehaviours[componentIdx];
+            var replicaBehaviour = _replicaBehaviours[componentIdx];
             replicaBehaviour.DispatchRpc(methodId, bs);
         }
     }

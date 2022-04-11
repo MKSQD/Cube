@@ -1,6 +1,9 @@
 using UnityEngine;
 
 namespace Cube.Transport {
+    /// <summary>
+    /// This is an interface so we can do "dummy writes" to estimate the required size.
+    /// </summary>
     public interface IBitWriter {
         int BitsWritten { get; }
 
