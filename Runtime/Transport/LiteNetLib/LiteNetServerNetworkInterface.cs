@@ -85,7 +85,7 @@ namespace Cube.Transport.LiteNet {
         }
 
         public void OnPeerConnected(NetPeer peer) {
-            NewConnectionEstablished.Invoke(new Connection((ulong)peer.Id));
+            NewConnectionEstablished(new Connection((ulong)peer.Id));
         }
 
         public void OnPeerDisconnected(NetPeer peer, DisconnectInfo disconnectInfo) {

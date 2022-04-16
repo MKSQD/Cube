@@ -57,14 +57,12 @@ namespace Cube.Transport.Local {
 
         public void OnPeerConnected(LocalClientNetworkInterface client) {
             _clients.Add(client);
-
             NewConnectionEstablished.Invoke(new Connection(client.Id));
         }
 
         public void OnPeerDisconnected(LocalClientNetworkInterface client) {
-            _clients.Remove(client);
-
             DisconnectNotification(new Connection(client.Id));
+            _clients.Remove(client);
         }
 
         public void OnNetworkReceive(ulong id, BitReader bs) {
