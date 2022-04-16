@@ -8,7 +8,5 @@ namespace Cube.Replication {
         IServerNetworkInterface NetworkInterface { get; }
         Transform ReplicaParentTransform { get; }
         ServerReplicaManagerSettings ReplicaManagerSettings { get; }
-        NetworkPrefabLookup PrefabLookup { get; }
-        NetworkObjectLookup ObjectLookup { get; }
     }
 }

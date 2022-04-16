@@ -9,12 +9,6 @@ namespace Cube {
 #if UNITY_EDITOR
         public Transport.Transport TransportInEditor;
 #endif
-        [SerializeField]
-        NetworkPrefabLookup _prefabLookup;
-        public NetworkPrefabLookup PrefabLookup => _prefabLookup;
-        [SerializeField]
-        NetworkObjectLookup _objectLookup;
-        public NetworkObjectLookup ObjectLookup => _objectLookup;
 
         public IServerNetworkInterface NetworkInterface { get; private set; }
         public ServerReactor Reactor { get; private set; }
