@@ -7,22 +7,13 @@ namespace Cube.Replication {
         public static readonly ReplicaId Invalid = CreateFromExisting(0);
 
         [SerializeField]
-        ushort data;
-        public ushort Data {
-            get { return data; }
-        }
+        readonly ushort _data;
+        public ushort Data => _data;
 
-        internal ReplicaId(ushort id) {
-            data = id;
-        }
+        internal ReplicaId(ushort id) => _data = id;
 
-        internal static ReplicaId Create(ServerReplicaManager replicaManager) {
-            return new ReplicaId(replicaManager.AllocateLocalReplicaId());
-        }
-
-        public static ReplicaId CreateFromExisting(ushort id) {
-            return new ReplicaId(id);
-        }
+        internal static ReplicaId Create(ServerReplicaManager replicaManager) => new(replicaManager.AllocateLocalReplicaId());
+        public static ReplicaId CreateFromExisting(ushort id) => new(id);
 
         public override bool Equals(object other) {
             if (other == null || GetType() != other.GetType())
@@ -31,24 +22,13 @@ namespace Cube.Replication {
             return Equals((ReplicaId)other);
         }
 
-        public override string ToString() {
-            return data.ToString();
-        }
+        public override string ToString() => _data.ToString();
 
-        public bool Equals(ReplicaId other) {
-            return data == other.data;
-        }
+        public bool Equals(ReplicaId other) => _data == other._data;
 
-        public override int GetHashCode() {
-            return data;
-        }
+        public override int GetHashCode() => _data;
 
-        public static bool operator ==(ReplicaId lhs, ReplicaId rhs) {
-            return lhs.Equals(rhs);
-        }
-
-        public static bool operator !=(ReplicaId lhs, ReplicaId rhs) {
-            return !(lhs == rhs);
-        }
+        public static bool operator ==(ReplicaId lhs, ReplicaId rhs) => lhs.Equals(rhs);
+        public static bool operator !=(ReplicaId lhs, ReplicaId rhs) => !(lhs == rhs);
     }
 }

@@ -18,28 +18,26 @@ namespace Cube.Replication {
         const ushort FirstLocalReplicaId = 255; // The first 255 values are reserved for scene Replicas
 
         readonly ICubeServer _server;
-        readonly NetworkScene _networkScene;
+        readonly NetworkScene _networkScene = new();
         public ReadOnlyCollection<Replica> Replicas => _networkScene.Replicas;
 
         [SerializeField]
-        List<ReplicaView> _replicaViews = new List<ReplicaView>();
+        readonly List<ReplicaView> _replicaViews = new();
         public List<ReplicaView> ReplicaViews => _replicaViews;
 
         ushort _nextLocalReplicaId = FirstLocalReplicaId;
-        readonly Queue<ushort> _freeReplicaIds = new Queue<ushort>();
 
-        float _nextReplicaIdRecycleTime = 0;
-        readonly Queue<ushort> _replicaIdRecycleQueue = new Queue<ushort>();
-
-        Dictionary<ReplicaId, Replica> _replicasInConstruction = new Dictionary<ReplicaId, Replica>();
-        List<Replica> _replicasInDestruction = new List<Replica>();
+        /// <summary>
+        /// Replicas in construction do have a valid ReplicaId but are not being sent to clients yet.
+        /// They are not contained in the NetworkScene.
+        /// </summary>
+        readonly Dictionary<ReplicaId, Replica> _replicasInConstruction = new();
+        readonly List<Replica> _replicasInDestruction = new();
 
         public ServerReplicaManager(ICubeServer server) {
             Assert.IsNotNull(server);
 
-            _networkScene = new NetworkScene();
-
-            this._server = server;
+            _server = server;
             server.Reactor.AddHandler((byte)MessageId.ReplicaRpc, OnReplicaRpc);
 
             SceneManager.sceneLoaded += (scene, mode) => ProcessSceneReplicasInScene(scene);
@@ -68,7 +66,6 @@ namespace Cube.Replication {
             }
             _replicasInConstruction.Clear();
 
-            _freeReplicaIds.Clear();
             _nextLocalReplicaId = FirstLocalReplicaId;
         }
 
@@ -139,11 +136,7 @@ namespace Cube.Replication {
 
             _replicasInConstruction.Remove(replica.Id);
             _networkScene.RemoveReplica(replica);
-
-            if (replica.Id != ReplicaId.Invalid) {
-                FreeLocalReplicaId(replica.Id);
-                replica.Id = ReplicaId.Invalid;
-            }
+            replica.Id = ReplicaId.Invalid;
         }
 
         /// <summary>
@@ -225,7 +218,6 @@ namespace Cube.Replication {
                     replicaView.RelevantReplicas.Add(replica);
                     replicaView.RelevantReplicaPriorityAccumulator.Add(relevance * relevance * 2); // 2 to boost sending new Replicas
                 }
-
             }
             _replicasInConstruction.Clear();
 
@@ -241,8 +233,6 @@ namespace Cube.Replication {
                     }
 
                     foreach (var replica in _replicasInDestruction) {
-                        FreeLocalReplicaId(replica.Id);
-
                         _networkScene.RemoveReplica(replica);
                         replica.Id = ReplicaId.Invalid;
                         UnityEngine.Object.Destroy(replica.gameObject);
@@ -254,8 +244,6 @@ namespace Cube.Replication {
         }
 
         public void Update() {
-            RecycleReplicaIdsAfterDelay();
-
             // Update set of relevant Replicas
             for (int i = 0; i < _replicaViews.Count; ++i) {
                 var replicaView = _replicaViews[i];
@@ -275,23 +263,10 @@ namespace Cube.Replication {
             UpdateRelevantReplicas(view);
         }
 
-        void RecycleReplicaIdsAfterDelay() {
-            if (Time.time < _nextReplicaIdRecycleTime)
-                return;
-
-            if (_replicaIdRecycleQueue.Count > 0) {
-                var id = _replicaIdRecycleQueue.Dequeue();
-                _freeReplicaIds.Enqueue(id);
-            }
-
-            var replicaIdRecycleTime = 5;
-            _nextReplicaIdRecycleTime = Time.time + replicaIdRecycleTime;
-        }
 
 
 
-
-        List<int> indicesSortedByPriority = new(512);
+        List<int> _indicesSortedByPriority = new(512);
         void UpdateReplicaView(ReplicaView view) {
             // Clear dead Replicas so we dont have to check in following code
             {
@@ -314,13 +289,13 @@ namespace Cube.Replication {
             }
 
             UpdateRelevantReplicaPriorities(view);
-            CalculateRelevantReplicaIndices(view, indicesSortedByPriority);
+            CalculateRelevantReplicaIndices(view, _indicesSortedByPriority);
 
             int bytesSent = 0;
 
             int numSentLowRelevance = 0;
             for (int i = 0; i < Math.Min(_server.ReplicaManagerSettings.MaxReplicasPerPacket, view.NumRelevantReplicas); ++i) {
-                var currentReplicaIdx = indicesSortedByPriority[i];
+                var currentReplicaIdx = _indicesSortedByPriority[i];
 
                 var priorityAcc = view.RelevantReplicaPriorityAccumulator[currentReplicaIdx];
                 if (priorityAcc < 1)
@@ -371,7 +346,7 @@ namespace Cube.Replication {
             }
 
             // Rpcs
-            foreach (var currentReplicaIdx in indicesSortedByPriority) {
+            foreach (var currentReplicaIdx in _indicesSortedByPriority) {
                 var replica = view.RelevantReplicas[currentReplicaIdx];
                 foreach (var queuedRpc in replica.queuedRpcs) {
                     var isRpcRelevant = (queuedRpc.target == RpcTarget.Owner && replica.Owner == view.Connection)
@@ -536,17 +511,17 @@ namespace Cube.Replication {
         }
 
         public ushort AllocateLocalReplicaId() {
-            if (_freeReplicaIds.Count > 0)
-                return _freeReplicaIds.Dequeue();
+            while (true) {
+                var id = _nextLocalReplicaId++;
+                var replicaId = ReplicaId.CreateFromExisting(id);
+                if (_networkScene.GetReplicaById(replicaId))
+                    continue;
 
-            return _nextLocalReplicaId++;
-        }
+                if (_replicasInConstruction.ContainsKey(replicaId))
+                    continue;
 
-        public void FreeLocalReplicaId(ReplicaId id) {
-            if (id.Data >= _nextLocalReplicaId)
-                return; // Tried to free id after Reset() was called
-
-            _replicaIdRecycleQueue.Enqueue(id.Data);
+                return id;
+            }
         }
 
         void OnReplicaRpc(Connection connection, BitReader bs) {

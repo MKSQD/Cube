@@ -1,5 +1,5 @@
-﻿using Cube.Transport;
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
+using Cube.Transport;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.ResourceManagement.AsyncOperations;
@@ -40,7 +40,6 @@ namespace Cube.Replication {
         void ForceReplicaViewRefresh(ReplicaView view);
 
         ushort AllocateLocalReplicaId();
-        void FreeLocalReplicaId(ReplicaId id);
     }
 }
 
