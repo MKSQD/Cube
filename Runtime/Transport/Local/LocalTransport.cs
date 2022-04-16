@@ -3,6 +3,7 @@ using UnityEngine;
 namespace Cube.Transport.Local {
     [CreateAssetMenu(menuName = "Cube/LocalTransport")]
     public class LocalTransport : Transport {
+        [HideInInspector]
         public LocalServerNetworkInterface RunningServer;
         [HideInInspector]
         public ulong NextClientIdx = 0;

@@ -389,15 +389,15 @@ namespace Cube.Replication {
             replica.Serialize(bs, serializeCtx);
         }
 
-        Dictionary<Replica, float> oldAccs = new();
+        Dictionary<Replica, float> _oldAccs = new();
         /// <summary>
         /// Build a list of relevant Replicas for this ReplicaView.
         /// </summary>
         void UpdateRelevantReplicas(ReplicaView view) {
-            oldAccs.Clear();
+            _oldAccs.Clear();
             for (int i = 0; i < view.NumRelevantReplicas; ++i) {
                 var replica = view.RelevantReplicas[i];
-                oldAccs.Add(replica, view.RelevantReplicaPriorityAccumulator[i]);
+                _oldAccs.Add(replica, view.RelevantReplicaPriorityAccumulator[i]);
             }
 
             GatherRelevantReplicas(_networkScene.Replicas, view, view.RelevantReplicas);
@@ -405,7 +405,7 @@ namespace Cube.Replication {
 
             view.RelevantReplicaPriorityAccumulator.Clear();
             foreach (var replica in view.RelevantReplicas) {
-                oldAccs.TryGetValue(replica, out float acc);
+                _oldAccs.TryGetValue(replica, out float acc);
                 view.RelevantReplicaPriorityAccumulator.Add(acc);
             }
         }

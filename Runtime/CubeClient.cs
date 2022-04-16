@@ -1,5 +1,6 @@
 using Cube.Replication;
 using Cube.Transport;
+using Cube.Transport.Local;
 using UnityEngine;
 
 namespace Cube {
@@ -13,10 +14,18 @@ namespace Cube {
         public ClientReactor Reactor { get; private set; }
         public IClientReplicaManager ReplicaManager { get; private set; }
 
+        public bool AutoConnectInEditor = true;
+
         double _nextNetworkTick;
 
         protected virtual void Awake() {
 #if UNITY_EDITOR
+            if (TransportInEditor == null || Transport == null) {
+                Debug.LogError("Either TransportInEditor or Transport are not set to anything."
+                    + " This will break networking in the build standalone player."
+                    + " Defaulting to local transport...", gameObject);
+            }
+
             NetworkInterface = TransportInEditor.CreateClient();
 #else
             NetworkInterface = Transport.CreateClient();
@@ -26,12 +35,17 @@ namespace Cube {
             ReplicaManager = new ClientReplicaManager(this, transform, NetworkPrefabLookup.Instance);
         }
 
+        protected virtual void Start() {
+            if (AutoConnectInEditor) {
+                NetworkInterface.Connect("127.0.0.1");
+            }
+        }
+
         protected virtual void Update() {
             NetworkInterface.Update();
 
             if (Time.unscaledTimeAsDouble >= _nextNetworkTick) {
                 _nextNetworkTick = Time.timeAsDouble + Constants.TickRate;
-
                 Tick();
             }
         }

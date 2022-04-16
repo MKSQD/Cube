@@ -9,6 +9,12 @@ namespace Cube {
 #if UNITY_EDITOR
         public Transport.Transport TransportInEditor;
 #endif
+        [SerializeField]
+        NetworkPrefabLookup _prefabLookup;
+        public NetworkPrefabLookup PrefabLookup => _prefabLookup;
+        [SerializeField]
+        NetworkObjectLookup _objectLookup;
+        public NetworkObjectLookup ObjectLookup => _objectLookup;
 
         public IServerNetworkInterface NetworkInterface { get; private set; }
         public ServerReactor Reactor { get; private set; }
@@ -25,6 +31,12 @@ namespace Cube {
             Connections = new List<Connection>();
 
 #if UNITY_EDITOR
+            if (TransportInEditor == null || Transport == null) {
+                Debug.LogError("Either TransportInEditor or Transport are not set to anything."
+                    + " Create a new Transport of your choice (Project > Create > Cube > ...)"
+                    + " and set that on both the client and the server.", gameObject);
+            }
+
             NetworkInterface = TransportInEditor.CreateServer();
 #else
             NetworkInterface = Transport.CreateServer();

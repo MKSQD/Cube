@@ -21,13 +21,12 @@ namespace Cube.Transport.Local {
 
         public void Connect(string address) {
             Transport.RunningServer.OnPeerConnected(this);
+            ConnectionRequestAccepted();
         }
 
         public void Connect(string address, BitWriter hailMessage) {
             hailMessage.FlushBits();
-
-            Transport.RunningServer.OnPeerConnected(this);
-            ConnectionRequestAccepted();
+            Connect(address);
         }
 
         public void Disconnect() {
