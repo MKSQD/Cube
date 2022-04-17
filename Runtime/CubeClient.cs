@@ -32,7 +32,7 @@ namespace Cube {
 #endif
 
             Reactor = new ClientReactor(NetworkInterface);
-            ReplicaManager = new ClientReplicaManager(this, transform, NetworkPrefabLookup.Instance);
+            ReplicaManager = new ClientReplicaManager(this, transform);
         }
 
         protected virtual void Start() {

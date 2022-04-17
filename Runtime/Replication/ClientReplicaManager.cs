@@ -11,18 +11,17 @@ namespace Cube.Replication {
         public static List<ClientReplicaManager> All = new List<ClientReplicaManager>();
 #endif
 
-        ICubeClient _client;
-        Transform _instantiateTransform;
+        readonly ICubeClient _client;
+        readonly Transform _instantiateTransform;
 
-        NetworkScene _networkScene;
-        NetworkPrefabLookup _networkPrefabLookup;
+        readonly NetworkScene _networkScene;
+        readonly NetworkPrefabLookup _networkPrefabLookup;
 
-        public ClientReplicaManager(ICubeClient client, Transform instantiateTransform, NetworkPrefabLookup networkPrefabLookup) {
+        public ClientReplicaManager(ICubeClient client, Transform instantiateTransform) {
             Assert.IsNotNull(client);
             Assert.IsNotNull(instantiateTransform);
-            Assert.IsNotNull(networkPrefabLookup);
 
-            _networkPrefabLookup = networkPrefabLookup;
+            _networkPrefabLookup = NetworkPrefabLookup.Instance;
             _instantiateTransform = instantiateTransform;
             _client = client;
 
@@ -47,6 +46,8 @@ namespace Cube.Replication {
         }
 
         public void ProcessSceneReplicasInScene(Scene scene) {
+            Assert.IsTrue(scene.IsValid());
+
             var sceneReplicas = ReplicaUtils.GatherSceneReplicas(scene);
             foreach (var replica in sceneReplicas) {
                 replica.Id = ReplicaId.CreateFromExisting(replica.sceneIdx);
