@@ -7,7 +7,8 @@ namespace Cube.Transport.Local {
         public Action NetworkError { get; set; }
         public Action<BitReader> ReceivedPacket { get; set; }
 
-        public bool IsConnected => true; // #todo
+        bool _isConnected;
+        public bool IsConnected => _isConnected;
         public float Ping => 0;
 
         public LocalTransport Transport { get; private set; }
@@ -20,8 +21,12 @@ namespace Cube.Transport.Local {
         }
 
         public void Connect(string address) {
+            if (_isConnected)
+                return;
+
             Transport.RunningServer.OnPeerConnected(this);
             ConnectionRequestAccepted();
+            _isConnected = true;
         }
 
         public void Connect(string address, BitWriter hailMessage) {
@@ -31,6 +36,7 @@ namespace Cube.Transport.Local {
 
         public void Disconnect() {
             Transport.RunningServer.OnPeerDisconnected(this);
+            _isConnected = false;
         }
 
         public float GetRemoteTime(float time) => time;
@@ -43,6 +49,7 @@ namespace Cube.Transport.Local {
         }
 
         public void Shutdown(uint blockDuration) {
+            _isConnected = false;
         }
 
         public void Update() {
