@@ -15,7 +15,7 @@ namespace Cube.Replication {
             public Quaternion Rotation;
         }
 
-        State[] _bufferedState = new State[20];
+        readonly State[] _bufferedState = new State[20];
         int _numTimestamps;
 
         public override void Serialize(IBitWriter bs, SerializeContext ctx) {
@@ -42,7 +42,7 @@ namespace Cube.Replication {
             _numTimestamps = Mathf.Min(_numTimestamps + 1, _bufferedState.Length);
         }
 
-        void Update() {
+        protected void Update() {
             var interpolationTime = Time.time;
 
             if (_bufferedState[0].Timestamp > interpolationTime) {
@@ -55,9 +55,10 @@ namespace Cube.Replication {
                         float t = 0.0F;
                         if (length > 0.0001) {
                             t = (float)((interpolationTime - lhs.Timestamp) / length);
+                            t = Mathf.Max(t, 0);
                         }
-                        transform.localPosition = Vector3.Lerp(lhs.Position, rhs.Position, t);
-                        transform.localRotation = Quaternion.Slerp(lhs.Rotation, rhs.Rotation, t);
+                        transform.localPosition = Vector3.LerpUnclamped(lhs.Position, rhs.Position, t);
+                        transform.localRotation = Quaternion.SlerpUnclamped(lhs.Rotation, rhs.Rotation, t);
                         return;
                     }
                 }
