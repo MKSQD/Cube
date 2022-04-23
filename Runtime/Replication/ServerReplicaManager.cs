@@ -322,14 +322,12 @@ namespace Cube.Replication {
                     TransportDebugger.BeginScope($"Skipped Replica {replica.name} priorityAcc={priorityAcc:0} bytes={dummyBs.BytesWritten}");
                     TransportDebugger.EndScope(0);
 #endif
-
                     continue; // This Replica update would send too much data, try the next Replica
                 }
 
 #if UNITY_EDITOR
                 TransportDebugger.BeginScope($"Update Replica {replica.name} priorityAcc={priorityAcc:0} bytes={dummyBs.BytesWritten}");
 #endif
-
 
                 var updateBs = new BitWriter(32);
                 WriteReplicaUpdate(updateBs, replica, isOwner);
@@ -376,11 +374,11 @@ namespace Cube.Replication {
 
         void WriteReplicaUpdate(IBitWriter bs, Replica replica, bool isOwner) {
             bs.WriteByte((byte)MessageId.ReplicaUpdate);
+            bs.WriteReplicaId(replica.Id);
             bs.WriteBool(replica.isSceneReplica);
             if (!replica.isSceneReplica) {
                 bs.WriteUShort(replica.prefabIdx);
             }
-            bs.WriteReplicaId(replica.Id);
             bs.WriteBool(isOwner);
 
             var serializeCtx = new ReplicaBehaviour.SerializeContext() {

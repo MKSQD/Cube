@@ -79,16 +79,17 @@ namespace Cube.Replication {
             }
         }
 
-        HashSet<ReplicaId> _replicasInConstruction = new HashSet<ReplicaId>();
+        HashSet<ReplicaId> _replicasInConstruction = new();
         void OnReplicaUpdate(BitReader bs) {
             var prefabIdx = ushort.MaxValue;
+            var replicaId = bs.ReadReplicaId();
 
             var isSceneReplica = bs.ReadBool();
             if (!isSceneReplica) {
                 prefabIdx = bs.ReadUShort();
             }
+            var isOwner = bs.ReadBool();
 
-            var replicaId = bs.ReadReplicaId();
 
             var replica = _networkScene.GetReplicaById(replicaId);
             if (replica == null) {
@@ -101,7 +102,6 @@ namespace Cube.Replication {
                 replica = ConstructReplica(prefabIdx, replicaId);
             }
 
-            var isOwner = bs.ReadBool();
             if (isOwner != replica.IsOwner) {
                 replica.ClientUpdateOwnership(isOwner);
             }
