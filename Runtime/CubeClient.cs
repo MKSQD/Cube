@@ -36,9 +36,11 @@ namespace Cube {
         }
 
         protected virtual void Start() {
+#if UNITY_EDITOR
             if (AutoConnectInEditor) {
                 NetworkInterface.Connect("127.0.0.1");
             }
+#endif
         }
 
         protected virtual void Update() {
