@@ -39,7 +39,7 @@ namespace Cube.Transport.LiteNet {
         public void Connect(string address, BitWriter hailMessage) {
             hailMessage.FlushBits();
 
-            var msg = NetDataWriter.FromBytes(hailMessage.DataWritten.Slice(0, hailMessage.BytesWritten).ToArray(), 0, hailMessage.BytesWritten);
+            var msg = NetDataWriter.FromBytes(hailMessage.DataWritten[..hailMessage.BytesWritten].ToArray(), 0, hailMessage.BytesWritten);
             _client.Connect(address, Transport.Port, msg);
         }
 
@@ -77,7 +77,7 @@ namespace Cube.Transport.LiteNet {
             NetworkError();
         }
 
-        Memory<uint> memory = new Memory<uint>(new uint[64]);
+        readonly Memory<uint> memory = new(new uint[64]);
         public void OnNetworkReceive(NetPeer peer, NetPacketReader reader, byte channelNumber, DeliveryMethod deliveryMethod) {
             var span = new ReadOnlySpan<byte>(reader.RawData, reader.UserDataOffset, reader.UserDataSize);
             var bs = new BitReader(span, memory);
