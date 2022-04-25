@@ -50,24 +50,24 @@ class RpcPostProcessor : PostProcessor {
             bitWriterType = GetTypeDefinitionByName(cubeAssembly, "Cube.Transport.BitWriter");
             bitWriterCTorMethod = Import(GetMethodDefinitionByName(bitWriterType, ".ctor"));
 
-            foreach (var writeMethod in bitWriterType.Methods.Where(m => m.Name.StartsWith("Write"))) {
-                if (writeMethod.Name.Contains("Normalised") || writeMethod.Name.Contains("Lossy"))
+            foreach (var method in bitWriterType.Methods.Where(m => m.Name.StartsWith("Write"))) {
+                if (method.Name.Contains("Normalised") || method.Name.Contains("Lossy") || method.Name == "WriteIntInRange")
                     continue;
 
-                if (writeMethod.Parameters.Count == 0)
+                if (method.Parameters.Count == 0)
                     continue;
 
-                bitStreamWrite[writeMethod.Parameters[0].ParameterType.Name] = Import(writeMethod);
+                bitStreamWrite[method.Parameters[0].ParameterType.Name] = Import(method);
             }
         }
         {
             bitReaderType = GetTypeDefinitionByName(cubeAssembly, "Cube.Transport.BitReader");
 
-            foreach (var readMethod in bitReaderType.Methods.Where(m => m.Name.StartsWith("Read") && m.Name != "ReadRaw" && m.Name != "ReadIntInRange")) {
-                if (readMethod.Name.Contains("Normalised") || readMethod.Name.Contains("Lossy"))
+            foreach (var method in bitReaderType.Methods.Where(m => m.Name.StartsWith("Read"))) {
+                if (method.Name.Contains("Normalised") || method.Name.Contains("Lossy") || method.Name == "ReadRaw" || method.Name == "ReadIntInRange")
                     continue;
 
-                bitStreamRead[readMethod.ReturnType.Name] = Import(readMethod);
+                bitStreamRead[method.ReturnType.Name] = Import(method);
             }
             readSerializable = GetMethodDefinitionByName(bitReaderType, "ReadSerializable");
         }
@@ -202,9 +202,9 @@ class RpcPostProcessor : PostProcessor {
     }
 
     MethodDefinition CreateDispatchRpcs(List<MethodDefinition> remoteMethods) {
-        var method = new MethodDefinition("DispatchRpc", Mono.Cecil.MethodAttributes.Public | Mono.Cecil.MethodAttributes.HideBySig | Mono.Cecil.MethodAttributes.Virtual, voidTypeReference);
-        method.Parameters.Add(new ParameterDefinition("methodIdx", Mono.Cecil.ParameterAttributes.None, MainModule.TypeSystem.Byte));
-        method.Parameters.Add(new ParameterDefinition("bs", Mono.Cecil.ParameterAttributes.None, Import(bitReaderType)));
+        var method = new MethodDefinition("DispatchRpc", MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.Virtual, voidTypeReference);
+        method.Parameters.Add(new ParameterDefinition("methodIdx", ParameterAttributes.None, MainModule.TypeSystem.Byte));
+        method.Parameters.Add(new ParameterDefinition("bs", ParameterAttributes.None, Import(bitReaderType)));
 
         method.Body.InitLocals = true;
 
