@@ -99,9 +99,8 @@ namespace Cube.Replication.Editor {
                     continue;
 
                 var clientPrefab = serverPrefab;
-                var clientAssetPath = serverAssetPath;
                 if (serverAssetPath.IndexOf("Server_", StringComparison.InvariantCultureIgnoreCase) != -1) {
-                    clientAssetPath = ReplaceString(serverAssetPath, SERVER_PREFAB_PREFIX, CLIENT_PREFAB_PREFIX, StringComparison.InvariantCultureIgnoreCase);
+                    var clientAssetPath = ReplaceString(serverAssetPath, SERVER_PREFAB_PREFIX, CLIENT_PREFAB_PREFIX, StringComparison.InvariantCultureIgnoreCase);
 
                     clientPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(clientAssetPath);
                     if (clientPrefab == null) {
@@ -145,7 +144,7 @@ namespace Cube.Replication.Editor {
         }
 
         static string ReplaceString(string str, string oldValue, string newValue, StringComparison comparison) {
-            StringBuilder sb = new StringBuilder();
+            var sb = new StringBuilder();
 
             int previousIndex = 0;
             int index = str.IndexOf(oldValue, comparison);
