@@ -142,10 +142,14 @@ namespace Cube.Replication {
                 }
 #endif
 
+#if UNITY_EDITOR || DEVELOPMENT
+                bs.WriteInt(replicaBehaviour.GetType().GetHashCode());
+#endif
+
                 replicaBehaviour.Serialize(bs, ctx);
 
 #if UNITY_EDITOR || DEVELOPMENT
-                bs.WriteByte((byte)0b10101010);
+                bs.WriteByte(0b10101010);
 #endif
 
 #if UNITY_EDITOR
@@ -157,22 +161,30 @@ namespace Cube.Replication {
         }
 
         public void Deserialize(BitReader bs) {
-            foreach (var component in _replicaBehaviours) {
-                component.Deserialize(bs);
+            foreach (var replicaBehaviour in _replicaBehaviours) {
+#if UNITY_EDITOR || DEVELOPMENT
+                var expectedComponentTypeHash = bs.ReadInt();
+                if (expectedComponentTypeHash != replicaBehaviour.GetType().GetHashCode()) {
+                    Debug.LogError($"{replicaBehaviour} not the expected component type", gameObject);
+                    return;
+                }
+#endif
+
+                replicaBehaviour.Deserialize(bs);
 
 #if UNITY_EDITOR || DEVELOPMENT
                 try {
                     if (bs.WouldReadPastEnd(8)) {
-                        Debug.LogError($"{component} violated serialization guard (exhausted)", gameObject);
+                        Debug.LogError($"{replicaBehaviour} violated serialization guard (exhausted)", gameObject);
                         return;
                     }
 
                     if (bs.ReadByte() != 0b10101010) {
-                        Debug.LogError($"{component} violated serialization guard (invalid guard byte)", gameObject);
+                        Debug.LogError($"{replicaBehaviour} violated serialization guard (invalid guard byte)", gameObject);
                         return;
                     }
                 } catch (InvalidOperationException) {
-                    Debug.LogError($"{component} violated serialization guard (exception)", gameObject);
+                    Debug.LogError($"{replicaBehaviour} violated serialization guard (exception)", gameObject);
                     return;
                 }
 #endif
