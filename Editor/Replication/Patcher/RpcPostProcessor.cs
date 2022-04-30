@@ -172,20 +172,17 @@ class RpcPostProcessor : PostProcessor {
 
             method.Body.Instructions.Clear();
 
-            if (IsRpcMethodValid(method, out string error)) {
-                InjectSendRpcInstructions(nextRpcMethodId, method, implMethod);
-            } else {
-                Debug.LogError($"RPC method error \"{method.FullName}\": {error}");
-            }
+            if (!IsRpcMethodValid(method, out string error))
+                throw new Exception($"RPC method error \"{method.FullName}\": {error}");
+
+            InjectSendRpcInstructions(nextRpcMethodId, method);
 
             remoteMethods.Add(implMethod);
             rpcMethods.Add(nextRpcMethodId, method);
 
             nextRpcMethodId++;
-            if (nextRpcMethodId == byte.MaxValue) {
-                Debug.LogError($"Reached max RPC method count {nextRpcMethodId} for type {type.FullName}!");
-                break;
-            }
+            if (nextRpcMethodId == byte.MaxValue)
+                throw new Exception($"Reached max RPC method count {nextRpcMethodId} for type {type.FullName}!");
         }
 
         if (remoteMethods.Count == 0)
@@ -327,7 +324,7 @@ class RpcPostProcessor : PostProcessor {
         return method;
     }
 
-    void InjectSendRpcInstructions(int methodId, MethodDefinition method, MethodDefinition implMethod) {
+    void InjectSendRpcInstructions(int methodId, MethodDefinition method) {
         method.Body.ExceptionHandlers.Clear();
         method.Body.Variables.Clear();
         method.Body.Variables.Add(new VariableDefinition(Import(bitWriterType)));
