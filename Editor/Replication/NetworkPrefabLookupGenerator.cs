@@ -4,89 +4,25 @@ using System.Linq;
 using System.Text;
 using UnityEditor;
 using UnityEngine;
-using UnityEngine.AddressableAssets;
 
 namespace Cube.Replication.Editor {
+    public static class NetworkPrefabLookupGenerator {
+        const string ClientPrefabPrefix = "Client_";
+        const string ServerPrefabPrefix = "Server_";
 
-    public class NetworkPrefabLookupGenerator : AssetPostprocessor {
-        const string CLIENT_PREFAB_PREFIX = "Client_";
-        const string SERVER_PREFAB_PREFIX = "Server_";
-
-        static bool IsReplica(string assetPath, out GameObject gameObject) {
-            gameObject = null;
-
-            if (!assetPath.EndsWith(".prefab"))
-                return false;
-
-            gameObject = AssetDatabase.LoadAssetAtPath<GameObject>(assetPath);
-            if (gameObject == null)
-                return false;
-
-            if (gameObject.GetComponent<Replica>() == null)
-                return false;
-
-            return true;
-        }
-
-        static void OnPostprocessAllAssets(string[] importedAssets, string[] deletedAssets, string[] movedAssets, string[] movedFromAssetPaths) {
-            var hasChanged = false;
-            var prefabs = NetworkPrefabLookup.Instance.Prefabs.ToList();
-
-            foreach (var importedAsset in importedAssets) {
-                if (!IsReplica(importedAsset, out GameObject gameObject))
-                    continue;
-
-                if (NetworkPrefabLookup.Instance == null) {
-                    Generate();
-                    return;
-                }
-
-                if (prefabs.Contains(gameObject))
-                    continue;
-
-                prefabs.Add(gameObject);
-                hasChanged = true;
-            }
-
-            foreach (var deletedAsset in deletedAssets) {
-                if (!IsReplica(deletedAsset, out GameObject gameObject))
-                    continue;
-
-                if (NetworkPrefabLookup.Instance == null) {
-                    Generate();
-                    return;
-                }
-
-                if (!prefabs.Contains(gameObject))
-                    continue;
-
-                prefabs.Remove(gameObject);
-                hasChanged = true;
-            }
-
-            if (hasChanged) {
-                NetworkPrefabLookup.Instance.Prefabs = prefabs.ToArray();
-                EditorUtility.SetDirty(NetworkPrefabLookup.Instance);
-            }
-        }
-
-        [MenuItem("Tools/Cube/Refresh NetworkPrefabLookup")]
+        [MenuItem("Tools/Cube/Update Replica Prefabs")]
         static void Force() {
             Generate();
-            Debug.Log("Done");
         }
 
         static void Generate() {
-            if (BuildPipeline.isBuildingPlayer)
-                return; // No need to regenerate the data while building
-
-            var prefabs = new List<GameObject>();
+            var serverAndClientPrefabs = new List<(string, GameObject, GameObject)>();
 
             var assetGuids = AssetDatabase.FindAssets("t:Prefab");
             foreach (var serverAssetGuid in assetGuids) {
                 var serverAssetPath = AssetDatabase.GUIDToAssetPath(serverAssetGuid);
 
-                var isClientPrefab = serverAssetPath.IndexOf(CLIENT_PREFAB_PREFIX, StringComparison.InvariantCultureIgnoreCase) != -1;
+                var isClientPrefab = serverAssetPath.IndexOf(ClientPrefabPrefix, StringComparison.InvariantCultureIgnoreCase) != -1;
                 if (isClientPrefab)
                     continue;
 
@@ -100,7 +36,7 @@ namespace Cube.Replication.Editor {
 
                 var clientPrefab = serverPrefab;
                 if (serverAssetPath.IndexOf("Server_", StringComparison.InvariantCultureIgnoreCase) != -1) {
-                    var clientAssetPath = ReplaceString(serverAssetPath, SERVER_PREFAB_PREFIX, CLIENT_PREFAB_PREFIX, StringComparison.InvariantCultureIgnoreCase);
+                    var clientAssetPath = ReplaceString(serverAssetPath, ServerPrefabPrefix, ClientPrefabPrefix, StringComparison.InvariantCultureIgnoreCase);
 
                     clientPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(clientAssetPath);
                     if (clientPrefab == null) {
@@ -109,16 +45,30 @@ namespace Cube.Replication.Editor {
                     }
                 }
 
+                serverAndClientPrefabs.Add((serverAssetGuid, serverPrefab, clientPrefab));
+            }
+
+            int numChanged = 0;
+
+            var prefabs = new List<GameObject>(serverAndClientPrefabs.Count);
+            ushort nextId = 1;
+            foreach (var tuple in serverAndClientPrefabs.OrderBy(tuple => tuple.Item1)) {
+                var serverPrefab = tuple.Item2;
+                var clientPrefab = tuple.Item3;
+                var id = nextId++;
+
                 var serverReplica = serverPrefab.GetComponent<Replica>();
-                if (serverReplica.prefabIdx != prefabs.Count) {
-                    serverReplica.prefabIdx = (ushort)prefabs.Count;
+                if (serverReplica.prefabIdx != id) {
+                    serverReplica.prefabIdx = id;
                     EditorUtility.SetDirty(serverPrefab);
+                    ++numChanged;
                 }
 
                 var clientReplica = clientPrefab.GetComponent<Replica>();
-                if (clientReplica.prefabIdx != prefabs.Count) {
-                    clientReplica.prefabIdx = (ushort)prefabs.Count;
+                if (clientReplica.prefabIdx != id) {
+                    clientReplica.prefabIdx = id;
                     EditorUtility.SetDirty(clientPrefab);
+                    ++numChanged;
                 }
 
                 // Fix copy&paste errors
@@ -141,6 +91,8 @@ namespace Cube.Replication.Editor {
                 lookup.Prefabs = newPrefabs;
                 EditorUtility.SetDirty(lookup);
             }
+
+            Debug.Log($"done (#changed={numChanged})");
         }
 
         static string ReplaceString(string str, string oldValue, string newValue, StringComparison comparison) {
@@ -149,14 +101,14 @@ namespace Cube.Replication.Editor {
             int previousIndex = 0;
             int index = str.IndexOf(oldValue, comparison);
             while (index != -1) {
-                sb.Append(str.Substring(previousIndex, index - previousIndex));
+                sb.Append(str[previousIndex..index]);
                 sb.Append(newValue);
                 index += oldValue.Length;
 
                 previousIndex = index;
                 index = str.IndexOf(oldValue, index, comparison);
             }
-            sb.Append(str.Substring(previousIndex));
+            sb.Append(str[previousIndex..]);
             return sb.ToString();
         }
     }

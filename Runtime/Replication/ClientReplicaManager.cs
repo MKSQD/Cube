@@ -81,10 +81,10 @@ namespace Cube.Replication {
 
         HashSet<ReplicaId> _replicasInConstruction = new();
         void OnReplicaUpdate(BitReader bs) {
-            var prefabIdx = ushort.MaxValue;
             var replicaId = bs.ReadReplicaId();
-
             var isSceneReplica = bs.ReadBool();
+
+            ushort prefabIdx = 0;
             if (!isSceneReplica) {
                 prefabIdx = bs.ReadUShort();
             }
@@ -124,8 +124,9 @@ namespace Cube.Replication {
         }
 
         Replica ConstructReplica(ushort prefabIdx, ReplicaId replicaId) {
-            GameObject prefab;
-            if (!_networkPrefabLookup.TryGetClientPrefabForIndex(prefabIdx, out prefab))
+            Assert.IsTrue(prefabIdx != 0);
+
+            if (!_networkPrefabLookup.TryGetClientPrefabForIndex(prefabIdx, out GameObject prefab))
                 throw new Exception($"Prefab for index {prefabIdx} not found!");
 
             _replicasInConstruction.Add(replicaId);

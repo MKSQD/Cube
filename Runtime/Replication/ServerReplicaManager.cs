@@ -116,8 +116,10 @@ namespace Cube.Replication {
 
             newReplica.server = _server;
             newReplica.Id = ReplicaId.Create(this);
-            Assert.IsTrue(newReplica.Id != ReplicaId.Invalid);
             newReplica.TakeOwnership();
+
+            Assert.IsTrue(newReplica.prefabIdx != 0, "invalid prefabIdx");
+            Assert.IsTrue(newReplica.Id != ReplicaId.Invalid);
 
             // Wait for one frame until Start is called before replicating to clients
             _replicasInConstruction[newReplica.Id] = newReplica;

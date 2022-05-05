@@ -5,11 +5,15 @@ namespace Cube.Replication {
         public GameObject[] Prefabs;
 
         public bool TryGetClientPrefabForIndex(int prefabIdx, out GameObject prefab) {
-            if (prefabIdx >= Prefabs.Length) {
+            if (prefabIdx == 0) {
                 prefab = null;
                 return false;
             }
-            prefab = Prefabs[prefabIdx];
+            if (prefabIdx > Prefabs.Length) {
+                prefab = null;
+                return false;
+            }
+            prefab = Prefabs[prefabIdx - 1];
             return true;
         }
     }
