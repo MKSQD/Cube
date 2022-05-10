@@ -8,15 +8,21 @@ namespace Cube.Replication {
     /// </summary>
     /// <remarks>Available in: Editor/Client/Server</remarks>
     [AddComponentMenu("Cube/ReplicaTransform")]
-    public class ReplicaTransform : ReplicaBehaviour {
-        struct State {
+    public class ReplicaTransform : ReplicaBehaviour, StateInterpolator<ReplicaTransform.State>.IStateAdapter {
+        public struct State {
             public float Timestamp;
             public Vector3 Position;
             public Quaternion Rotation;
         }
 
-        readonly State[] _bufferedState = new State[20];
-        int _numTimestamps;
+        StateInterpolator<State> _interpolator;
+
+        public float GetStateTimestamp(State state) => state.Timestamp;
+
+        public void LerpStates(State oldState, State newState, ref State resultState, float t) {
+            resultState.Position = Vector3.LerpUnclamped(oldState.Position, newState.Position, t);
+            resultState.Rotation = Quaternion.SlerpUnclamped(oldState.Rotation, newState.Rotation, t);
+        }
 
         public override void Serialize(IBitWriter bs, SerializeContext ctx) {
             bs.WriteVector3(transform.position);
@@ -27,41 +33,27 @@ namespace Cube.Replication {
             var position = bs.ReadVector3();
             var rotation = bs.ReadQuaternion();
 
-            // Shift the buffer sideways, deleting state 20
-            for (int i = _bufferedState.Length - 1; i >= 1; i--) {
-                _bufferedState[i] = _bufferedState[i - 1];
-            }
+            var newState = new State() {
+                Timestamp = Time.time,
+                Position = position,
+                Rotation = rotation
+            };
+            _interpolator.AddState(newState);
+        }
 
-            // Record current state in slot 0
-            State state;
-            state.Timestamp = Time.time + Replica.SettingsOrDefault.DesiredUpdateRate * 2.5f;
-            state.Position = position;
-            state.Rotation = rotation;
-            _bufferedState[0] = state;
-
-            _numTimestamps = Mathf.Min(_numTimestamps + 1, _bufferedState.Length);
+        protected void Awake() {
+            _interpolator = new(this);
         }
 
         protected void Update() {
-            var interpolationTime = Time.time;
-
-            if (_bufferedState[0].Timestamp > interpolationTime) {
-                for (int i = 0; i < _numTimestamps; i++) {
-                    if (_bufferedState[i].Timestamp <= interpolationTime || i == _numTimestamps - 1) {
-                        State rhs = _bufferedState[Mathf.Max(i - 1, 0)];
-                        State lhs = _bufferedState[i];
-
-                        double length = rhs.Timestamp - lhs.Timestamp;
-                        float t = 0.0F;
-                        if (length > 0.0001) {
-                            t = (float)((interpolationTime - lhs.Timestamp) / length);
-                            t = Mathf.Max(t, 0);
-                        }
-                        transform.localPosition = Vector3.LerpUnclamped(lhs.Position, rhs.Position, t);
-                        transform.localRotation = Quaternion.SlerpUnclamped(lhs.Rotation, rhs.Rotation, t);
-                        return;
-                    }
-                }
+            if (isClient) {
+                var state = new State() {
+                    Position = transform.position,
+                    Rotation = transform.rotation
+                };
+                _interpolator.Sample(ref state, Replica.SettingsOrDefault.DesiredUpdateRate * 2.5f);
+                transform.position = state.Position;
+                transform.rotation = state.Rotation;
             }
         }
     }

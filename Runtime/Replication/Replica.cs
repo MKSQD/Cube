@@ -8,6 +8,7 @@ using UnityEngine.Assertions;
 namespace Cube.Replication {
     [AddComponentMenu("Cube/Replica")]
     [DisallowMultipleComponent]
+    [SelectionBase]
     public class Replica : MonoBehaviour {
         public struct QueuedRpc {
             public RpcTarget target;
