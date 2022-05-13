@@ -3,25 +3,30 @@ using UnityEngine;
 namespace Cube.Replication {
     public class StateExtrapolator<T> {
         public interface IStateAdapter {
-            float GetStateTimestamp(T state);
-            Vector3 GetStatePosition(T state);
-            void SetStatePosition(ref T state, Vector3 position);
+            T PredictState(T oldState, T newState, float t);
+            void LerpStates(T oldState, T newState, ref T resultState, float t);
         }
 
         readonly T[] _states;
+        readonly float[] _timestamps;
         int _numStates;
         readonly IStateAdapter _adapter;
 
         public StateExtrapolator(IStateAdapter adapter) {
             _states = new T[2];
+            _timestamps = new float[2];
             _adapter = adapter;
         }
 
-        public void AddState(T newState) {
+        public void AddState(T newState) => AddState(newState, Time.time);
+
+        public void AddState(T newState, float time) {
             for (int i = _states.Length - 1; i >= 1; i--) {
                 _states[i] = _states[i - 1];
+                _timestamps[i] = _timestamps[i - 1];
             }
             _states[0] = newState;
+            _timestamps[0] = time;
 
             _numStates = Mathf.Min(_numStates + 1, _states.Length);
         }
@@ -35,35 +40,28 @@ namespace Cube.Replication {
                 return;
             }
 
-            var t = Time.timeAsDouble + extrapolationTime;
+            var t = Time.time + extrapolationTime;
 
             // Predict current
-            Vector3 currentPredicted;
+            T newPredicted;
             float currentA;
             {
-                var actualTimeDiff = Mathf.Max(0, (float)(t - _adapter.GetStateTimestamp(_states[0])));
-                var posDiff = _adapter.GetStatePosition(_states[0]) - _adapter.GetStatePosition(_states[1]);
-                var timeDiff = (float)(_adapter.GetStateTimestamp(_states[0]) - _adapter.GetStateTimestamp(_states[1]));
-                var a = Mathf.Min(actualTimeDiff / timeDiff, 3);
-                currentPredicted = _adapter.GetStatePosition(_states[0]) + posDiff * (float)a;
-
-                currentA = (float)a;
+                var actualTimeDiff = Mathf.Max(0, t - _timestamps[0]);
+                var timeDiff = _timestamps[0] - _timestamps[1];
+                currentA = Mathf.Min(actualTimeDiff / timeDiff, 3);
+                newPredicted = _adapter.PredictState(_states[1], _states[0], currentA);
             }
 
             // Predict old
-            Vector3 prevPredicted = currentPredicted;
+            T oldPredicted = newPredicted;
             if (_numStates > 2) {
-                var actualTimeDiff = (float)(t - _adapter.GetStateTimestamp(_states[1]));
-                var posDiff = _adapter.GetStatePosition(_states[1]) - _adapter.GetStatePosition(_states[2]);
-                var timeDiff = (float)(_adapter.GetStateTimestamp(_states[1]) - _adapter.GetStateTimestamp(_states[2]));
+                var actualTimeDiff = t - _timestamps[1];
+                var timeDiff = _timestamps[1] - _timestamps[2];
                 var a = Mathf.Min(actualTimeDiff / timeDiff, 3);
-                prevPredicted = _adapter.GetStatePosition(_states[1]) + posDiff * (float)a;
+                oldPredicted = _adapter.PredictState(_states[2], _states[1], a);
             }
 
-            var extrapolatedPos = Vector3.Lerp(prevPredicted, currentPredicted, currentA);
-
-            resultState = _states[0];
-            _adapter.SetStatePosition(ref resultState, extrapolatedPos);
+            _adapter.LerpStates(oldPredicted, newPredicted, ref resultState, currentA);
         }
     }
 }

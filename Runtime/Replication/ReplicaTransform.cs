@@ -17,8 +17,6 @@ namespace Cube.Replication {
 
         StateInterpolator<State> _interpolator;
 
-        public float GetStateTimestamp(State state) => state.Timestamp;
-
         public void LerpStates(State oldState, State newState, ref State resultState, float t) {
             resultState.Position = Vector3.LerpUnclamped(oldState.Position, newState.Position, t);
             resultState.Rotation = Quaternion.SlerpUnclamped(oldState.Rotation, newState.Rotation, t);
