@@ -16,7 +16,7 @@ namespace Cube.Transport.Local {
 
         public LocalTransport Transport { get; private set; }
 
-        List<LocalClientNetworkInterface> _clients = new();
+        readonly List<LocalClientNetworkInterface> _clients = new();
 
         public LocalServerNetworkInterface(LocalTransport transport) {
             Transport = transport;
