@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Assertions;
 
 namespace Cube.Replication {
     public class StateExtrapolator<T> {
@@ -61,7 +62,8 @@ namespace Cube.Replication {
                 oldPredicted = _adapter.PredictState(_states[2], _states[1], a);
             }
 
-            _adapter.LerpStates(oldPredicted, newPredicted, ref resultState, currentA);
+            var clampedA = Mathf.Min(currentA, 1);
+            _adapter.LerpStates(oldPredicted, newPredicted, ref resultState, clampedA);
         }
     }
 }

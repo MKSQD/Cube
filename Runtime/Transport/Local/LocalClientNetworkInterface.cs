@@ -9,7 +9,7 @@ namespace Cube.Transport.Local {
 
         bool _isConnected;
         public bool IsConnected => _isConnected;
-        public float Ping => 0;
+        public float Ping => 0.01f;
 
         public LocalTransport Transport { get; private set; }
 
