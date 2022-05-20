@@ -1,7 +1,12 @@
+using System.Collections;
 using Cube.Replication;
 using Cube.Transport;
-using Cube.Transport.Local;
 using UnityEngine;
+using UnityEngine.AddressableAssets;
+using UnityEngine.Assertions;
+using UnityEngine.ResourceManagement.AsyncOperations;
+using UnityEngine.ResourceManagement.ResourceProviders;
+using UnityEngine.SceneManagement;
 
 namespace Cube {
     public class CubeClient : MonoBehaviour, ICubeClient {
@@ -18,6 +23,9 @@ namespace Cube {
 
         double _nextNetworkTick;
 
+        AsyncOperationHandle<SceneInstance> _sceneHandle;
+        byte _currentLoadedSceneGeneration;
+
         protected virtual void Awake() {
 #if UNITY_EDITOR
             if (TransportInEditor == null || Transport == null) {
@@ -33,6 +41,10 @@ namespace Cube {
 
             Reactor = new ClientReactor(NetworkInterface);
             ReplicaManager = new ClientReplicaManager(this, transform);
+
+            Reactor.AddHandler((byte)MessageId.LoadScene, OnLoadScene);
+
+            NetworkInterface.Disconnected += OnDisconnectedImpl;
         }
 
         protected virtual void Start() {
@@ -48,16 +60,81 @@ namespace Cube {
 
             if (Time.unscaledTimeAsDouble >= _nextNetworkTick) {
                 _nextNetworkTick = Time.timeAsDouble + Constants.TickRate;
-                Tick();
+                TickImpl();
             }
         }
 
-        protected virtual void Tick() {
+        void TickImpl() {
             ReplicaManager.Tick();
+            Tick();
         }
+
+        protected virtual void Tick() { }
 
         protected virtual void OnApplicationQuit() {
             NetworkInterface.Shutdown(0);
+        }
+
+        protected virtual void OnDisconnected() { }
+
+        void OnDisconnectedImpl(string reason) {
+            Debug.Log($"[Client] <b>Disconnected</b> ({reason})");
+
+            OnDisconnected();
+
+            ReplicaManager.Reset();
+
+            if (_sceneHandle.IsValid()) {
+                Addressables.UnloadSceneAsync(_sceneHandle);
+            }
+        }
+
+        void OnLoadScene(BitReader bs) {
+            var sceneName = bs.ReadString();
+            var generation = bs.ReadByte();
+
+            if (_currentLoadedSceneGeneration != generation) {
+                _currentLoadedSceneGeneration = generation;
+
+                StartCoroutine(LoadMap(sceneName));
+            }
+        }
+
+        protected virtual void OnStartedLoadingMap(string mapName) { }
+        protected virtual void OnEndedLoadingMap() { }
+
+        IEnumerator LoadMap(string mapName) {
+            Debug.Log($"[Client] <b>Loading scene</b> <i>{mapName}</i>");
+
+            OnStartedLoadingMap(mapName);
+
+            ReplicaManager.Reset();
+
+            if (_sceneHandle.IsValid())
+                yield return Addressables.UnloadSceneAsync(_sceneHandle);
+
+#if UNITY_EDITOR
+            // Assume server loaded map already
+            var scene = SceneManager.GetSceneByName(mapName);
+            Assert.IsTrue(scene.IsValid());
+#else
+            _sceneHandle = Addressables.LoadSceneAsync(sceneName, LoadSceneMode.Additive);
+            yield return _sceneHandle;
+            var scene = _sceneHandle.Result.Scene;
+#endif
+
+            ReplicaManager.ProcessSceneReplicasInScene(scene);
+
+            SendLoadSceneDone();
+            OnEndedLoadingMap();
+        }
+
+        void SendLoadSceneDone() {
+            var bs = new BitWriter(1);
+            bs.WriteByte((byte)MessageId.LoadSceneDone);
+            bs.WriteByte(_currentLoadedSceneGeneration);
+
+            NetworkInterface.Send(bs, PacketReliability.ReliableUnordered, MessageChannel.SceneLoad);
         }
     }
 }

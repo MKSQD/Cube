@@ -1,10 +1,15 @@
 ﻿
 namespace Cube.Transport {
     public enum MessageId : byte {
-        // To Client
+        // Server -> Client
+        LoadScene,
+
         ReplicaUpdate,
         ReplicaRpc,
         ReplicaDestroy,
+
+        // Client -> Server
+        LoadSceneDone,
 
         FirstUserId
     };

@@ -19,7 +19,7 @@ namespace Cube.Transport {
 
             ServerMessageHandler handler;
             if (!handlers.TryGetValue(messageId, out handler)) {
-                Debug.Log("Received unknown packet: " + messageId);
+                Debug.Log($"Received unknown packet {messageId}");
                 return;
             }
 

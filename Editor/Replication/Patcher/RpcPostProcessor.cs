@@ -363,7 +363,7 @@ class RpcPostProcessor : PostProcessor {
 
         // bitStream.Write((byte)Cube.Transport.MessageId.ReplicaRpc);
         il.Emit(OpCodes.Ldloc_0);
-        il.Emit(OpCodes.Ldc_I4_1);
+        il.Emit(OpCodes.Ldc_I4, (int)Cube.Transport.MessageId.ReplicaRpc);
         il.Emit(OpCodes.Callvirt, bitStreamWrite["Byte"]);
 
         // BitStreamExtensions.Write(bitStream, Replica.Id);
