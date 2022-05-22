@@ -50,9 +50,8 @@ namespace Cube {
             Assert.IsTrue(name.Length > 0);
 
             if (IsLoadingMap)
-                throw new Exception("Cant start loading, current loading");
+                throw new Exception("Currently loading map");
 
-            // Cleanup
             OnLeaveMap();
 
             IsLoadingMap = true;
