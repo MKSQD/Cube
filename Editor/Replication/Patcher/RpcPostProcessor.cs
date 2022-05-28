@@ -4,13 +4,14 @@ using System.Linq;
 using Cube.Replication;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
-using UnityEngine;
 
 class RpcPostProcessor : PostProcessor {
     TypeDefinition replicaType;
     FieldReference replicaIdField;
 
     TypeReference voidTypeReference;
+
+
 
     MethodReference debugLogErrorMethod;
 
@@ -121,21 +122,20 @@ class RpcPostProcessor : PostProcessor {
         var anythingChanged = false;
 
         foreach (var type in module.Types) {
-            if (ProcessType(type, module)) {
-                anythingChanged = true;
-            }
-
+            anythingChanged |= ProcessType(type, module);
             foreach (var nestedType in type.NestedTypes) {
-                if (ProcessType(nestedType, module)) {
-                    anythingChanged = true;
-                }
+                anythingChanged |= ProcessType(nestedType, module);
             }
         }
 
         return anythingChanged;
     }
 
-    bool ProcessType(TypeDefinition type, ModuleDefinition module) {
+    bool ProcessType(TypeDefinition type, ModuleDefinition module) => ProcessType(type, module, out byte _);
+
+    bool ProcessType(TypeDefinition type, ModuleDefinition module, out byte numRpcs) {
+        numRpcs = 0;
+
         if (!type.IsClass || !type.HasMethods)
             return false;
 
@@ -146,22 +146,30 @@ class RpcPostProcessor : PostProcessor {
 
 
 
+        var anythingChanged = false;
+
         byte nextRpcMethodId = 0;
         if (TypeInheritsFrom(type, "Cube.Replication.ReplicaBehaviour")) {
             var baseType = ResolveTypeReference(type.BaseType);
 
+            // Process base type first
             if (baseType.FullName != "Cube.Replication.ReplicaBehaviour" && baseType.Module.Name == module.Name) {
-                ProcessType(baseType, module);
+                anythingChanged |= ProcessType(baseType, module, out byte numRpcsBaseType);
+                nextRpcMethodId = numRpcsBaseType;
             }
         }
 
-        var remoteMethods = new List<MethodDefinition>();
-        var rpcMethods = new Dictionary<byte, MethodDefinition>();
+        var remoteMethods = new List<(byte, MethodDefinition)>();
         foreach (var method in type.Methods) {
             if (method.IsConstructor || !method.HasBody)
                 continue;
-            if (!method.HasCustomAttributes || !HasAttribute("Cube.Replication.ReplicaRpcAttribute", method))
+
+            var isReplicaRpc = method.HasCustomAttributes && HasAttribute("Cube.Replication.ReplicaRpcAttribute", method);
+            if (!isReplicaRpc)
                 continue;
+
+            if (!IsRpcMethodValid(method, out string error))
+                throw new Exception($"RPC method error \"{method.FullName}\": {error}");
 
             var implMethod = new MethodDefinition($"RpcImpl_{method.Name}", method.Attributes, method.ReturnType);
             foreach (var param in method.Parameters) {
@@ -169,16 +177,9 @@ class RpcPostProcessor : PostProcessor {
             }
 
             CopyMethodBody(method, implMethod);
-
             method.Body.Instructions.Clear();
-
-            if (!IsRpcMethodValid(method, out string error))
-                throw new Exception($"RPC method error \"{method.FullName}\": {error}");
-
             InjectSendRpcInstructions(nextRpcMethodId, method);
-
-            remoteMethods.Add(implMethod);
-            rpcMethods.Add(nextRpcMethodId, method);
+            remoteMethods.Add((nextRpcMethodId, implMethod));
 
             nextRpcMethodId++;
             if (nextRpcMethodId == byte.MaxValue)
@@ -186,19 +187,20 @@ class RpcPostProcessor : PostProcessor {
         }
 
         if (remoteMethods.Count == 0)
-            return false;
+            return anythingChanged;
 
-        var dispatchRpcs = CreateDispatchRpcs(remoteMethods);
+        var dispatchRpcs = CreateDispatchRpcs(remoteMethods, ResolveTypeReference(type.BaseType));
         type.Methods.Add(dispatchRpcs);
 
         foreach (var method in remoteMethods) {
-            type.Methods.Add(method);
+            type.Methods.Add(method.Item2);
         }
 
-        return true; // => changed
+        numRpcs = (byte)remoteMethods.Count;
+        return true;
     }
 
-    MethodDefinition CreateDispatchRpcs(List<MethodDefinition> remoteMethods) {
+    MethodDefinition CreateDispatchRpcs(List<(byte, MethodDefinition)> remoteMethods, TypeDefinition baseType) {
         var method = new MethodDefinition("DispatchRpc", MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.Virtual, voidTypeReference);
         method.Parameters.Add(new ParameterDefinition("methodIdx", ParameterAttributes.None, MainModule.TypeSystem.Byte));
         method.Parameters.Add(new ParameterDefinition("bs", ParameterAttributes.None, Import(bitReaderType)));
@@ -207,31 +209,32 @@ class RpcPostProcessor : PostProcessor {
 
         var il = method.Body.GetILProcessor();
 
-        var foo = new List<Instruction>();
+        var nopJumpTargets = new List<Instruction>();
 
         // switch (methodIdx)
         for (int i = 0; i < remoteMethods.Count; ++i) {
             var boo = il.Create(OpCodes.Nop);
-            foo.Add(boo);
+            nopJumpTargets.Add(boo);
 
+            var methodIdx = remoteMethods[i].Item1;
             il.Emit(OpCodes.Ldarg_1);
-            if (i == 0) {
+            if (methodIdx == 0) {
                 il.Emit(OpCodes.Brfalse_S, boo);
             } else {
-                il.Emit(OpCodes.Ldc_I4_S, (sbyte)i);
+                il.Emit(OpCodes.Ldc_I4_S, (sbyte)methodIdx);
                 il.Emit(OpCodes.Beq_S, boo);
             }
         }
 
         var boo2 = il.Create(OpCodes.Nop);
-        foo.Add(boo2);
+        nopJumpTargets.Add(boo2);
         il.Emit(OpCodes.Br_S, boo2);
 
         // T argN = bs.Read...();
         for (int i = 0; i < remoteMethods.Count; ++i) {
-            var remoteMethod = remoteMethods[i];
+            var remoteMethod = remoteMethods[i].Item2;
 
-            il.Append(foo[i]);
+            il.Append(nopJumpTargets[i]);
 
             var moo = new List<byte>();
             for (int j = 0; j < remoteMethod.Parameters.Count; ++j) {
@@ -315,10 +318,22 @@ class RpcPostProcessor : PostProcessor {
             il.Emit(OpCodes.Ret);
         }
 
-        // Debug.LogError((object)"Missing RPC dispatch");
-        il.Append(foo[foo.Count - 1]);
-        il.Emit(OpCodes.Ldstr, "Missing RPC dispatch");
-        il.Emit(OpCodes.Call, debugLogErrorMethod);
+        // ((ReplicaBehaviour)this).DispatchRpc(methodIdx, bs);
+        il.Append(nopJumpTargets[^1]);
+
+        if (baseType != null) {
+            var md = GetMethodDefinitionByName(baseType, "DispatchRpc");
+            if (md != null) {
+                var dispatchRpcMethod = Import(md);
+
+
+                il.Emit(OpCodes.Ldarg_0);
+                il.Emit(OpCodes.Ldarg_1);
+                il.Emit(OpCodes.Ldarg_2);
+                il.Emit(OpCodes.Call, dispatchRpcMethod);
+            }
+        }
+
         il.Emit(OpCodes.Ret);
 
         return method;
