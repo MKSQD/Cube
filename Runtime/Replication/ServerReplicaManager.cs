@@ -331,7 +331,7 @@ namespace Cube.Replication {
                 TransportDebugger.BeginScope($"Update Replica {replica.name} priorityAcc={priorityAcc:0} bytes={dummyBs.BytesWritten}");
 #endif
 
-                var updateBs = new BitWriter(32);
+                var updateBs = new BitWriter(dummyBs.BytesWritten / 2);
                 WriteReplicaUpdate(updateBs, replica, isOwner);
                 updateBs.FlushBits();
 #if UNITY_EDITOR
