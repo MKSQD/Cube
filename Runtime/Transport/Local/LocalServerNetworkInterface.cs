@@ -23,7 +23,7 @@ namespace Cube.Transport.Local {
             Transport.RunningServer = this;
         }
 
-        public void BroadcastBitStream(BitWriter bs, PacketReliability reliablity, int sequenceChannel = 0) {
+        public void BroadcastPacket(BitWriter bs, PacketReliability reliablity, int sequenceChannel = 0) {
             bs.FlushBits();
 
             foreach (var c in _clients) {
@@ -32,7 +32,7 @@ namespace Cube.Transport.Local {
             }
         }
 
-        public void Send(BitWriter bs, PacketReliability reliablity, Connection connection, int sequenceChannel = 0) {
+        public void SendPacket(BitWriter bs, PacketReliability reliablity, Connection connection, int sequenceChannel = 0) {
             bs.FlushBits();
 
             foreach (var c in _clients) {

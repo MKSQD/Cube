@@ -30,7 +30,7 @@ namespace Cube.Transport {
             }
         }
 
-        public void AddHandler(byte id, ServerMessageHandler handler) {
+        public void AddPacketHandler(byte id, ServerMessageHandler handler) {
             if (handlers.ContainsKey(id))
                 throw new Exception("Message handler already set");
 

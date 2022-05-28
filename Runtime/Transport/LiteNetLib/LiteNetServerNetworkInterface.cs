@@ -43,14 +43,14 @@ namespace Cube.Transport.LiteNet {
             _server.Start(transport.Port);
         }
 
-        public void BroadcastBitStream(BitWriter bs, PacketReliability reliablity, int sequenceChannel = 0) {
+        public void BroadcastPacket(BitWriter bs, PacketReliability reliablity, int sequenceChannel = 0) {
             bs.FlushBits();
 
             // #todo Incomplete LiteNet support for Span :(
             _server.SendToAll(bs.DataWritten.ToArray(), (byte)sequenceChannel, GetDeliveryMethod(reliablity));
         }
 
-        public void Send(BitWriter bs, PacketReliability reliablity, Connection connection, int sequenceChannel = 0) {
+        public void SendPacket(BitWriter bs, PacketReliability reliablity, Connection connection, int sequenceChannel = 0) {
             bs.FlushBits();
 
             var peer = _server.GetPeerById((int)connection.id);

@@ -9,7 +9,7 @@ namespace Cube.Replication {
 
         public bool isServer => Replica.isServer;
         public bool isClient => Replica.isClient;
-        public bool isOwner => Replica.IsOwner;
+        public bool IsOwned => Replica.IsOwner;
 
         public ICubeServer server => Replica.server;
         public ICubeClient client => Replica.client;

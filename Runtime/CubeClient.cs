@@ -42,7 +42,7 @@ namespace Cube {
             Reactor = new ClientReactor(NetworkInterface);
             ReplicaManager = new ClientReplicaManager(this, transform);
 
-            Reactor.AddHandler((byte)MessageId.LoadScene, OnLoadScene);
+            Reactor.AddPacketHandler((byte)MessageId.LoadScene, OnLoadScene);
 
             NetworkInterface.Disconnected += OnDisconnectedImpl;
         }
@@ -118,7 +118,7 @@ namespace Cube {
             var scene = SceneManager.GetSceneByName(mapName);
             Assert.IsTrue(scene.IsValid());
 #else
-            _sceneHandle = Addressables.LoadSceneAsync(sceneName, LoadSceneMode.Additive);
+            _sceneHandle = Addressables.LoadSceneAsync(mapName, LoadSceneMode.Additive);
             yield return _sceneHandle;
             var scene = _sceneHandle.Result.Scene;
 #endif

@@ -8,7 +8,7 @@ namespace Cube.Transport.Tests {
             var reactor = new ClientReactor(client);
 
             bool messageHandlerCalled = false;
-            reactor.AddHandler(1, (BitReader bs) => {
+            reactor.AddPacketHandler(1, (BitReader bs) => {
                 messageHandlerCalled = true;
             });
 
@@ -27,7 +27,7 @@ namespace Cube.Transport.Tests {
             var reactor = new ServerReactor(server);
 
             bool messageHandlerCalled = false;
-            reactor.AddHandler(1, (Connection connection, BitReader bs) => {
+            reactor.AddPacketHandler(1, (Connection connection, BitReader bs) => {
                 messageHandlerCalled = true;
             });
 

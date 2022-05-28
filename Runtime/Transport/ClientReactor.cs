@@ -31,7 +31,7 @@ namespace Cube.Transport {
             }
         }
 
-        public void AddHandler(byte id, ClientMessageHandler handler) {
+        public void AddPacketHandler(byte id, ClientMessageHandler handler) {
             Assert.IsFalse(handlers.ContainsKey(id), "message handler already set");
 
             handlers[id] = handler;

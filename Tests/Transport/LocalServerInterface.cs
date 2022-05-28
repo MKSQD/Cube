@@ -47,7 +47,7 @@ namespace Cube.Transport.Tests {
             }
         }
 
-        public void Send(BitWriter bs, PacketReliability reliablity, Connection connection, int sequenceChannel) {
+        public void SendPacket(BitWriter bs, PacketReliability reliablity, Connection connection, int sequenceChannel) {
             bs.FlushBits();
 
             LocalClientInterface targetClient = null;
@@ -64,7 +64,7 @@ namespace Cube.Transport.Tests {
             targetClient.EnqueueMessage(bs);
         }
 
-        public void BroadcastBitStream(BitWriter bs, PacketReliability reliablity, int sequenceChannel) {
+        public void BroadcastPacket(BitWriter bs, PacketReliability reliablity, int sequenceChannel) {
             bs.FlushBits();
 
             foreach (var client in clients) {

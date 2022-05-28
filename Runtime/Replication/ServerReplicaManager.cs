@@ -38,7 +38,7 @@ namespace Cube.Replication {
             Assert.IsNotNull(server);
 
             _server = server;
-            server.Reactor.AddHandler((byte)MessageId.ReplicaRpc, OnReplicaRpc);
+            server.Reactor.AddPacketHandler((byte)MessageId.ReplicaRpc, OnReplicaRpc);
 
             SceneManager.sceneLoaded += (scene, mode) => ProcessSceneReplicasInScene(scene);
 
@@ -339,7 +339,7 @@ namespace Cube.Replication {
 #endif
                 bytesSent += updateBs.BytesWritten;
 
-                _server.NetworkInterface.Send(updateBs, PacketReliability.Unreliable, view.Connection, MessageChannel.State);
+                _server.NetworkInterface.SendPacket(updateBs, PacketReliability.Unreliable, view.Connection, MessageChannel.State);
 
                 // We just sent this Replica, reset its priority
                 view.RelevantReplicaPriorityAccumulator[currentReplicaIdx] = 0;
@@ -363,7 +363,7 @@ namespace Cube.Replication {
                     TransportDebugger.BeginScope("Replica RPC " + queuedRpc.target);
 #endif
 
-                    _server.NetworkInterface.Send(queuedRpc.bs, PacketReliability.Unreliable, view.Connection, MessageChannel.Rpc);
+                    _server.NetworkInterface.SendPacket(queuedRpc.bs, PacketReliability.Unreliable, view.Connection, MessageChannel.Rpc);
 
 #if UNITY_EDITOR
                     TransportDebugger.EndScope(queuedRpc.bs.BitsWritten);
@@ -479,7 +479,7 @@ namespace Cube.Replication {
             }
 
             if (send) {
-                _server.NetworkInterface.Send(destroyBs, PacketReliability.Unreliable, view.Connection, MessageChannel.State);
+                _server.NetworkInterface.SendPacket(destroyBs, PacketReliability.Unreliable, view.Connection, MessageChannel.State);
             }
         }
 

@@ -95,7 +95,7 @@ namespace Cube {
             bs.WriteString(sceneName);
             bs.WriteByte(gen);
 
-            NetworkInterface.BroadcastBitStream(bs, PacketReliability.ReliableSequenced, MessageChannel.SceneLoad);
+            NetworkInterface.BroadcastPacket(bs, PacketReliability.ReliableSequenced, MessageChannel.SceneLoad);
         }
 
         void LoadMapImpl() {
@@ -133,7 +133,7 @@ namespace Cube {
             NetworkInterface.NewConnectionEstablished += OnNewConnectionEstablishedImpl;
             NetworkInterface.DisconnectNotification += OnDisconnectNotificationImpl;
 
-            Reactor.AddHandler((byte)MessageId.LoadSceneDone, OnLoadSceneDone);
+            Reactor.AddPacketHandler((byte)MessageId.LoadSceneDone, OnLoadSceneDone);
         }
 
         void OnLoadSceneDone(Connection connection, BitReader bs) {
@@ -193,7 +193,7 @@ namespace Cube {
                 bs2.WriteString(CurrentMapName);
                 bs2.WriteByte(_loadMapGeneration);
 
-                NetworkInterface.Send(bs2, PacketReliability.ReliableSequenced, connection, MessageChannel.SceneLoad);
+                NetworkInterface.SendPacket(bs2, PacketReliability.ReliableSequenced, connection, MessageChannel.SceneLoad);
             }
 
             OnNewConnectionEstablished(connection, replicaView);

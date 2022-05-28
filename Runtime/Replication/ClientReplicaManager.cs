@@ -25,9 +25,9 @@ namespace Cube.Replication {
             _instantiateTransform = instantiateTransform;
             _client = client;
 
-            client.Reactor.AddHandler((byte)MessageId.ReplicaUpdate, OnReplicaUpdate);
-            client.Reactor.AddHandler((byte)MessageId.ReplicaRpc, OnReplicaRpc);
-            client.Reactor.AddHandler((byte)MessageId.ReplicaDestroy, OnReplicaDestroy);
+            client.Reactor.AddPacketHandler((byte)MessageId.ReplicaUpdate, OnReplicaUpdate);
+            client.Reactor.AddPacketHandler((byte)MessageId.ReplicaRpc, OnReplicaRpc);
+            client.Reactor.AddPacketHandler((byte)MessageId.ReplicaDestroy, OnReplicaDestroy);
 
             _networkScene = new NetworkScene();
 
