@@ -1,6 +1,6 @@
-﻿using UnityEngine;
+﻿using System;
 using UnityEditor;
-using System;
+using UnityEngine;
 
 namespace Cube.Replication.Editor {
     [CustomEditor(typeof(Replica))]
@@ -23,7 +23,9 @@ namespace Cube.Replication.Editor {
 
             if (EditorApplication.isPlaying) {
                 EditorGUILayout.LabelField("Replica ID", replica.Id.Data.ToString());
-                EditorGUILayout.LabelField("Is Owner", replica.IsOwner.ToString());
+                EditorGUILayout.LabelField("Owner", replica.IsOwner.ToString());
+                EditorGUILayout.LabelField("Client", replica.isClient.ToString());
+                EditorGUILayout.LabelField("Server", replica.isServer.ToString());
 
                 GUILayout.BeginHorizontal();
 
