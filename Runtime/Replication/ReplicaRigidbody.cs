@@ -1,5 +1,7 @@
 ﻿using Cube.Transport;
+using UnityEditor;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace Cube.Replication {
     /// <summary>
@@ -10,40 +12,27 @@ namespace Cube.Replication {
     [RequireComponent(typeof(Rigidbody))]
     public class ReplicaRigidbody : ReplicaBehaviour {
         [Tooltip("Visual representation of the object to be interpolated (seperate from the physical representation)")]
-        public Transform model;
+        [FormerlySerializedAs("model")]
+        public Transform Model;
 
-        new Rigidbody rigidbody;
+        public ReplicaRigidbodySettings Settings;
 
-        const float maxVelocity = 16;
-        const float maxAngularVelocity = 16;
+        Rigidbody _rigidbody;
 
-        Vector3 currentModelPosition;
-        Quaternion currentModelRotation;
-        float blend;
+        Vector3 _positionError;
+        Quaternion _rotationError;
 
-        void Awake() {
-            rigidbody = GetComponent<Rigidbody>();
+        protected void Awake() {
+            _rigidbody = GetComponent<Rigidbody>();
         }
 
-        void Update() {
-            if (model != null) {
-                if (blend < 1) {
-                    blend = Mathf.Min(blend + Time.deltaTime * 3, 1);
+        protected void Update() {
+            if (isClient) {
+                Model.position = transform.position + _positionError;
 
-                    var diff = (currentModelPosition - transform.position).sqrMagnitude;
-                    if (diff < 1) {
-                        currentModelPosition = Vector3.Lerp(currentModelPosition, transform.position, blend);
-                        currentModelRotation = Quaternion.Lerp(currentModelRotation, transform.rotation, blend);
-                    } else {
-                        currentModelPosition = transform.position;
-                        currentModelRotation = transform.rotation;
-                    }
-                    model.position = currentModelPosition;
-                    model.rotation = currentModelRotation;
-                } else {
-                    currentModelPosition = transform.position;
-                    currentModelRotation = transform.rotation;
-                }
+                // _positionError.magnitude // 0.25 -> 0
+                // _positionError.magnitude // 1 -> 1
+                _positionError *= Mathf.Lerp(0.95f, 0.85f, (_positionError.magnitude - 0.25f) / 0.75f);
             }
         }
 
@@ -58,15 +47,27 @@ namespace Cube.Replication {
             bs.WriteLossyFloat(euler.y, 0, 360);
             bs.WriteLossyFloat(euler.z, 0, 360);
 
-            var sleeping = rigidbody.IsSleeping();
+            var sleeping = _rigidbody.IsSleeping();
             bs.WriteBool(sleeping);
             if (!sleeping) {
-                var velocity = rigidbody.velocity;
+                var maxVelocity = Settings.MaxVelocity;
+                var velocity = _rigidbody.velocity;
+
+#if UNITY_EDITOR
+                if (velocity.x > maxVelocity || velocity.x < -maxVelocity
+                    || velocity.y > maxVelocity || velocity.y < -maxVelocity
+                    || velocity.z > maxVelocity || velocity.z < -maxVelocity) {
+                    Debug.LogWarning("Velocity exceeded MaxVelocity (change settings or limit Rigidbody)");
+                }
+#endif
+
+
                 bs.WriteLossyFloat(velocity.x, -maxVelocity, maxVelocity);
                 bs.WriteLossyFloat(velocity.y, -maxVelocity, maxVelocity);
                 bs.WriteLossyFloat(velocity.z, -maxVelocity, maxVelocity);
 
-                var angularVelocity = rigidbody.angularVelocity;
+                var maxAngularVelocity = Settings.MaxAngularVelocity;
+                var angularVelocity = _rigidbody.angularVelocity;
                 bs.WriteLossyFloat(angularVelocity.x, -maxAngularVelocity, maxAngularVelocity);
                 bs.WriteLossyFloat(angularVelocity.y, -maxAngularVelocity, maxAngularVelocity);
                 bs.WriteLossyFloat(angularVelocity.z, -maxAngularVelocity, maxAngularVelocity);
@@ -81,33 +82,53 @@ namespace Cube.Replication {
                 y = bs.ReadLossyFloat(0, 360),
                 z = bs.ReadLossyFloat(0, 360)
             };
-            var rotation = transform.rotation = Quaternion.Euler(euler);
+            var rotation = Quaternion.Euler(euler);
 
-            var velocity = Vector3.zero;
-            var angularVelocity = Vector3.zero;
-            var sleeping = bs.ReadBool();
-            if (!sleeping) {
-                velocity = new Vector3 {
-                    x = bs.ReadLossyFloat(-maxVelocity, maxVelocity),
-                    y = bs.ReadLossyFloat(-maxVelocity, maxVelocity),
-                    z = bs.ReadLossyFloat(-maxVelocity, maxVelocity)
-                };
-                angularVelocity = new Vector3 {
-                    x = bs.ReadLossyFloat(-maxAngularVelocity, maxAngularVelocity),
-                    y = bs.ReadLossyFloat(-maxAngularVelocity, maxAngularVelocity),
-                    z = bs.ReadLossyFloat(-maxAngularVelocity, maxAngularVelocity)
-                };
+            _positionError = position - (transform.position + _positionError);
+            if (_positionError.sqrMagnitude > 1) {
+                _positionError = Vector3.zero;
             }
 
             transform.position = position;
             transform.rotation = rotation;
-            rigidbody.velocity = velocity;
-            rigidbody.angularVelocity = angularVelocity;
-            if (sleeping) {
-                rigidbody.Sleep();
+
+            var sleeping = bs.ReadBool();
+            if (!sleeping) {
+                var maxVelocity = Settings.MaxVelocity;
+                var velocity = new Vector3 {
+                    x = bs.ReadLossyFloat(-maxVelocity, maxVelocity),
+                    y = bs.ReadLossyFloat(-maxVelocity, maxVelocity),
+                    z = bs.ReadLossyFloat(-maxVelocity, maxVelocity)
+                };
+
+                var maxAngularVelocity = Settings.MaxAngularVelocity;
+                var angularVelocity = new Vector3 {
+                    x = bs.ReadLossyFloat(-maxAngularVelocity, maxAngularVelocity),
+                    y = bs.ReadLossyFloat(-maxAngularVelocity, maxAngularVelocity),
+                    z = bs.ReadLossyFloat(-maxAngularVelocity, maxAngularVelocity)
+                };
+
+                _rigidbody.velocity = velocity;
+                _rigidbody.angularVelocity = angularVelocity;
+            } else if (!_rigidbody.IsSleeping()) {
+                _rigidbody.angularVelocity = Vector3.zero;
+                _rigidbody.velocity = Vector3.zero;
+                _rigidbody.Sleep();
             }
 
-            blend = 0;
+            DebugExt.DrawWireSphere(position, 0.05f, Color.red, 10);
         }
+
+#if UNITY_EDITOR
+        void OnDrawGizmos() {
+            if (isClient) {
+                Handles.Label(transform.position, $"velocity={_rigidbody.velocity.magnitude:0.00} error={_positionError.magnitude:0.00}");
+            }
+
+            if (isServer) {
+                Handles.Label(transform.position - Vector3.up * 10, $"velocity={_rigidbody.velocity.magnitude:0.00}");
+            }
+        }
+#endif
     }
 }
