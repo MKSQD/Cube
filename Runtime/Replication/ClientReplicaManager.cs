@@ -79,14 +79,14 @@ namespace Cube.Replication {
             }
         }
 
-        HashSet<ReplicaId> _replicasInConstruction = new();
+        readonly HashSet<ReplicaId> _replicasInConstruction = new();
         void OnReplicaUpdate(BitReader bs) {
             var replicaId = bs.ReadReplicaId();
             var isSceneReplica = bs.ReadBool();
 
-            ushort prefabIdx = 0;
+            ushort prefabHash = ushort.MaxValue;
             if (!isSceneReplica) {
-                prefabIdx = bs.ReadUShort();
+                prefabHash = bs.ReadUShort();
             }
             var isOwner = bs.ReadBool();
 
@@ -99,6 +99,7 @@ namespace Cube.Replication {
                 if (_replicasInConstruction.Contains(replicaId))
                     return;
 
+                var prefabIdx = NetworkPrefabLookup.Instance.GetIndexForHash(prefabHash);
                 replica = ConstructReplica(prefabIdx, replicaId);
             }
 

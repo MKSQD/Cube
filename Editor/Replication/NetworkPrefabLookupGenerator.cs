@@ -51,22 +51,28 @@ namespace Cube.Replication.Editor {
             int numChanged = 0;
 
             var prefabs = new List<GameObject>(serverAndClientPrefabs.Count);
-            ushort nextId = 1;
+            var hashes = new List<ushort>(serverAndClientPrefabs.Count);
             foreach (var tuple in serverAndClientPrefabs.OrderBy(tuple => tuple.Item1)) {
                 var serverPrefab = tuple.Item2;
                 var clientPrefab = tuple.Item3;
-                var id = nextId++;
+
+                var hash = NameToHash(serverPrefab.name);
+                if (hashes.Contains(hash)) {
+                    Debug.LogWarning($"Duplicated Replica Prefab Hash {serverPrefab.name} ({hash})");
+                }
+
+                hashes.Add(hash);
 
                 var serverReplica = serverPrefab.GetComponent<Replica>();
-                if (serverReplica.prefabIdx != id) {
-                    serverReplica.prefabIdx = id;
+                if (serverReplica.PrefabHash != hash) {
+                    serverReplica.PrefabHash = hash;
                     EditorUtility.SetDirty(serverPrefab);
                     ++numChanged;
                 }
 
                 var clientReplica = clientPrefab.GetComponent<Replica>();
-                if (clientReplica.prefabIdx != id) {
-                    clientReplica.prefabIdx = id;
+                if (clientReplica.PrefabHash != hash) {
+                    clientReplica.PrefabHash = hash;
                     EditorUtility.SetDirty(clientPrefab);
                     ++numChanged;
                 }
@@ -84,16 +90,31 @@ namespace Cube.Replication.Editor {
                 prefabs.Add(clientPrefab);
             }
 
-            var newPrefabs = prefabs.ToArray();
+            var hashesArray = hashes.ToArray();
+            var prefabsArray = prefabs.ToArray();
+            Array.Sort(hashesArray, prefabsArray);
+
+            var dirty = false;
 
             var lookup = NetworkPrefabLookup.Instance;
-            if (lookup.Prefabs == null || !lookup.Prefabs.SequenceEqual(newPrefabs)) {
-                lookup.Prefabs = newPrefabs;
+            if (lookup.Prefabs == null || !lookup.Prefabs.SequenceEqual(prefabsArray)) {
+                lookup.Prefabs = prefabsArray;
+                dirty |= true;
+
+            }
+            if (lookup.Hashes == null || !lookup.Hashes.SequenceEqual(hashesArray)) {
+                lookup.Hashes = hashesArray;
+                dirty |= true;
+            }
+
+            if (dirty) {
                 EditorUtility.SetDirty(lookup);
             }
 
             Debug.Log($"done (#changed={numChanged})");
         }
+
+        static ushort NameToHash(string name) => (ushort)name.GetHashCode();
 
         static string ReplaceString(string str, string oldValue, string newValue, StringComparison comparison) {
             var sb = new StringBuilder();

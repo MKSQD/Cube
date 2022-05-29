@@ -114,11 +114,12 @@ namespace Cube.Replication {
             if (newReplica == null)
                 return null;
 
+            Assert.IsTrue(newReplica.PrefabHash != 0, "invalid PrefabHash");
+
             newReplica.server = _server;
             newReplica.Id = ReplicaId.Create(this);
             newReplica.TakeOwnership();
 
-            Assert.IsTrue(newReplica.prefabIdx != 0, "invalid prefabIdx");
             Assert.IsTrue(newReplica.Id != ReplicaId.Invalid);
 
             // Wait for one frame until Start is called before replicating to clients
@@ -379,7 +380,7 @@ namespace Cube.Replication {
             bs.WriteReplicaId(replica.Id);
             bs.WriteBool(replica.isSceneReplica);
             if (!replica.isSceneReplica) {
-                bs.WriteUShort(replica.prefabIdx);
+                bs.WriteUShort(replica.PrefabHash);
             }
             bs.WriteBool(isOwner);
 

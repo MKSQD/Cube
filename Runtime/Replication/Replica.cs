@@ -17,13 +17,13 @@ namespace Cube.Replication {
 
         public static ReplicaSettings DefaultReplicaSettings;
         public ReplicaSettings Settings;
-        public ReplicaSettings SettingsOrDefault => Settings != null ? Settings : DefaultReplicaSettings;
+        public ReplicaSettings SettingsOrDefault => Settings ?? DefaultReplicaSettings;
 
         [HideInInspector]
         public ReplicaId Id = ReplicaId.Invalid;
 
         [HideInInspector]
-        public ushort prefabIdx;
+        public ushort PrefabHash;
         [HideInInspector]
         public byte sceneIdx;
 

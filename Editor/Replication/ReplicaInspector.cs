@@ -15,17 +15,15 @@ namespace Cube.Replication.Editor {
             var replica = target as Replica;
 
             GUILayout.BeginHorizontal();
-            EditorGUILayout.LabelField("Prefab ID", replica.prefabIdx.ToString());
+            EditorGUILayout.LabelField("Prefab Hash", replica.PrefabHash.ToString());
             if (replica.isSceneReplica) {
-                EditorGUILayout.LabelField("Scene Replica ID", replica.sceneIdx.ToString());
+                EditorGUILayout.LabelField("Scene RID", replica.sceneIdx.ToString());
             }
+            EditorGUILayout.LabelField($"{(replica.IsOwner ? "O" : "")}{(replica.isClient ? "C" : "")}{(replica.isServer ? "S" : "")}");
             GUILayout.EndHorizontal();
 
             if (EditorApplication.isPlaying) {
-                EditorGUILayout.LabelField("Replica ID", replica.Id.Data.ToString());
-                EditorGUILayout.LabelField("Owner", replica.IsOwner.ToString());
-                EditorGUILayout.LabelField("Client", replica.isClient.ToString());
-                EditorGUILayout.LabelField("Server", replica.isServer.ToString());
+                EditorGUILayout.LabelField("RID", replica.Id.Data.ToString());
 
                 GUILayout.BeginHorizontal();
 

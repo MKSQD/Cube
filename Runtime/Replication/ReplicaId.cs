@@ -2,6 +2,9 @@
 using UnityEngine;
 
 namespace Cube.Replication {
+    /// <summary>
+    /// RID (Replica ID) uniquely identifieing a single Replica instance globally.
+    /// </summary>
     [Serializable]
     public struct ReplicaId {
         public static readonly ReplicaId Invalid = CreateFromExisting(0);
