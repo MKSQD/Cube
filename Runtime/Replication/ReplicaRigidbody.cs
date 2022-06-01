@@ -118,17 +118,5 @@ namespace Cube.Replication {
 
             DebugExt.DrawWireSphere(position, 0.05f, Color.red, 10);
         }
-
-#if UNITY_EDITOR
-        void OnDrawGizmos() {
-            if (isClient) {
-                Handles.Label(transform.position, $"velocity={_rigidbody.velocity.magnitude:0.00} error={_positionError.magnitude:0.00}");
-            }
-
-            if (isServer) {
-                Handles.Label(transform.position - Vector3.up * 10, $"velocity={_rigidbody.velocity.magnitude:0.00}");
-            }
-        }
-#endif
     }
 }
