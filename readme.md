@@ -3,12 +3,22 @@ Cube is a complete library for game multiplayer support for [Unity](https://unit
 
 The network model is mainly based on the Tribes network model and [GDC Vault: I Shot You First! Gameplay Networking in Halo: Reach](http://www.gdcvault.com/play/1014345/I-Shot-You-First-Networking). This means the bandwith per connection is predefined and only the most important, priorized information is stuffed into each single packet. The lower the available bandwidth the least detailed the client simulation becomes.
 
-More importantly, in-editor client server development is supported. Prefabs for network objects are discovered automatically together with tagged ScriptableObjects. Networked objects can be placed into a scene and behave like any other networked object. Rpcs, used as unreliable flavour events, are normal function calls rewritten via Cecil.
+More importantly, in-editor client/server development is supported. Prefabs for network objects are discovered automatically together with tagged ScriptableObjects. Networked objects can be placed into a scene and behave like any other networked object. Rpcs, used as unreliable flavour events, are normal function calls rewritten via Cecil.
 
 The transport layer is based on a plugin mechanism. Currently there's [LiteNetLib](https://github.com/RevenantX/LiteNetLib) support.
 
 ![Transport Debugger](Docs/TransportDebugger.png)
 ![Replication Settings](Docs/ReplicationSettings.png)
+
+
+## Compared to MLAPI (Netcode for GameObjects)/UNet
+- Explicit Serialize/Deserialize, no magic NetworkVariables or lists
+- True multiplayer in editor
+- Almost no docs - you are expected to read the code and learn with examples
+- Nothing is sent reliably and thus, in theory, we are more scalable (more networked objects, more players) and more robust to bad network conditions
+- ... this, on the contrary, means we use alot more bandwidth over time
+- Support for non-value type RPC arguments (tagged ScriptableObjects, ...)
+
 
 ## Getting Started
 Clone the git repository into your **Assets** folder.
