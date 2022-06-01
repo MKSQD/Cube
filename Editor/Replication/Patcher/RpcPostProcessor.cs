@@ -153,7 +153,10 @@ class RpcPostProcessor : PostProcessor {
             var baseType = ResolveTypeReference(type.BaseType);
 
             // Process base type first
-            if (baseType.FullName != "Cube.Replication.ReplicaBehaviour" && baseType.Module.Name == module.Name) {
+            // Detail: technically, we should only process types in our module (baseType.Module.Name == module.Name),
+            //         but if our base type is in another module we won't be able to call base.DispatchRpc because
+            //         assemblies are only resolved to their non-patched versions
+            if (baseType.FullName != "Cube.Replication.ReplicaBehaviour") {
                 anythingChanged |= ProcessType(baseType, module, out byte numRpcsBaseType);
                 nextRpcMethodId = numRpcsBaseType;
             }
