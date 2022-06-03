@@ -15,9 +15,9 @@ namespace Cube.Replication {
             public BitWriter bs;
         }
 
-        public static ReplicaSettings DefaultReplicaSettings;
+        public static ReplicaSettings DefaultSettings;
         public ReplicaSettings Settings;
-        public ReplicaSettings SettingsOrDefault => Settings ?? DefaultReplicaSettings;
+        public ReplicaSettings SettingsOrDefault => Settings ?? DefaultSettings;
 
         [HideInInspector]
         public ReplicaId Id = ReplicaId.Invalid;
@@ -222,11 +222,10 @@ namespace Cube.Replication {
 
         void Awake() {
             if (Settings == null) {
-                if (DefaultReplicaSettings == null) {
-                    DefaultReplicaSettings = ScriptableObject.CreateInstance<ReplicaSettings>();
+                if (DefaultSettings == null) {
+                    DefaultSettings = ScriptableObject.CreateInstance<ReplicaSettings>();
                 }
-
-                Settings = DefaultReplicaSettings;
+                Settings = DefaultSettings;
             }
 
             RebuildCaches();
