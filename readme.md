@@ -13,7 +13,7 @@ The transport layer is based on a plugin mechanism. Currently there's [LiteNetLi
 
 ## Compared to MLAPI (Netcode for GameObjects)/UNet
 - Explicit Serialize/Deserialize, no magic NetworkVariables or lists
-- True multiplayer in editor
+- True multiplayer in editor (no surprises in standalone *pinkie promise*)
 - Almost no docs - you are expected to read the code and learn with examples
 - Nothing is sent reliably and thus, in theory, we are more scalable (more networked objects, more players) and more robust to bad network conditions
 - ... this, on the contrary, means we use alot more bandwidth over time
