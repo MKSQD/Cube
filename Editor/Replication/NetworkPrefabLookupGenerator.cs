@@ -11,7 +11,7 @@ namespace Cube.Replication.Editor {
         const string ServerPrefabPrefix = "Server_";
 
         [MenuItem("Tools/Cube/Update Replica Prefabs")]
-        static void Force() {
+        public static void Force() {
             Generate();
         }
 
@@ -59,6 +59,7 @@ namespace Cube.Replication.Editor {
                 var hash = NameToHash(serverPrefab.name);
                 if (hashes.Contains(hash)) {
                     Debug.LogWarning($"Duplicated Replica Prefab Hash {serverPrefab.name} ({hash})");
+                    continue;
                 }
 
                 hashes.Add(hash);
