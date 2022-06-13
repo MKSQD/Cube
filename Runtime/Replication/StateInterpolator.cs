@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Assertions;
 
 namespace Cube.Replication {
     public class StateInterpolator<T> {
@@ -10,16 +11,27 @@ namespace Cube.Replication {
         readonly float[] _timestamps;
         int _numStates;
         readonly IStateAdapter _adapter;
+        readonly float _addStateRate;
 
-        public StateInterpolator(IStateAdapter adapter) {
-            _states = new T[10];
-            _timestamps = new float[10];
+        public StateInterpolator(IStateAdapter adapter, float maxInterpolationTime, float addStateRate) {
+            var num = Mathf.CeilToInt(maxInterpolationTime / addStateRate);
+            Assert.IsTrue(num >= 1);
+
+            _states = new T[num];
+            _timestamps = new float[num];
             _adapter = adapter;
+            _addStateRate = addStateRate;
         }
 
         public void AddState(T newState) => AddState(newState, Time.time);
 
         public void AddState(T newState, float time) {
+            if (_numStates > 0) {
+                var timeSinceLastState = time - _timestamps[0];
+                if (timeSinceLastState < _addStateRate)
+                    return;
+            }
+
             for (int i = _states.Length - 1; i >= 1; i--) {
                 _states[i] = _states[i - 1];
                 _timestamps[i] = _timestamps[i - 1];

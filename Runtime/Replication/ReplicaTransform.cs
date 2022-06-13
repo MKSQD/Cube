@@ -44,7 +44,7 @@ namespace Cube.Replication {
         }
 
         protected void Awake() {
-            _interpolator = new(this);
+            _interpolator = new(this, Replica.SettingsOrDefault.DesiredUpdateRate * 2.5f, Replica.SettingsOrDefault.DesiredUpdateRate);
         }
 
         protected void Update() {
