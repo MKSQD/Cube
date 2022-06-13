@@ -7,7 +7,15 @@ namespace Cube.Replication {
         [HideInInspector]
         public Replica Replica;
 
+        /// <summary>
+        /// Is server-side Replica?
+        /// Not valid in Awake.
+        /// </summary>
         public bool isServer => Replica.isServer;
+        /// <summary>
+        /// Is client-side Replica?
+        /// Not valid in Awake.
+        /// </summary>
         public bool isClient => Replica.isClient;
         public bool IsOwned => Replica.IsOwner;
 
@@ -15,6 +23,7 @@ namespace Cube.Replication {
         public ICubeClient client => Replica.client;
     }
 
+    [RequireComponent(typeof(Replica))]
     public abstract class ReplicaBehaviour : BaseReplicaBehaviour {
         public struct SerializeContext {
             /// <summary>
