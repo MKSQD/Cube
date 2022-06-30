@@ -1,23 +1,13 @@
 # Cube
-Cube is a complete library for game multiplayer support for [Unity](https://unity.com/) games. It's simple to use while being robust and scalable (16+ players). It's best suited for action games with little static data. Works with an Unreal style [Gameplay Framework](https://github.com/MKSQD/GameFramework).
+Cube tries to do eventual consistency based object replication for [Unity](https://unity.com/) and nothing more.
 
-The network model is mainly based on the Tribes network model and [GDC Vault: I Shot You First! Gameplay Networking in Halo: Reach](http://www.gdcvault.com/play/1014345/I-Shot-You-First-Networking). This means the bandwith per connection is predefined and only the most important, priorized information is stuffed into each single packet. The lower the available bandwidth the least detailed the client simulation becomes.
+Eventual consistency means unreliable packets only - inspired by [GDC Vault: I Shot You First! Gameplay Networking in Halo: Reach](http://www.gdcvault.com/play/1014345/I-Shot-You-First-Networking) - which makes it scalable, robust to bad network conditions and simple.
 
-More importantly, in-editor client/server development is supported. Prefabs for network objects are discovered automatically together with tagged ScriptableObjects. Networked objects can be placed into a scene and behave like any other networked object. Rpcs, used as unreliable flavour events, are normal function calls rewritten via Cecil.
-
-The transport layer is based on a plugin mechanism. Currently there's [LiteNetLib](https://github.com/RevenantX/LiteNetLib) support.
-
-![Transport Debugger](Docs/TransportDebugger.png)
-![Replication Settings](Docs/ReplicationSettings.png)
+Apart from replication, basic features required by every network game are provided, such as low level network api abstraction, rpcs-as-method-calls via Cecil assembly patching and level loading. In editor, single instance, client+server development is possible and recommended.
 
 
-## Compared to MLAPI (Netcode for GameObjects)/UNet
-- Explicit Serialize/Deserialize, no magic NetworkVariables or lists
-- True multiplayer in editor (no surprises in standalone *pinkie promise*)
-- Almost no docs - you are expected to read the code and learn with examples
-- Nothing is sent reliably and thus, in theory, we are more scalable (more networked objects, more players) and more robust to bad network conditions
-- ... this, on the contrary, means we use alot more bandwidth over time
-- Support for non-value type RPC arguments (tagged ScriptableObjects, ...)
+## State
+This library has been in development for a long time and works. It has not yet been used in any released game. It's still in development and APIs might change but the aim is to do proper semver versioning with breaking changes being major versions with explicit warnings.
 
 
 ## Getting Started
