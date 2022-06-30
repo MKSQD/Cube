@@ -7,7 +7,7 @@ Apart from replication, basic features required by every network game are provid
 
 
 ## State
-This library has been in development for a long time and works. It has not yet been used in any released game. It's still in development and APIs might change but the aim is to do proper semver versioning with breaking changes being major versions with explicit warnings.
+This library has been in development for a long time and works. It has not yet been used in any released game. It's still being actively developed and APIs might change but the aim is to do proper semver versioning with breaking changes being major versions with explicit warnings. Basic tooling is there. Patches, requests and feeding are welcome.
 
 
 ## Getting Started
