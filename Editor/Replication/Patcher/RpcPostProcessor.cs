@@ -139,8 +139,19 @@ class RpcPostProcessor : PostProcessor {
         if (!type.IsClass || !type.HasMethods)
             return false;
 
-        if (processedTypes.Contains(type.FullName))
+        if (processedTypes.Contains(type.FullName)) {
+            foreach (var method in type.Methods) {
+                if (method.IsConstructor || !method.HasBody)
+                    continue;
+
+                var isReplicaRpc = method.HasCustomAttributes && HasAttribute("Cube.Replication.ReplicaRpcAttribute", method);
+                if (!isReplicaRpc)
+                    continue;
+
+                ++numRpcs;
+            }
             return false;
+        }
 
         processedTypes.Add(type.FullName);
 
@@ -184,7 +195,7 @@ class RpcPostProcessor : PostProcessor {
             InjectSendRpcInstructions(nextRpcMethodId, method);
             remoteMethods.Add((nextRpcMethodId, implMethod));
 
-            nextRpcMethodId++;
+            ++nextRpcMethodId;
             if (nextRpcMethodId == byte.MaxValue)
                 throw new Exception($"Reached max RPC method count {nextRpcMethodId} for type {type.FullName}!");
         }
