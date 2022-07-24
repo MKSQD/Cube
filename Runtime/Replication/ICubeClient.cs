@@ -1,5 +1,4 @@
 ﻿using Cube.Transport;
-using UnityEngine;
 
 namespace Cube.Replication {
     public interface ICubeClient {

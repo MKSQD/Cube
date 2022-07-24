@@ -1,10 +1,8 @@
-﻿namespace LiteNetLib
-{
+﻿namespace LiteNetLib {
     /// <summary>
     /// Sending method type
     /// </summary>
-    public enum DeliveryMethod : byte
-    {
+    public enum DeliveryMethod : byte {
         /// <summary>
         /// Unreliable. Packets can be dropped, can be duplicated, can arrive without order.
         /// </summary>
@@ -35,8 +33,7 @@
     /// <summary>
     /// Network constants. Can be tuned from sources for your purposes.
     /// </summary>
-    public static class NetConstants
-    {
+    public static class NetConstants {
         //can be tuned
         public const int DefaultWindowSize = 64;
         public const int SocketBufferSize = 1024 * 1024; //1mb

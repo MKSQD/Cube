@@ -71,30 +71,22 @@ namespace Cube.Transport.LiteNet {
                 var f = _server.Statistics.BytesSent / Time.time;
                 f /= 1024; // b -> kb
                 var f2 = Mathf.RoundToInt(f * 100) * 0.01f;
-
                 TransportDebugger.ReportStatistic($"out {_server.Statistics.PacketsSent} {f2}kb/s");
             }
             {
                 var f = _server.Statistics.BytesReceived / Time.time;
                 f /= 1024; // b -> kb
                 var f2 = Mathf.RoundToInt(f * 100) * 0.01f;
-
                 TransportDebugger.ReportStatistic($"in {_server.Statistics.PacketsSent} {f2}kb/s");
             }
 #endif
         }
 
-        public void OnPeerConnected(NetPeer peer) {
-            NewConnectionEstablished(new Connection((ulong)peer.Id));
-        }
+        public void OnPeerConnected(NetPeer peer) => NewConnectionEstablished(new Connection((ulong)peer.Id));
 
-        public void OnPeerDisconnected(NetPeer peer, DisconnectInfo disconnectInfo) {
-            DisconnectNotification(new Connection((ulong)peer.Id));
-        }
+        public void OnPeerDisconnected(NetPeer peer, DisconnectInfo disconnectInfo) => DisconnectNotification(new Connection((ulong)peer.Id));
 
-        public void OnNetworkError(IPEndPoint endPoint, SocketError socketError) {
-            NetworkError();
-        }
+        public void OnNetworkError(IPEndPoint endPoint, SocketError socketError) => NetworkError();
 
         Memory<uint> memory = new Memory<uint>(new uint[64]);
         public void OnNetworkReceive(NetPeer peer, NetPacketReader reader, byte channelNumber, DeliveryMethod deliveryMethod) {

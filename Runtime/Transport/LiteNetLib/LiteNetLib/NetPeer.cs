@@ -9,38 +9,33 @@ using System.Net;
 using System.Threading;
 using LiteNetLib.Utils;
 
-namespace LiteNetLib
-{
+namespace LiteNetLib {
     /// <summary>
     /// Peer connection state
     /// </summary>
     [Flags]
-    public enum ConnectionState : byte
-    {
-        Outgoing         = 1 << 1,
-        Connected         = 1 << 2,
+    public enum ConnectionState : byte {
+        Outgoing = 1 << 1,
+        Connected = 1 << 2,
         ShutdownRequested = 1 << 3,
-        Disconnected      = 1 << 4,
+        Disconnected = 1 << 4,
         Any = Outgoing | Connected | ShutdownRequested
     }
 
-    internal enum ConnectRequestResult
-    {
+    internal enum ConnectRequestResult {
         None,
         P2PLose, //when peer connecting
         Reconnection,  //when peer was connected
         NewConnection  //when peer was disconnected
     }
 
-    internal enum DisconnectResult
-    {
+    internal enum DisconnectResult {
         None,
         Reject,
         Disconnect
     }
 
-    internal enum ShutdownResult
-    {
+    internal enum ShutdownResult {
         None,
         Success,
         WasConnected
@@ -49,8 +44,7 @@ namespace LiteNetLib
     /// <summary>
     /// Network peer. Main purpose is sending messages to specific peer.
     /// </summary>
-    public class NetPeer
-    {
+    public class NetPeer {
         //Ping and RTT
         private int _rtt;
         private int _avgRtt;
@@ -69,11 +63,9 @@ namespace LiteNetLib
         internal volatile NetPeer NextPeer;
         internal NetPeer PrevPeer;
 
-        internal byte ConnectionNum
-        {
+        internal byte ConnectionNum {
             get => _connectNum;
-            private set
-            {
+            private set {
                 _connectNum = value;
                 _mergeData.ConnectionNumber = value;
                 _pingPacket.ConnectionNumber = value;
@@ -97,8 +89,7 @@ namespace LiteNetLib
         private readonly object _mtuMutex = new object();
 
         //Fragment
-        private class IncomingFragments
-        {
+        private class IncomingFragments {
             public NetPacket[] Fragments;
             public int ReceivedCount;
             public int TotalSize;
@@ -160,7 +151,7 @@ namespace LiteNetLib
         /// <summary>
         /// Current ping in milliseconds
         /// </summary>
-        public int Ping => _avgRtt/2;
+        public int Ping => _avgRtt / 2;
 
         /// <summary>
         /// Current MTU - Maximum Transfer Unit ( maximum udp packet size without fragmentation )
@@ -196,8 +187,7 @@ namespace LiteNetLib
         public readonly NetStatistics Statistics;
 
         //incoming connection constructor
-        internal NetPeer(NetManager netManager, IPEndPoint remoteEndPoint, int id)
-        {
+        internal NetPeer(NetManager netManager, IPEndPoint remoteEndPoint, int id) {
             Id = id;
             Statistics = new NetStatistics();
             _packetPool = netManager.NetPacketPool;
@@ -214,7 +204,7 @@ namespace LiteNetLib
             _connectionState = ConnectionState.Connected;
             _mergeData = new NetPacket(PacketProperty.Merged, NetConstants.MaxPacketSize);
             _pongPacket = new NetPacket(PacketProperty.Pong, 0);
-            _pingPacket = new NetPacket(PacketProperty.Ping, 0) {Sequence = 1};
+            _pingPacket = new NetPacket(PacketProperty.Ping, 0) { Sequence = 1 };
 
             _unreliableChannel = new Queue<NetPacket>();
             _holdedFragments = new Dictionary<ushort, IncomingFragments>();
@@ -224,14 +214,12 @@ namespace LiteNetLib
             _channelSendQueue = new ConcurrentQueue<BaseChannel>();
         }
 
-        private void SetMtu(int mtuIdx)
-        {
+        private void SetMtu(int mtuIdx) {
             _mtuIdx = mtuIdx;
             _mtu = NetConstants.PossibleMtu[mtuIdx] - NetManager.ExtraPacketSizeForLayer;
         }
 
-        private void OverrideMtu(int mtuValue)
-        {
+        private void OverrideMtu(int mtuValue) {
             _mtu = mtuValue;
             _finishMtu = true;
         }
@@ -242,21 +230,18 @@ namespace LiteNetLib
         /// <param name="channelNumber">number of channel 0-63</param>
         /// <param name="ordered">type of channel ReliableOrdered or ReliableUnordered</param>
         /// <returns>packets count in channel queue</returns>
-        public int GetPacketsCountInReliableQueue(byte channelNumber, bool ordered)
-        {
+        public int GetPacketsCountInReliableQueue(byte channelNumber, bool ordered) {
             int idx = channelNumber * NetConstants.ChannelTypeCount +
-                       (byte) (ordered ? DeliveryMethod.ReliableOrdered : DeliveryMethod.ReliableUnordered);
+                       (byte)(ordered ? DeliveryMethod.ReliableOrdered : DeliveryMethod.ReliableUnordered);
             var channel = _channels[idx];
             return channel != null ? ((ReliableChannel)channel).PacketsInQueue : 0;
         }
 
-        private BaseChannel CreateChannel(byte idx)
-        {
+        private BaseChannel CreateChannel(byte idx) {
             BaseChannel newChannel = _channels[idx];
             if (newChannel != null)
                 return newChannel;
-            switch ((DeliveryMethod)(idx % NetConstants.ChannelTypeCount))
-            {
+            switch ((DeliveryMethod)(idx % NetConstants.ChannelTypeCount)) {
                 case DeliveryMethod.ReliableUnordered:
                     newChannel = new ReliableChannel(this, false, idx);
                     break;
@@ -279,8 +264,7 @@ namespace LiteNetLib
 
         //"Connect to" constructor
         internal NetPeer(NetManager netManager, IPEndPoint remoteEndPoint, int id, byte connectNum, NetDataWriter connectData)
-            : this(netManager, remoteEndPoint, id)
-        {
+            : this(netManager, remoteEndPoint, id) {
             _connectTime = DateTime.UtcNow.Ticks;
             _connectionState = ConnectionState.Outgoing;
             ConnectionNum = connectNum;
@@ -297,8 +281,7 @@ namespace LiteNetLib
 
         //"Accept" incoming constructor
         internal NetPeer(NetManager netManager, ConnectionRequest request, int id)
-            : this(netManager, request.RemoteEndPoint, id)
-        {
+            : this(netManager, request.RemoteEndPoint, id) {
             _connectTime = request.InternalPacket.ConnectionTime;
             ConnectionNum = request.InternalPacket.ConnectionNumber;
             RemoteId = request.InternalPacket.PeerId;
@@ -316,21 +299,18 @@ namespace LiteNetLib
         }
 
         //Reject
-        internal void Reject(NetConnectRequestPacket requestData, byte[] data, int start, int length)
-        {
+        internal void Reject(NetConnectRequestPacket requestData, byte[] data, int start, int length) {
             _connectTime = requestData.ConnectionTime;
             _connectNum = requestData.ConnectionNumber;
             Shutdown(data, start, length, false);
         }
 
-        internal bool ProcessConnectAccept(NetConnectAcceptPacket packet)
-        {
+        internal bool ProcessConnectAccept(NetConnectAcceptPacket packet) {
             if (_connectionState != ConnectionState.Outgoing)
                 return false;
 
             //check connection id
-            if (packet.ConnectionTime != _connectTime)
-            {
+            if (packet.ConnectionTime != _connectTime) {
                 NetDebug.Write(NetLogLevel.Trace, $"[NC] Invalid connectId: {packet.ConnectionTime} != our({_connectTime})");
                 return false;
             }
@@ -349,8 +329,7 @@ namespace LiteNetLib
         /// </summary>
         /// <param name="options">Type of packet that you want send</param>
         /// <returns>size in bytes</returns>
-        public int GetMaxSinglePacketSize(DeliveryMethod options)
-        {
+        public int GetMaxSinglePacketSize(DeliveryMethod options) {
             return _mtu - NetPacket.GetHeaderSize(options == DeliveryMethod.Unreliable ? PacketProperty.Unreliable : PacketProperty.Channeled);
         }
 
@@ -364,8 +343,7 @@ namespace LiteNetLib
         /// <exception cref="ArgumentException">
         ///     If you trying to send unreliable packet type<para/>
         /// </exception>
-        public void SendWithDeliveryEvent(byte[] data, byte channelNumber, DeliveryMethod deliveryMethod, object userData)
-        {
+        public void SendWithDeliveryEvent(byte[] data, byte channelNumber, DeliveryMethod deliveryMethod, object userData) {
             if (deliveryMethod != DeliveryMethod.ReliableOrdered && deliveryMethod != DeliveryMethod.ReliableUnordered)
                 throw new ArgumentException("Delivery event will work only for ReliableOrdered/Unordered packets");
             SendInternal(data, 0, data.Length, channelNumber, deliveryMethod, userData);
@@ -383,8 +361,7 @@ namespace LiteNetLib
         /// <exception cref="ArgumentException">
         ///     If you trying to send unreliable packet type<para/>
         /// </exception>
-        public void SendWithDeliveryEvent(byte[] data, int start, int length, byte channelNumber, DeliveryMethod deliveryMethod, object userData)
-        {
+        public void SendWithDeliveryEvent(byte[] data, int start, int length, byte channelNumber, DeliveryMethod deliveryMethod, object userData) {
             if (deliveryMethod != DeliveryMethod.ReliableOrdered && deliveryMethod != DeliveryMethod.ReliableUnordered)
                 throw new ArgumentException("Delivery event will work only for ReliableOrdered/Unordered packets");
             SendInternal(data, start, length, channelNumber, deliveryMethod, userData);
@@ -400,8 +377,7 @@ namespace LiteNetLib
         /// <exception cref="ArgumentException">
         ///     If you trying to send unreliable packet type<para/>
         /// </exception>
-        public void SendWithDeliveryEvent(NetDataWriter dataWriter, byte channelNumber, DeliveryMethod deliveryMethod, object userData)
-        {
+        public void SendWithDeliveryEvent(NetDataWriter dataWriter, byte channelNumber, DeliveryMethod deliveryMethod, object userData) {
             if (deliveryMethod != DeliveryMethod.ReliableOrdered && deliveryMethod != DeliveryMethod.ReliableUnordered)
                 throw new ArgumentException("Delivery event will work only for ReliableOrdered/Unordered packets");
             SendInternal(dataWriter.Data, 0, dataWriter.Length, channelNumber, deliveryMethod, userData);
@@ -417,8 +393,7 @@ namespace LiteNetLib
         ///     MTU - headerSize bytes for Unreliable<para/>
         ///     Fragment count exceeded ushort.MaxValue<para/>
         /// </exception>
-        public void Send(byte[] data, DeliveryMethod deliveryMethod)
-        {
+        public void Send(byte[] data, DeliveryMethod deliveryMethod) {
             SendInternal(data, 0, data.Length, 0, deliveryMethod, null);
         }
 
@@ -432,8 +407,7 @@ namespace LiteNetLib
         ///     MTU - headerSize bytes for Unreliable<para/>
         ///     Fragment count exceeded ushort.MaxValue<para/>
         /// </exception>
-        public void Send(NetDataWriter dataWriter, DeliveryMethod deliveryMethod)
-        {
+        public void Send(NetDataWriter dataWriter, DeliveryMethod deliveryMethod) {
             SendInternal(dataWriter.Data, 0, dataWriter.Length, 0, deliveryMethod, null);
         }
 
@@ -449,8 +423,7 @@ namespace LiteNetLib
         ///     MTU - headerSize bytes for Unreliable<para/>
         ///     Fragment count exceeded ushort.MaxValue<para/>
         /// </exception>
-        public void Send(byte[] data, int start, int length, DeliveryMethod options)
-        {
+        public void Send(byte[] data, int start, int length, DeliveryMethod options) {
             SendInternal(data, start, length, 0, options, null);
         }
 
@@ -465,8 +438,7 @@ namespace LiteNetLib
         ///     MTU - headerSize bytes for Unreliable<para/>
         ///     Fragment count exceeded ushort.MaxValue<para/>
         /// </exception>
-        public void Send(byte[] data, byte channelNumber, DeliveryMethod deliveryMethod)
-        {
+        public void Send(byte[] data, byte channelNumber, DeliveryMethod deliveryMethod) {
             SendInternal(data, 0, data.Length, channelNumber, deliveryMethod, null);
         }
 
@@ -481,8 +453,7 @@ namespace LiteNetLib
         ///     MTU - headerSize bytes for Unreliable<para/>
         ///     Fragment count exceeded ushort.MaxValue<para/>
         /// </exception>
-        public void Send(NetDataWriter dataWriter, byte channelNumber, DeliveryMethod deliveryMethod)
-        {
+        public void Send(NetDataWriter dataWriter, byte channelNumber, DeliveryMethod deliveryMethod) {
             SendInternal(dataWriter.Data, 0, dataWriter.Length, channelNumber, deliveryMethod, null);
         }
 
@@ -499,8 +470,7 @@ namespace LiteNetLib
         ///     MTU - headerSize bytes for Unreliable<para/>
         ///     Fragment count exceeded ushort.MaxValue<para/>
         /// </exception>
-        public void Send(byte[] data, int start, int length, byte channelNumber, DeliveryMethod deliveryMethod)
-        {
+        public void Send(byte[] data, int start, int length, byte channelNumber, DeliveryMethod deliveryMethod) {
             SendInternal(data, start, length, channelNumber, deliveryMethod, null);
         }
 
@@ -510,8 +480,7 @@ namespace LiteNetLib
             int length,
             byte channelNumber,
             DeliveryMethod deliveryMethod,
-            object userData)
-        {
+            object userData) {
             if (_connectionState != ConnectionState.Connected || channelNumber >= _channels.Length)
                 return;
 
@@ -519,12 +488,9 @@ namespace LiteNetLib
             PacketProperty property;
             BaseChannel channel = null;
 
-            if (deliveryMethod == DeliveryMethod.Unreliable)
-            {
+            if (deliveryMethod == DeliveryMethod.Unreliable) {
                 property = PacketProperty.Unreliable;
-            }
-            else
-            {
+            } else {
                 property = PacketProperty.Channeled;
                 channel = CreateChannel((byte)(channelNumber * NetConstants.ChannelTypeCount + (byte)deliveryMethod));
             }
@@ -536,8 +502,7 @@ namespace LiteNetLib
             int headerSize = NetPacket.GetHeaderSize(property);
             //Save mtu for multithread
             int mtu = _mtu;
-            if (length + headerSize > mtu)
-            {
+            if (length + headerSize > mtu) {
                 //if cannot be fragmented
                 if (deliveryMethod != DeliveryMethod.ReliableOrdered && deliveryMethod != DeliveryMethod.ReliableUnordered)
                     throw new TooBigPacketException("Unreliable or ReliableSequenced packet size exceeded maximum of " + (mtu - headerSize) + " bytes, Check allowed size by GetMaxSinglePacketSize()");
@@ -559,8 +524,7 @@ namespace LiteNetLib
 
                 ushort currentFragmentId = (ushort)Interlocked.Increment(ref _fragmentId);
 
-                for(ushort partIdx = 0; partIdx < totalPackets; partIdx++)
-                {
+                for (ushort partIdx = 0; partIdx < totalPackets; partIdx++) {
                     int sendLength = length > packetDataSize ? packetDataSize : length;
 
                     NetPacket p = _packetPool.GetPacket(headerSize + sendLength + NetConstants.FragmentHeaderSize);
@@ -587,11 +551,9 @@ namespace LiteNetLib
 
             if (channel == null) //unreliable
             {
-                lock(_unreliableChannel)
+                lock (_unreliableChannel)
                     _unreliableChannel.Enqueue(packet);
-            }
-            else
-            {
+            } else {
                 channel.AddToQueue(packet);
             }
         }
@@ -607,8 +569,7 @@ namespace LiteNetLib
         /// <exception cref="ArgumentException">
         ///     If you trying to send unreliable packet type<para/>
         /// </exception>
-        public void SendWithDeliveryEvent(ReadOnlySpan<byte> data, byte channelNumber, DeliveryMethod deliveryMethod, object userData)
-        {
+        public void SendWithDeliveryEvent(ReadOnlySpan<byte> data, byte channelNumber, DeliveryMethod deliveryMethod, object userData) {
             if (deliveryMethod != DeliveryMethod.ReliableOrdered && deliveryMethod != DeliveryMethod.ReliableUnordered)
                 throw new ArgumentException("Delivery event will work only for ReliableOrdered/Unordered packets");
             SendInternal(data, channelNumber, deliveryMethod, userData);
@@ -624,8 +585,7 @@ namespace LiteNetLib
         ///     MTU - headerSize bytes for Unreliable<para/>
         ///     Fragment count exceeded ushort.MaxValue<para/>
         /// </exception>
-        public void Send(ReadOnlySpan<byte> data, DeliveryMethod deliveryMethod)
-        {
+        public void Send(ReadOnlySpan<byte> data, DeliveryMethod deliveryMethod) {
             SendInternal(data, 0, deliveryMethod, null);
         }
 
@@ -640,8 +600,7 @@ namespace LiteNetLib
         ///     MTU - headerSize bytes for Unreliable<para/>
         ///     Fragment count exceeded ushort.MaxValue<para/>
         /// </exception>
-        public void Send(ReadOnlySpan<byte> data, byte channelNumber, DeliveryMethod deliveryMethod)
-        {
+        public void Send(ReadOnlySpan<byte> data, byte channelNumber, DeliveryMethod deliveryMethod) {
             SendInternal(data, channelNumber, deliveryMethod, null);
         }
 
@@ -649,8 +608,7 @@ namespace LiteNetLib
             ReadOnlySpan<byte> data,
             byte channelNumber,
             DeliveryMethod deliveryMethod,
-            object userData)
-        {
+            object userData) {
             if (_connectionState != ConnectionState.Connected || channelNumber >= _channels.Length)
                 return;
 
@@ -658,12 +616,9 @@ namespace LiteNetLib
             PacketProperty property;
             BaseChannel channel = null;
 
-            if (deliveryMethod == DeliveryMethod.Unreliable)
-            {
+            if (deliveryMethod == DeliveryMethod.Unreliable) {
                 property = PacketProperty.Unreliable;
-            }
-            else
-            {
+            } else {
                 property = PacketProperty.Channeled;
                 channel = CreateChannel((byte)(channelNumber * NetConstants.ChannelTypeCount + (byte)deliveryMethod));
             }
@@ -676,8 +631,7 @@ namespace LiteNetLib
             //Save mtu for multithread
             int mtu = _mtu;
             int length = data.Length;
-            if (length + headerSize > mtu)
-            {
+            if (length + headerSize > mtu) {
                 //if cannot be fragmented
                 if (deliveryMethod != DeliveryMethod.ReliableOrdered && deliveryMethod != DeliveryMethod.ReliableUnordered)
                     throw new TooBigPacketException("Unreliable or ReliableSequenced packet size exceeded maximum of " + (mtu - headerSize) + " bytes, Check allowed size by GetMaxSinglePacketSize()");
@@ -691,8 +645,7 @@ namespace LiteNetLib
 
                 ushort currentFragmentId = (ushort)Interlocked.Increment(ref _fragmentId);
 
-                for (ushort partIdx = 0; partIdx < totalPackets; partIdx++)
-                {
+                for (ushort partIdx = 0; partIdx < totalPackets; partIdx++) {
                     int sendLength = length > packetDataSize ? packetDataSize : length;
 
                     NetPacket p = _packetPool.GetPacket(headerSize + sendLength + NetConstants.FragmentHeaderSize);
@@ -719,43 +672,35 @@ namespace LiteNetLib
 
             if (channel == null) //unreliable
             {
-                lock(_unreliableChannel)
+                lock (_unreliableChannel)
                     _unreliableChannel.Enqueue(packet);
-            }
-            else
-            {
+            } else {
                 channel.AddToQueue(packet);
             }
         }
 #endif
 
-        public void Disconnect(byte[] data)
-        {
+        public void Disconnect(byte[] data) {
             NetManager.DisconnectPeer(this, data);
         }
 
-        public void Disconnect(NetDataWriter writer)
-        {
+        public void Disconnect(NetDataWriter writer) {
             NetManager.DisconnectPeer(this, writer);
         }
 
-        public void Disconnect(byte[] data, int start, int count)
-        {
+        public void Disconnect(byte[] data, int start, int count) {
             NetManager.DisconnectPeer(this, data, start, count);
         }
 
-        public void Disconnect()
-        {
+        public void Disconnect() {
             NetManager.DisconnectPeer(this);
         }
 
-        internal DisconnectResult ProcessDisconnect(NetPacket packet)
-        {
+        internal DisconnectResult ProcessDisconnect(NetPacket packet) {
             if ((_connectionState == ConnectionState.Connected || _connectionState == ConnectionState.Outgoing) &&
                 packet.Size >= 9 &&
                 BitConverter.ToInt64(packet.RawData, 1) == _connectTime &&
-                packet.ConnectionNumber == _connectNum)
-            {
+                packet.ConnectionNumber == _connectNum) {
                 return _connectionState == ConnectionState.Connected
                     ? DisconnectResult.Disconnect
                     : DisconnectResult.Reject;
@@ -763,19 +708,15 @@ namespace LiteNetLib
             return DisconnectResult.None;
         }
 
-        internal void AddToReliableChannelSendQueue(BaseChannel channel)
-        {
+        internal void AddToReliableChannelSendQueue(BaseChannel channel) {
             _channelSendQueue.Enqueue(channel);
         }
 
-        internal ShutdownResult Shutdown(byte[] data, int start, int length, bool force)
-        {
-            lock (_shutdownLock)
-            {
+        internal ShutdownResult Shutdown(byte[] data, int start, int length, bool force) {
+            lock (_shutdownLock) {
                 //trying to shutdown already disconnected
                 if (_connectionState == ConnectionState.Disconnected ||
-                    _connectionState == ConnectionState.ShutdownRequested)
-                {
+                    _connectionState == ConnectionState.ShutdownRequested) {
                     return ShutdownResult.None;
                 }
 
@@ -784,8 +725,7 @@ namespace LiteNetLib
                     : ShutdownResult.Success;
 
                 //don't send anything
-                if (force)
-                {
+                if (force) {
                     _connectionState = ConnectionState.Disconnected;
                     return result;
                 }
@@ -794,15 +734,12 @@ namespace LiteNetLib
                 Interlocked.Exchange(ref _timeSinceLastPacket, 0);
 
                 //send shutdown packet
-                _shutdownPacket = new NetPacket(PacketProperty.Disconnect, length) {ConnectionNumber = _connectNum};
+                _shutdownPacket = new NetPacket(PacketProperty.Disconnect, length) { ConnectionNumber = _connectNum };
                 FastBitConverter.GetBytes(_shutdownPacket.RawData, 1, _connectTime);
-                if (_shutdownPacket.Size >= _mtu)
-                {
+                if (_shutdownPacket.Size >= _mtu) {
                     //Drop additional data
                     NetDebug.WriteError("[Peer] Disconnect additional data size more than MTU - 8!");
-                }
-                else if (data != null && length > 0)
-                {
+                } else if (data != null && length > 0) {
                     Buffer.BlockCopy(data, start, _shutdownPacket.RawData, 9, length);
                 }
                 _connectionState = ConnectionState.ShutdownRequested;
@@ -812,26 +749,21 @@ namespace LiteNetLib
             }
         }
 
-        private void UpdateRoundTripTime(int roundTripTime)
-        {
+        private void UpdateRoundTripTime(int roundTripTime) {
             _rtt += roundTripTime;
             _rttCount++;
-            _avgRtt = _rtt/_rttCount;
+            _avgRtt = _rtt / _rttCount;
             _resendDelay = 25.0 + _avgRtt * 2.1; // 25 ms + double rtt
         }
 
-        internal void AddReliablePacket(DeliveryMethod method, NetPacket p)
-        {
-            if (p.IsFragmented)
-            {
+        internal void AddReliablePacket(DeliveryMethod method, NetPacket p) {
+            if (p.IsFragmented) {
                 NetDebug.Write("Fragment. Id: {0}, Part: {1}, Total: {2}", p.FragmentId, p.FragmentPart, p.FragmentsTotal);
                 //Get needed array from dictionary
                 ushort packetFragId = p.FragmentId;
                 byte packetChannelId = p.ChannelId;
-                if (!_holdedFragments.TryGetValue(packetFragId, out var incomingFragments))
-                {
-                    incomingFragments = new IncomingFragments
-                    {
+                if (!_holdedFragments.TryGetValue(packetFragId, out var incomingFragments)) {
+                    incomingFragments = new IncomingFragments {
                         Fragments = new NetPacket[p.FragmentsTotal],
                         ChannelId = p.ChannelId
                     };
@@ -844,8 +776,7 @@ namespace LiteNetLib
                 //Error check
                 if (p.FragmentPart >= fragments.Length ||
                     fragments[p.FragmentPart] != null ||
-                    p.ChannelId != incomingFragments.ChannelId)
-                {
+                    p.ChannelId != incomingFragments.ChannelId) {
                     _packetPool.Recycle(p);
                     NetDebug.WriteError("Invalid fragment packet");
                     return;
@@ -867,13 +798,11 @@ namespace LiteNetLib
                 NetPacket resultingPacket = _packetPool.GetPacket(incomingFragments.TotalSize);
 
                 int pos = 0;
-                for (int i = 0; i < incomingFragments.ReceivedCount; i++)
-                {
+                for (int i = 0; i < incomingFragments.ReceivedCount; i++) {
                     var fragment = fragments[i];
                     int writtenSize = fragment.Size - NetConstants.FragmentedHeaderTotalSize;
 
-                    if (pos+writtenSize > resultingPacket.RawData.Length)
-                    {
+                    if (pos + writtenSize > resultingPacket.RawData.Length) {
                         _holdedFragments.Remove(packetFragId);
                         NetDebug.WriteError("Fragment error pos: {0} >= resultPacketSize: {1} , totalSize: {2}",
                             pos + writtenSize,
@@ -881,8 +810,7 @@ namespace LiteNetLib
                             incomingFragments.TotalSize);
                         return;
                     }
-                    if (fragment.Size > fragment.RawData.Length)
-                    {
+                    if (fragment.Size > fragment.RawData.Length) {
                         _holdedFragments.Remove(packetFragId);
                         NetDebug.WriteError("Fragment error size: {0} > fragment.RawData.Length: {1}", fragment.Size, fragment.RawData.Length);
                         return;
@@ -907,15 +835,13 @@ namespace LiteNetLib
 
                 //Send to process
                 NetManager.CreateReceiveEvent(resultingPacket, method, (byte)(packetChannelId / NetConstants.ChannelTypeCount), 0, this);
-            }
-            else //Just simple packet
-            {
+            } else //Just simple packet
+              {
                 NetManager.CreateReceiveEvent(p, method, (byte)(p.ChannelId / NetConstants.ChannelTypeCount), NetConstants.ChanneledHeaderSize, this);
             }
         }
 
-        private void ProcessMtuPacket(NetPacket packet)
-        {
+        private void ProcessMtuPacket(NetPacket packet) {
             //header + int
             if (packet.Size < NetConstants.PossibleMtu[0])
                 return;
@@ -923,28 +849,24 @@ namespace LiteNetLib
             //first stage check (mtu check and mtu ok)
             int receivedMtu = BitConverter.ToInt32(packet.RawData, 1);
             int endMtuCheck = BitConverter.ToInt32(packet.RawData, packet.Size - 4);
-            if (receivedMtu != packet.Size || receivedMtu != endMtuCheck || receivedMtu > NetConstants.MaxPacketSize)
-            {
+            if (receivedMtu != packet.Size || receivedMtu != endMtuCheck || receivedMtu > NetConstants.MaxPacketSize) {
                 NetDebug.WriteError("[MTU] Broken packet. RMTU {0}, EMTU {1}, PSIZE {2}", receivedMtu, endMtuCheck, packet.Size);
                 return;
             }
 
-            if (packet.Property == PacketProperty.MtuCheck)
-            {
+            if (packet.Property == PacketProperty.MtuCheck) {
                 _mtuCheckAttempts = 0;
                 NetDebug.Write("[MTU] check. send back: " + receivedMtu);
                 packet.Property = PacketProperty.MtuOk;
                 NetManager.SendRawAndRecycle(packet, EndPoint);
-            }
-            else if(receivedMtu > _mtu && !_finishMtu) //MtuOk
-            {
+            } else if (receivedMtu > _mtu && !_finishMtu) //MtuOk
+              {
                 //invalid packet
                 if (receivedMtu != NetConstants.PossibleMtu[_mtuIdx + 1])
                     return;
 
-                lock (_mtuMutex)
-                {
-                    SetMtu(_mtuIdx+1);
+                lock (_mtuMutex) {
+                    SetMtu(_mtuIdx + 1);
                 }
                 //if maxed - finish.
                 if (_mtuIdx == NetConstants.PossibleMtu.Length - 1)
@@ -954,8 +876,7 @@ namespace LiteNetLib
             }
         }
 
-        private void UpdateMtuLogic(int deltaTime)
-        {
+        private void UpdateMtuLogic(int deltaTime) {
             if (_finishMtu)
                 return;
 
@@ -965,14 +886,12 @@ namespace LiteNetLib
 
             _mtuCheckTimer = 0;
             _mtuCheckAttempts++;
-            if (_mtuCheckAttempts >= MaxMtuCheckAttempts)
-            {
+            if (_mtuCheckAttempts >= MaxMtuCheckAttempts) {
                 _finishMtu = true;
                 return;
             }
 
-            lock (_mtuMutex)
-            {
+            lock (_mtuMutex) {
                 if (_mtuIdx >= NetConstants.PossibleMtu.Length - 1)
                     return;
 
@@ -989,25 +908,20 @@ namespace LiteNetLib
             }
         }
 
-        internal ConnectRequestResult ProcessConnectRequest(NetConnectRequestPacket connRequest)
-        {
+        internal ConnectRequestResult ProcessConnectRequest(NetConnectRequestPacket connRequest) {
             //current or new request
-            switch (_connectionState)
-            {
+            switch (_connectionState) {
                 //P2P case
                 case ConnectionState.Outgoing:
                     //fast check
-                    if (connRequest.ConnectionTime < _connectTime)
-                    {
+                    if (connRequest.ConnectionTime < _connectTime) {
                         return ConnectRequestResult.P2PLose;
                     }
                     //slow rare case check
-                    else if (connRequest.ConnectionTime == _connectTime)
-                    {
+                    else if (connRequest.ConnectionTime == _connectTime) {
                         var remoteBytes = EndPoint.Serialize();
                         var localBytes = connRequest.TargetAddress;
-                        for (int i = remoteBytes.Size-1; i >= 0; i--)
-                        {
+                        for (int i = remoteBytes.Size - 1; i >= 0; i--) {
                             byte rb = remoteBytes[i];
                             if (rb == localBytes[i])
                                 continue;
@@ -1019,14 +933,12 @@ namespace LiteNetLib
 
                 case ConnectionState.Connected:
                     //Old connect request
-                    if (connRequest.ConnectionTime == _connectTime)
-                    {
+                    if (connRequest.ConnectionTime == _connectTime) {
                         //just reply accept
                         NetManager.SendRaw(_connectAcceptPacket, EndPoint);
                     }
                     //New connect request
-                    else if (connRequest.ConnectionTime > _connectTime)
-                    {
+                    else if (connRequest.ConnectionTime > _connectTime) {
                         return ConnectRequestResult.Reconnection;
                     }
                     break;
@@ -1041,23 +953,19 @@ namespace LiteNetLib
         }
 
         //Process incoming packet
-        internal void ProcessPacket(NetPacket packet)
-        {
+        internal void ProcessPacket(NetPacket packet) {
             //not initialized
-            if (_connectionState == ConnectionState.Outgoing || _connectionState == ConnectionState.Disconnected)
-            {
+            if (_connectionState == ConnectionState.Outgoing || _connectionState == ConnectionState.Disconnected) {
                 _packetPool.Recycle(packet);
                 return;
             }
-            if (packet.Property == PacketProperty.ShutdownOk)
-            {
+            if (packet.Property == PacketProperty.ShutdownOk) {
                 if (_connectionState == ConnectionState.ShutdownRequested)
                     _connectionState = ConnectionState.Disconnected;
                 _packetPool.Recycle(packet);
                 return;
             }
-            if (packet.ConnectionNumber != _connectNum)
-            {
+            if (packet.ConnectionNumber != _connectNum) {
                 NetDebug.Write(NetLogLevel.Trace, "[RR]Old packet");
                 _packetPool.Recycle(packet);
                 return;
@@ -1065,12 +973,10 @@ namespace LiteNetLib
             Interlocked.Exchange(ref _timeSinceLastPacket, 0);
 
             NetDebug.Write("[RR]PacketProperty: {0}", packet.Property);
-            switch (packet.Property)
-            {
+            switch (packet.Property) {
                 case PacketProperty.Merged:
                     int pos = NetConstants.HeaderSize;
-                    while (pos < packet.Size)
-                    {
+                    while (pos < packet.Size) {
                         ushort size = BitConverter.ToUInt16(packet.RawData, pos);
                         pos += 2;
                         if (packet.RawData.Length - pos < size)
@@ -1090,8 +996,7 @@ namespace LiteNetLib
                     break;
                 //If we get ping, send pong
                 case PacketProperty.Ping:
-                    if (NetUtils.RelativeSequenceNumber(packet.Sequence, _pongPacket.Sequence) > 0)
-                    {
+                    if (NetUtils.RelativeSequenceNumber(packet.Sequence, _pongPacket.Sequence) > 0) {
                         NetDebug.Write("[PP]Ping receive, send pong");
                         FastBitConverter.GetBytes(_pongPacket.RawData, 3, DateTime.UtcNow.Ticks);
                         _pongPacket.Sequence = packet.Sequence;
@@ -1102,11 +1007,10 @@ namespace LiteNetLib
 
                 //If we get pong, calculate ping time and rtt
                 case PacketProperty.Pong:
-                    if (packet.Sequence == _pingPacket.Sequence)
-                    {
+                    if (packet.Sequence == _pingPacket.Sequence) {
                         _pingTimer.Stop();
                         int elapsedMs = (int)_pingTimer.ElapsedMilliseconds;
-                        _remoteDelta = BitConverter.ToInt64(packet.RawData, 3) + (elapsedMs * TimeSpan.TicksPerMillisecond ) / 2 - DateTime.UtcNow.Ticks;
+                        _remoteDelta = BitConverter.ToInt64(packet.RawData, 3) + (elapsedMs * TimeSpan.TicksPerMillisecond) / 2 - DateTime.UtcNow.Ticks;
                         UpdateRoundTripTime(elapsedMs);
                         NetManager.ConnectionLatencyUpdated(this, elapsedMs / 2);
                         NetDebug.Write("[PP]Ping: {0} - {1} - {2}", packet.Sequence, elapsedMs, _remoteDelta);
@@ -1116,14 +1020,12 @@ namespace LiteNetLib
 
                 case PacketProperty.Ack:
                 case PacketProperty.Channeled:
-                    if (packet.ChannelId > _channels.Length)
-                    {
+                    if (packet.ChannelId > _channels.Length) {
                         _packetPool.Recycle(packet);
                         break;
                     }
                     var channel = _channels[packet.ChannelId] ?? (packet.Property == PacketProperty.Ack ? null : CreateChannel(packet.ChannelId));
-                    if (channel != null)
-                    {
+                    if (channel != null) {
                         if (!channel.ProcessPacket(packet))
                             _packetPool.Recycle(packet);
                     }
@@ -1145,24 +1047,19 @@ namespace LiteNetLib
             }
         }
 
-        private void SendMerged()
-        {
+        private void SendMerged() {
             if (_mergeCount == 0)
                 return;
             int bytesSent;
-            if (_mergeCount > 1)
-            {
+            if (_mergeCount > 1) {
                 NetDebug.Write("[P]Send merged: " + _mergePos + ", count: " + _mergeCount);
                 bytesSent = NetManager.SendRaw(_mergeData.RawData, 0, NetConstants.HeaderSize + _mergePos, EndPoint);
-            }
-            else
-            {
+            } else {
                 //Send without length information and merging
                 bytesSent = NetManager.SendRaw(_mergeData.RawData, NetConstants.HeaderSize + 2, _mergePos - 2, EndPoint);
             }
 
-            if (NetManager.EnableStatistics)
-            {
+            if (NetManager.EnableStatistics) {
                 Statistics.IncrementPacketsSent();
                 Statistics.AddBytesSent(bytesSent);
             }
@@ -1171,18 +1068,15 @@ namespace LiteNetLib
             _mergeCount = 0;
         }
 
-        internal void SendUserData(NetPacket packet)
-        {
+        internal void SendUserData(NetPacket packet) {
             packet.ConnectionNumber = _connectNum;
             int mergedPacketSize = NetConstants.HeaderSize + packet.Size + 2;
             const int sizeTreshold = 20;
-            if (mergedPacketSize + sizeTreshold >= _mtu)
-            {
+            if (mergedPacketSize + sizeTreshold >= _mtu) {
                 NetDebug.Write(NetLogLevel.Trace, "[P]SendingPacket: " + packet.Property);
                 int bytesSent = NetManager.SendRaw(packet, EndPoint);
 
-                if (NetManager.EnableStatistics)
-                {
+                if (NetManager.EnableStatistics) {
                     Statistics.IncrementPacketsSent();
                     Statistics.AddBytesSent(bytesSent);
                 }
@@ -1199,14 +1093,11 @@ namespace LiteNetLib
             //DebugWriteForce("Merged: " + _mergePos + "/" + (_mtu - 2) + ", count: " + _mergeCount);
         }
 
-        internal void Update(int deltaTime)
-        {
+        internal void Update(int deltaTime) {
             Interlocked.Add(ref _timeSinceLastPacket, deltaTime);
-            switch (_connectionState)
-            {
+            switch (_connectionState) {
                 case ConnectionState.Connected:
-                    if (_timeSinceLastPacket > NetManager.DisconnectTimeout)
-                    {
+                    if (_timeSinceLastPacket > NetManager.DisconnectTimeout) {
                         NetDebug.Write(
                             "[UPDATE] Disconnect by timeout: {0} > {1}",
                             _timeSinceLastPacket,
@@ -1217,15 +1108,11 @@ namespace LiteNetLib
                     break;
 
                 case ConnectionState.ShutdownRequested:
-                    if (_timeSinceLastPacket > NetManager.DisconnectTimeout)
-                    {
+                    if (_timeSinceLastPacket > NetManager.DisconnectTimeout) {
                         _connectionState = ConnectionState.Disconnected;
-                    }
-                    else
-                    {
+                    } else {
                         _shutdownTimer += deltaTime;
-                        if (_shutdownTimer >= ShutdownDelay)
-                        {
+                        if (_shutdownTimer >= ShutdownDelay) {
                             _shutdownTimer = 0;
                             NetManager.SendRaw(_shutdownPacket, EndPoint);
                         }
@@ -1234,12 +1121,10 @@ namespace LiteNetLib
 
                 case ConnectionState.Outgoing:
                     _connectTimer += deltaTime;
-                    if (_connectTimer > NetManager.ReconnectDelay)
-                    {
+                    if (_connectTimer > NetManager.ReconnectDelay) {
                         _connectTimer = 0;
                         _connectAttempts++;
-                        if (_connectAttempts > NetManager.MaxConnectAttempts)
-                        {
+                        if (_connectAttempts > NetManager.MaxConnectAttempts) {
                             NetManager.DisconnectPeerForce(this, DisconnectReason.ConnectionFailed, 0, null);
                             return;
                         }
@@ -1255,8 +1140,7 @@ namespace LiteNetLib
 
             //Send ping
             _pingSendTimer += deltaTime;
-            if (_pingSendTimer >= NetManager.PingInterval)
-            {
+            if (_pingSendTimer >= NetManager.PingInterval) {
                 NetDebug.Write("[PP] Send ping...");
                 //reset timer
                 _pingSendTimer = 0;
@@ -1271,8 +1155,7 @@ namespace LiteNetLib
 
             //RTT - round trip time
             _rttResetTimer += deltaTime;
-            if (_rttResetTimer >= NetManager.PingInterval * 3)
-            {
+            if (_rttResetTimer >= NetManager.PingInterval * 3) {
                 _rttResetTimer = 0;
                 _rtt = _avgRtt;
                 _rttCount = 1;
@@ -1282,22 +1165,18 @@ namespace LiteNetLib
 
             //Pending send
             int count = _channelSendQueue.Count;
-            while (count-- > 0)
-            {
+            while (count-- > 0) {
                 if (!_channelSendQueue.TryDequeue(out var channel))
                     break;
-                if (channel.SendAndCheckQueue())
-                {
+                if (channel.SendAndCheckQueue()) {
                     // still has something to send, re-add it to the send queue
                     _channelSendQueue.Enqueue(channel);
                 }
             }
 
-            lock (_unreliableChannel)
-            {
+            lock (_unreliableChannel) {
                 int unreliableCount = _unreliableChannel.Count;
-                for (int i = 0; i < unreliableCount; i++)
-                {
+                for (int i = 0; i < unreliableCount; i++) {
                     var packet = _unreliableChannel.Dequeue();
                     SendUserData(packet);
                     NetManager.NetPacketPool.Recycle(packet);
@@ -1308,26 +1187,18 @@ namespace LiteNetLib
         }
 
         //For reliable channel
-        internal void RecycleAndDeliver(NetPacket packet)
-        {
-            if (packet.UserData != null)
-            {
-                if (packet.IsFragmented)
-                {
+        internal void RecycleAndDeliver(NetPacket packet) {
+            if (packet.UserData != null) {
+                if (packet.IsFragmented) {
                     _deliveredFragments.TryGetValue(packet.FragmentId, out ushort fragCount);
                     fragCount++;
-                    if (fragCount == packet.FragmentsTotal)
-                    {
+                    if (fragCount == packet.FragmentsTotal) {
                         NetManager.MessageDelivered(this, packet.UserData);
                         _deliveredFragments.Remove(packet.FragmentId);
-                    }
-                    else
-                    {
+                    } else {
                         _deliveredFragments[packet.FragmentId] = fragCount;
                     }
-                }
-                else
-                {
+                } else {
                     NetManager.MessageDelivered(this, packet.UserData);
                 }
                 packet.UserData = null;
