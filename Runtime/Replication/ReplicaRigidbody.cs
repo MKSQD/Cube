@@ -142,8 +142,6 @@ namespace Cube.Replication {
                 _rigidbody.velocity = Vector3.zero;
                 _rigidbody.Sleep();
             }
-
-            DebugExt.DrawWireSphere(position, 0.05f, Color.red, 10);
         }
     }
 }
