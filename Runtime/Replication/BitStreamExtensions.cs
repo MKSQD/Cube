@@ -19,7 +19,7 @@ namespace Cube.Replication {
 
         public static void WriteNetworkObject(this IBitWriter bs, NetworkObject networkObject) {
             var max = NetworkObjectLookup.Instance.Entries.Length;
-            var idx = networkObject != null ? networkObject.networkAssetId : -1;
+            var idx = networkObject != null ? networkObject.NetworkAssetId : -1;
             bs.WriteIntInRange(idx, -1, max);
         }
 

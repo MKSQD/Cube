@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using Unity.Collections;
+using UnityEngine;
 
 namespace Cube.Replication {
     /// <summary>
@@ -6,7 +7,7 @@ namespace Cube.Replication {
     /// Note that only the reference, NOT the ScriptableObject contents are sent.
     /// </summary>
     public class NetworkObject : ScriptableObject {
-        [HideInInspector]
-        public int networkAssetId = -1;
+        [ReadOnly]
+        public int NetworkAssetId = -1;
     }
 }

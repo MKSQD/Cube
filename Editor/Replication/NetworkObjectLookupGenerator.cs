@@ -54,8 +54,8 @@ namespace Cube.Replication {
                     continue;
                 }
 
-                if (asset.networkAssetId != networkObjects.Count) {
-                    asset.networkAssetId = networkObjects.Count;
+                if (asset.NetworkAssetId != networkObjects.Count) {
+                    asset.NetworkAssetId = networkObjects.Count;
                     EditorUtility.SetDirty(asset);
                 }
 
