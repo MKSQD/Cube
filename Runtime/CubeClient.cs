@@ -104,7 +104,7 @@ namespace Cube {
         protected virtual void OnEndedLoadingMap() { }
 
         IEnumerator LoadMap(string mapName) {
-            Debug.Log($"[Client] <b>Loading scene</b> <i>{mapName}</i>");
+            Debug.Log($"[Client] <b>Loading map</b> <i>{mapName}</i>");
 
             OnStartedLoadingMap(mapName);
 
