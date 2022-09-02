@@ -18,7 +18,7 @@ namespace Cube.Replication {
         public ReplicaPriorityFlag priorityFlags = ReplicaPriorityFlag.None;
 
         [Tooltip("Used for spacial prioritisation. Replicas further away than this distance are never send.")]
-        [Range(1, 1000)]
+        [Range(1, 2000)]
         public float MaxViewDistance = 100;
 
         public float SqrMaxViewDistance => Mathf.Pow(MaxViewDistance, 2);

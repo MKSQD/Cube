@@ -121,12 +121,18 @@ namespace Cube {
             _sceneHandle = Addressables.LoadSceneAsync(mapName, LoadSceneMode.Additive);
             yield return _sceneHandle;
             var scene = _sceneHandle.Result.Scene;
+
+            
 #endif
 
             ReplicaManager.ProcessSceneReplicasInScene(scene);
 
             SendLoadSceneDone();
             OnEndedLoadingMap();
+
+#if !UNITY_EDITOR
+           EventHub<MapLoaded>.EmitDefault();
+#endif
         }
 
         void SendLoadSceneDone() {

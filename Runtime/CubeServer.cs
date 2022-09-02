@@ -10,9 +10,9 @@ using UnityEngine.ResourceManagement.ResourceProviders;
 using UnityEngine.SceneManagement;
 
 namespace Cube {
-    public class CubeServer : MonoBehaviour, ICubeServer {
-        public event Action MapLoaded;
+    public readonly struct MapLoaded : IEvent { }
 
+    public class CubeServer : MonoBehaviour, ICubeServer {
         public Transport.Transport Transport;
 #if UNITY_EDITOR
         public Transport.Transport TransportInEditor;
@@ -104,7 +104,7 @@ namespace Cube {
                 Debug.Log("[Server] Map loaded");
 
                 IsLoadingMap = false;
-                MapLoaded?.Invoke();
+                EventHub<MapLoaded>.EmitDefault();
 
                 OnMapLoaded();
             };
