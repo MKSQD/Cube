@@ -77,11 +77,7 @@ namespace Cube.Replication {
                 throw new ArgumentNullException("prefab");
 
             var newInstance = UnityEngine.Object.Instantiate(prefab, position, rotation, _server.ReplicaParentTransform);
-            var replica = InstantiateReplicaImpl(newInstance);
-            if (replica == null) {
-                Debug.LogError($"Prefab <i>{prefab}</i> is missing Replica Component", prefab);
-                return null;
-            }
+            AddReplica(newInstance);
 
             return newInstance;
         }
@@ -94,25 +90,24 @@ namespace Cube.Replication {
 
         public AsyncOperationHandle<GameObject> InstantiateReplicaAsync(object key, Vector3 position, Quaternion rotation) {
             var newInstance = Addressables.InstantiateAsync(key, position, rotation, _server.ReplicaParentTransform);
-            newInstance.Completed += obj => {
-                if (obj.Result == null) {
-                    Debug.LogError($"Instaniate failed, maybe invalid key '{key}'");
-                    return;
-                }
-
-                var replica = InstantiateReplicaImpl(obj.Result);
-                if (replica == null) {
-                    Debug.LogError($"Prefab <i>{key}</i> is missing Replica Component");
-                }
-            };
-
+            if (newInstance.IsDone) {
+                AddReplica(newInstance.Result);
+            } else {
+                newInstance.Completed += obj => {
+                    if (obj.Result == null) {
+                        Debug.LogError($"Instantiate failed, maybe invalid key '{key}'");
+                        return;
+                    }
+                    AddReplica(obj.Result);
+                };
+            }
             return newInstance;
         }
 
-        Replica InstantiateReplicaImpl(GameObject newInstance) {
+        void AddReplica(GameObject newInstance) {
             var newReplica = newInstance.GetComponent<Replica>();
             if (newReplica == null)
-                return null;
+                throw new Exception("Prefab is missing Replica component");
 
             Assert.IsTrue(newReplica.PrefabHash != 0, "invalid PrefabHash");
 
@@ -124,8 +119,6 @@ namespace Cube.Replication {
 
             // Wait for one frame until Start is called before replicating to clients
             _replicasInConstruction[newReplica.Id] = newReplica;
-
-            return newReplica;
         }
 
         /// <summary>
