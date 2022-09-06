@@ -8,7 +8,7 @@ using UnityEngine.SceneManagement;
 namespace Cube.Replication {
     public sealed class ClientReplicaManager : IClientReplicaManager {
 #if UNITY_EDITOR
-        public static List<ClientReplicaManager> All = new List<ClientReplicaManager>();
+        public static List<ClientReplicaManager> All = new();
 #endif
 
         readonly ICubeClient _client;
@@ -79,7 +79,6 @@ namespace Cube.Replication {
             }
         }
 
-        readonly HashSet<ReplicaId> _replicasInConstruction = new();
         void OnReplicaUpdate(BitReader bs) {
             var replicaId = bs.ReadReplicaId();
             var isSceneReplica = bs.ReadBool();
@@ -90,17 +89,14 @@ namespace Cube.Replication {
             }
             var isOwner = bs.ReadBool();
 
-
             var replica = _networkScene.GetReplicaById(replicaId);
             if (replica == null) {
                 if (isSceneReplica)
                     return; // Don't construct scene Replicas
 
-                if (_replicasInConstruction.Contains(replicaId))
-                    return;
-
                 var prefabIdx = NetworkPrefabLookup.Instance.GetIndexForHash(prefabHash);
                 replica = ConstructReplica(prefabIdx, replicaId);
+                _networkScene.AddReplica(replica);
             }
 
             if (isOwner != replica.IsOwner) {
@@ -130,9 +126,7 @@ namespace Cube.Replication {
             if (!_networkPrefabLookup.TryGetClientPrefabForIndex(prefabIdx, out GameObject prefab))
                 throw new Exception($"Prefab for index {prefabIdx} not found!");
 
-            _replicasInConstruction.Add(replicaId);
-
-            var newGameObject = GameObject.Instantiate(prefab, _instantiateTransform);
+            var newGameObject = UnityEngine.Object.Instantiate(prefab, _instantiateTransform);
 
             var replica = newGameObject.GetComponent<Replica>();
             if (replica == null)
@@ -140,10 +134,6 @@ namespace Cube.Replication {
 
             replica.client = _client;
             replica.Id = replicaId;
-
-            _replicasInConstruction.Remove(replicaId);
-            _networkScene.AddReplica(replica);
-
             return replica;
         }
 

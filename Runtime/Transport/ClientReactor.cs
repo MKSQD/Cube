@@ -7,19 +7,16 @@ namespace Cube.Transport {
     public delegate void ClientMessageHandler(BitReader bs);
 
     public class ClientReactor {
-        readonly Dictionary<byte, ClientMessageHandler> handlers;
+        readonly Dictionary<byte, ClientMessageHandler> handlers = new();
 
         public ClientReactor(IClientNetworkInterface networkInterface) {
-            handlers = new Dictionary<byte, ClientMessageHandler>();
-
             networkInterface.ReceivedPacket += OnReceivedPacket;
         }
 
         void OnReceivedPacket(BitReader bs) {
             var messageId = bs.ReadByte();
 
-            ClientMessageHandler packetHandler;
-            if (!handlers.TryGetValue(messageId, out packetHandler)) {
+            if (!handlers.TryGetValue(messageId, out ClientMessageHandler packetHandler)) {
                 Debug.LogWarning("[Client] Received unknown packet " + messageId);
                 return;
             }
