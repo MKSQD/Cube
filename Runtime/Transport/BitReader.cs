@@ -7,22 +7,23 @@ namespace Cube.Transport {
     public sealed class BitReader {
         // All goodness from yojimbo network library. All bugs belong to us.
 
+        public ReadOnlyMemory<uint> Data => _data;
+
         ulong _scratch = 0;
         int _scratchBits = 0;
         int _bitsRead = 0;
         int _wordIndex = 0;
-        ReadOnlyMemory<uint> _data;
-        int _numBits => _numBytes * 8;
-        int _numBytes;
+        readonly ReadOnlyMemory<uint> _data;
+        int NumBits => _numBytes * 8;
+
+        readonly int _numBytes;
+        public int NumBytes => _numBytes;
 
         public int BitsRead => _bitsRead;
         int GetAlignBits => (8 - _bitsRead % 8) % 8;
 
         public BitReader(ReadOnlySpan<byte> data, Memory<uint> preallocatedMemory) {
             var newSpan = MemoryMarshal.AsBytes(preallocatedMemory.Span);
-            for (int i = 0; i < data.Length; ++i) {
-                newSpan[i] = data[i];
-            }
             data.CopyTo(newSpan);
 
             _data = preallocatedMemory;
@@ -41,12 +42,25 @@ namespace Cube.Transport {
             _numBytes = bytes;
         }
 
-        public bool WouldReadPastEnd(int bits) => _bitsRead + bits > _numBits;
+        /// <summary>
+        /// Does a DEEP clone of the exact state.
+        /// </summary>
+        public BitReader Clone() {
+            var bs = new BitReader(Data[..((NumBytes / 4) + 1)], NumBytes);
+            bs.SkipBits(BitsRead);
+            return bs;
+        }
+
+        public bool WouldReadPastEnd(int bits) => _bitsRead + bits > NumBits;
+
+        public void SkipBits(int bits) {
+            ReadBits(bits);
+        }
 
         public uint ReadBits(int bits) {
             Assert.IsTrue(bits > 0);
             Assert.IsTrue(bits <= 32);
-            Assert.IsTrue(_bitsRead + bits <= _numBits, "exhausted");
+            Assert.IsTrue(_bitsRead + bits <= NumBits, "exhausted");
 
             _bitsRead += bits;
 
@@ -82,7 +96,7 @@ namespace Cube.Transport {
 
         void ReadBytes(Span<byte> data) {
             Assert.IsTrue(GetAlignBits == 0);
-            Assert.IsTrue(_bitsRead + data.Length * 8 <= _numBits);
+            Assert.IsTrue(_bitsRead + data.Length * 8 <= NumBits);
             Assert.IsTrue((_bitsRead % 32) == 0 || (_bitsRead % 32) == 8 || (_bitsRead % 32) == 16 || (_bitsRead % 32) == 24);
 
             int headBytes = (4 - (_bitsRead % 32) / 8) % 4;
