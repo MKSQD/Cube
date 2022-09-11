@@ -131,7 +131,7 @@ namespace Cube {
             OnEndedLoadingMap();
 
 #if !UNITY_EDITOR
-           EventHub<MapLoaded>.EmitDefault();
+           EventHub<MapLoaded>.Emit(new());
 #endif
         }
 
