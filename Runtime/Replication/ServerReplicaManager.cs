@@ -104,18 +104,23 @@ namespace Cube.Replication {
             return newInstance;
         }
 
-        void AddReplica(GameObject newInstance) {
+        public void AddReplica(GameObject newInstance) {
+            Assert.IsNotNull(newInstance);
+
             var newReplica = newInstance.GetComponent<Replica>();
             if (newReplica == null)
                 throw new Exception("Prefab is missing Replica component");
 
+            AddReplica(newReplica);
+        }
+
+        public void AddReplica(Replica newReplica) {
             Assert.IsTrue(newReplica.PrefabHash != 0, "invalid PrefabHash");
+            Assert.IsTrue(newReplica.Id == ReplicaId.Invalid);
 
             newReplica.server = _server;
             newReplica.Id = ReplicaId.Create(this);
             newReplica.TakeOwnership();
-
-            Assert.IsTrue(newReplica.Id != ReplicaId.Invalid);
 
             // Wait for one frame until Start is called before replicating to clients
             _replicasInConstruction[newReplica.Id] = newReplica;
@@ -144,8 +149,8 @@ namespace Cube.Replication {
                 return; // Replica already destroyed
 
             // We don't need to send a destroy message if the replica is not yet fully constructed on the server
-            bool alreadyConstructed = !_replicasInConstruction.Remove(replica.Id);
-            if (!alreadyConstructed) {
+            var wasInConstruction = _replicasInConstruction.Remove(replica.Id);
+            if (wasInConstruction) {
                 _networkScene.RemoveReplica(replica);
                 replica.Id = ReplicaId.Invalid;
                 UnityEngine.Object.Destroy(replica.gameObject);
@@ -380,7 +385,12 @@ namespace Cube.Replication {
             var serializeCtx = new ReplicaBehaviour.SerializeContext() {
                 IsOwner = isOwner
             };
-            replica.Serialize(bs, serializeCtx);
+            try {
+                replica.Serialize(bs, serializeCtx);
+            } catch (Exception e) {
+                Debug.LogException(e, replica);
+                throw;
+            }
         }
 
         Dictionary<Replica, float> _oldAccs = new();

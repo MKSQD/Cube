@@ -18,7 +18,7 @@ namespace Cube.Replication {
 
         public static ReplicaRigidbodySettings DefaultSettings;
         public ReplicaRigidbodySettings Settings;
-        public ReplicaRigidbodySettings SettingsOrDefault => Settings ?? DefaultSettings;
+        public ReplicaRigidbodySettings SettingsOrDefault => Settings != null ? Settings : DefaultSettings;
 
         Rigidbody _rigidbody;
 

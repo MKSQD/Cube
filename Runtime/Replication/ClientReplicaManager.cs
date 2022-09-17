@@ -79,6 +79,12 @@ namespace Cube.Replication {
             }
         }
 
+        public void AddReplica(Replica replica) {
+            replica.client = _client;
+
+            _networkScene.AddReplica(replica);
+        }
+
         void OnReplicaUpdate(BitReader bs) {
             var replicaId = bs.ReadReplicaId();
             var isSceneReplica = bs.ReadBool();
@@ -96,7 +102,7 @@ namespace Cube.Replication {
 
                 var prefabIdx = NetworkPrefabLookup.Instance.GetIndexForHash(prefabHash);
                 replica = ConstructReplica(prefabIdx, replicaId);
-                _networkScene.AddReplica(replica);
+                AddReplica(replica);
             }
 
             if (isOwner != replica.IsOwner) {
@@ -132,8 +138,8 @@ namespace Cube.Replication {
             if (replica == null)
                 throw new Exception("Replica component missing on " + prefab);
 
-            replica.client = _client;
             replica.Id = replicaId;
+            replica.client = _client;
             return replica;
         }
 

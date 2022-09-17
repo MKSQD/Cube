@@ -8,7 +8,7 @@ namespace Cube.Replication {
     /// </summary>
     /// <remarks>Available in: Editor/Client/Server</remarks>
     [AddComponentMenu("Cube/ReplicaTransform")]
-    public class ReplicaTransform : ReplicaBehaviour, StateInterpolator<ReplicaTransform.State>.IStateAdapter {
+    public sealed class ReplicaTransform : ReplicaBehaviour, StateInterpolator<ReplicaTransform.State>.IStateAdapter {
         public struct State {
             public float Timestamp;
             public Vector3 Position;
@@ -43,17 +43,17 @@ namespace Cube.Replication {
             _interpolator.AddState(newState);
         }
 
-        protected void Awake() {
+        void Awake() {
             _interpolator = new(this, Replica.SettingsOrDefault.DesiredUpdateRate * 2.5f, Replica.SettingsOrDefault.DesiredUpdateRate);
         }
 
-        protected void Update() {
+        void Update() {
             if (isClient) {
                 var state = new State() {
                     Position = transform.position,
                     Rotation = transform.rotation
                 };
-                _interpolator.Sample(ref state, Replica.SettingsOrDefault.DesiredUpdateRate * 2.5f);
+                _interpolator.Sample(ref state, Replica.SettingsOrDefault.DesiredUpdateRate * 1.5f);
                 transform.position = state.Position;
                 transform.rotation = state.Rotation;
             }
