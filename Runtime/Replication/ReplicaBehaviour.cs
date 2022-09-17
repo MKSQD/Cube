@@ -4,7 +4,6 @@ using UnityEngine;
 
 namespace Cube.Replication {
     public abstract class BaseReplicaBehaviour : MonoBehaviour {
-        [HideInInspector]
         public Replica Replica;
 
         /// <summary>

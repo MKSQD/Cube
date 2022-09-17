@@ -9,7 +9,7 @@ namespace Cube.Replication {
     [AddComponentMenu("Cube/Replica")]
     [DisallowMultipleComponent]
     [SelectionBase]
-    public class Replica : MonoBehaviour {
+    public sealed class Replica : MonoBehaviour {
         public struct QueuedRpc {
             public RpcTarget target;
             public BitWriter bs;
@@ -17,7 +17,7 @@ namespace Cube.Replication {
 
         public static ReplicaSettings DefaultSettings;
         public ReplicaSettings Settings;
-        public ReplicaSettings SettingsOrDefault => Settings ?? DefaultSettings;
+        public ReplicaSettings SettingsOrDefault => Settings != null ? Settings : DefaultSettings;
 
         [HideInInspector]
         public ReplicaId Id = ReplicaId.Invalid;
@@ -43,20 +43,22 @@ namespace Cube.Replication {
         public Connection Owner { get; private set; }
         public bool IsOwner { get; private set; }
 
-        ReplicaBehaviour[] _replicaBehaviours;
-#if UNITY_EDITOR
-        string[] _replicaBehavioursNames;
-#endif
-
         /// <summary>
         /// Used on the client to remove Replicas which received no updates for a long time.
         /// </summary>
         [HideInInspector]
         public float lastUpdateTime;
 
-        public List<QueuedRpc> queuedRpcs = new List<QueuedRpc>();
+        public List<QueuedRpc> queuedRpcs = new();
 
         static bool applicationQuitting;
+
+        [SerializeField]
+        ReplicaBehaviour[] _replicaBehaviours;
+#if UNITY_EDITOR
+        [SerializeField]
+        string[] _replicaBehavioursNames;
+#endif
 
         public void AssignOwnership(Connection owner) {
             Assert.IsTrue(isServer);
@@ -84,7 +86,7 @@ namespace Cube.Replication {
         }
 
         // [0,1]
-        public virtual float GetRelevance(ReplicaView view) {
+        public float GetRelevance(ReplicaView view) {
             if (!isSceneReplica && Owner == view.Connection)
                 return 1;
 
@@ -228,6 +230,10 @@ namespace Cube.Replication {
                 Settings = DefaultSettings;
             }
 
+            //RebuildCaches();
+        }
+
+        void OnValidate() {
             RebuildCaches();
         }
 
