@@ -1,5 +1,4 @@
 ﻿using UnityEngine;
-using UnityEngine.Assertions;
 
 namespace Cube.Replication {
     public class NetworkPrefabLookup : GlobalData<NetworkPrefabLookup> {
@@ -7,11 +6,7 @@ namespace Cube.Replication {
         public ushort[] Hashes;
 
         public bool TryGetClientPrefabForIndex(int prefabIdx, out GameObject prefab) {
-            if (prefabIdx == 0) {
-                prefab = null;
-                return false;
-            }
-            if (prefabIdx > Prefabs.Length) {
+            if (prefabIdx == 0 || prefabIdx > Prefabs.Length) {
                 prefab = null;
                 return false;
             }
@@ -20,30 +15,22 @@ namespace Cube.Replication {
         }
 
         public ushort GetIndexForHash(ushort hash) {
-            Assert.IsTrue(Hashes.Length < ushort.MaxValue);
-
-
             int minNum = 0;
             int maxNum = Hashes.Length - 1;
 
             while (minNum <= maxNum) {
-                int mid = (minNum + maxNum) / 2;
-                if (hash == Hashes[mid]) {
+                var mid = (minNum + maxNum) / 2;
+
+                var midHash = Hashes[mid];
+                if (hash == midHash) {
                     return (ushort)mid;
-                } else if (hash < Hashes[mid]) {
+                } else if (hash < midHash) {
                     maxNum = mid - 1;
                 } else {
                     minNum = mid + 1;
                 }
             }
 
-
-
-
-            // for (ushort i = 0; i < Hashes.Length; ++i) {
-            //     if (Hashes[i] == hash)
-            //         return i;
-            // }
             throw new System.Exception("Hash not found");
         }
     }
