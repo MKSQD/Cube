@@ -55,21 +55,19 @@ namespace Cube.Replication {
                     _rotationError = Quaternion.identity;
                 }
 
-                Model.position = transform.position + _positionError;
-                Model.rotation = transform.rotation * _rotationError;
+                Model.position = _rigidbody.position + _positionError;
+                Model.rotation = _rigidbody.rotation * _rotationError;
             }
         }
 
         public override void Serialize(IBitWriter bs, SerializeContext ctx) {
-            bs.WriteVector3(transform.position);
+            bs.WriteLossyFloat(_rigidbody.position.x, Settings.WorldBounds.MinWorldX, Settings.WorldBounds.MaxWorldX, 0.01f);
+            bs.WriteLossyFloat(_rigidbody.position.y, Settings.WorldBounds.MinWorldY, Settings.WorldBounds.MaxWorldY, 0.01f);
+            bs.WriteLossyFloat(_rigidbody.position.z, Settings.WorldBounds.MinWorldZ, Settings.WorldBounds.MaxWorldZ, 0.01f);
 
-            var euler = transform.rotation.eulerAngles;
-            euler.x = Mathf.Repeat(euler.x, 360);
-            euler.y = Mathf.Repeat(euler.y, 360);
-            euler.z = Mathf.Repeat(euler.z, 360);
-            bs.WriteLossyFloat(euler.x, 0, 360);
-            bs.WriteLossyFloat(euler.y, 0, 360);
-            bs.WriteLossyFloat(euler.z, 0, 360);
+            var rot = BitWriter.QuantizeQuaternion(_rigidbody.rotation);
+            bs.WriteQuaternion(rot);
+            _rigidbody.rotation = rot;
 
             var sleeping = _rigidbody.IsSleeping();
             bs.WriteBool(sleeping);
@@ -85,7 +83,6 @@ namespace Cube.Replication {
                 }
 #endif
 
-
                 bs.WriteLossyFloat(velocity.x, -maxVelocity, maxVelocity, Settings.VelocityPrecision);
                 bs.WriteLossyFloat(velocity.y, -maxVelocity, maxVelocity, Settings.VelocityPrecision);
                 bs.WriteLossyFloat(velocity.z, -maxVelocity, maxVelocity, Settings.VelocityPrecision);
@@ -99,25 +96,28 @@ namespace Cube.Replication {
         }
 
         public override void Deserialize(BitReader bs) {
-            var position = bs.ReadVector3();
+            Vector3 pos;
+            pos.x = bs.ReadLossyFloat(Settings.WorldBounds.MinWorldX, Settings.WorldBounds.MaxWorldX, 0.01f);
+            pos.y = bs.ReadLossyFloat(Settings.WorldBounds.MinWorldY, Settings.WorldBounds.MaxWorldY, 0.01f);
+            pos.z = bs.ReadLossyFloat(Settings.WorldBounds.MinWorldZ, Settings.WorldBounds.MaxWorldZ, 0.01f);
 
-            var euler = new Vector3 {
-                x = bs.ReadLossyFloat(0, 360),
-                y = bs.ReadLossyFloat(0, 360),
-                z = bs.ReadLossyFloat(0, 360)
-            };
-            var rotation = Quaternion.Euler(euler);
+            var rotation = bs.ReadQuaternion();
 
-            _positionError = (transform.position + _positionError) - position;
-            _rotationError = Quaternion.Inverse(rotation) * (transform.rotation * _rotationError);
+            _positionError = (_rigidbody.position + _positionError) - pos;
+            _rotationError = Quaternion.Inverse(rotation) * (_rigidbody.rotation * _rotationError);
 
-            if (_positionError.sqrMagnitude >= Settings.TeleportDistanceSqr) {
+            if (Replica.lastUpdateTime < 0.001f || _positionError.sqrMagnitude >= Settings.TeleportDistanceSqr) {
                 _positionError = Vector3.zero;
                 _rotationError = Quaternion.identity;
             }
 
-            transform.position = position;
-            transform.rotation = rotation;
+            // Instantly hard snap the state to the received state
+            // The Model Transform is used to smooth the resulting error
+            _rigidbody.position = pos;
+            _rigidbody.rotation = rotation;
+
+            Model.position = pos + _positionError;
+            Model.rotation = rotation * _rotationError;
 
             var sleeping = bs.ReadBool();
             if (!sleeping) {

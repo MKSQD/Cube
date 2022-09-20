@@ -3,6 +3,8 @@ using UnityEngine;
 namespace Cube.Replication {
     [CreateAssetMenu(menuName = "Cube/ReplicaRigidbodySettings")]
     public class ReplicaRigidbodySettings : ScriptableObject {
+        public WorldBoundsSettings WorldBounds;
+
         public float TeleportDistanceSqr = 1;
 
         public float MaxVelocity = 64;

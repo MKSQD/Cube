@@ -15,6 +15,8 @@ namespace Cube.Replication {
             public Quaternion Rotation;
         }
 
+        public WorldBoundsSettings WorldBounds;
+
         StateInterpolator<State> _interpolator;
 
         public void LerpStates(State oldState, State newState, ref State resultState, float t) {
@@ -27,17 +29,22 @@ namespace Cube.Replication {
         }
 
         public override void Serialize(IBitWriter bs, SerializeContext ctx) {
-            bs.WriteVector3(transform.position);
+            bs.WriteLossyFloat(transform.position.x, WorldBounds.MinWorldX, WorldBounds.MaxWorldX, 0.01f);
+            bs.WriteLossyFloat(transform.position.y, WorldBounds.MinWorldY, WorldBounds.MaxWorldY, 0.01f);
+            bs.WriteLossyFloat(transform.position.z, WorldBounds.MinWorldZ, WorldBounds.MaxWorldZ, 0.01f);
             bs.WriteQuaternion(transform.rotation);
         }
 
         public override void Deserialize(BitReader bs) {
-            var position = bs.ReadVector3();
+            Vector3 pos;
+            pos.x = bs.ReadLossyFloat(WorldBounds.MinWorldX, WorldBounds.MaxWorldX, 0.01f);
+            pos.y = bs.ReadLossyFloat(WorldBounds.MinWorldY, WorldBounds.MaxWorldY, 0.01f);
+            pos.z = bs.ReadLossyFloat(WorldBounds.MinWorldZ, WorldBounds.MaxWorldZ, 0.01f);
             var rotation = bs.ReadQuaternion();
 
             var newState = new State() {
                 Timestamp = Time.time,
-                Position = position,
+                Position = pos,
                 Rotation = rotation
             };
             _interpolator.AddState(newState);
