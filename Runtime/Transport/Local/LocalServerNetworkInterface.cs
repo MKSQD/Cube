@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using UnityEngine;
 
 namespace Cube.Transport.Local {
     public sealed class LocalServerNetworkInterface : IServerNetworkInterface {
@@ -13,6 +14,9 @@ namespace Cube.Transport.Local {
 
         public int NumClientsConnected => _clients.Count;
         public int NumMaxClients => 0;
+
+        ulong _bytesSent, _bytesReceived;
+        uint _packetsSent, _packetsReceived;
 
         public LocalTransport Transport { get; private set; }
 
@@ -39,6 +43,9 @@ namespace Cube.Transport.Local {
                 if (c.Id != connection.id)
                     continue;
 
+                _bytesSent += (ulong)bs.BytesWritten;
+                ++_packetsSent;
+
                 var br = new BitReader(bs);
                 c.OnNetworkReceive(br);
                 break;
@@ -50,6 +57,22 @@ namespace Cube.Transport.Local {
         }
 
         public void Update() {
+#if UNITY_EDITOR
+            TransportDebugger.CycleFrame();
+
+            {
+                var f = _bytesSent / Time.time;
+                f /= 1024; // b -> kb
+                var f2 = Mathf.RoundToInt(f * 100) * 0.01f;
+                TransportDebugger.ReportStatistic($"out {_packetsSent} {f2}kb/s");
+            }
+            {
+                var f = _bytesReceived / Time.time;
+                f /= 1024; // b -> kb
+                var f2 = Mathf.RoundToInt(f * 100) * 0.01f;
+                TransportDebugger.ReportStatistic($"in {_packetsReceived} {f2}kb/s");
+            }
+#endif
         }
 
         public void OnPeerConnected(LocalClientNetworkInterface client) {
@@ -63,6 +86,9 @@ namespace Cube.Transport.Local {
         }
 
         public void OnNetworkReceive(ulong id, BitReader bs) {
+            _bytesReceived += (ulong)bs.NumBytes;
+            ++_packetsReceived;
+
             ReceivedPacket(bs, new Connection(id));
         }
     }
