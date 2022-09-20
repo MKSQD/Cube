@@ -136,6 +136,11 @@ namespace Cube.Replication {
         public void Serialize(IBitWriter bs, ReplicaBehaviour.SerializeContext ctx) {
             for (int i = 0; i < _replicaBehaviours.Length; ++i) {
                 var replicaBehaviour = _replicaBehaviours[i];
+
+#if UNITY_EDITOR || DEVELOPMENT
+                bs.WriteInt(replicaBehaviour.GetType().GetHashCode());
+#endif
+
 #if UNITY_EDITOR
                 int startSize = 0;
                 var isDummy = bs is DummyBitWriter;
@@ -145,20 +150,16 @@ namespace Cube.Replication {
                 }
 #endif
 
-#if UNITY_EDITOR || DEVELOPMENT
-                bs.WriteInt(replicaBehaviour.GetType().GetHashCode());
-#endif
-
                 replicaBehaviour.Serialize(bs, ctx);
-
-#if UNITY_EDITOR || DEVELOPMENT
-                bs.WriteByte(0b10101010);
-#endif
 
 #if UNITY_EDITOR
                 if (!isDummy) {
                     TransportDebugger.EndScope(bs.BitsWritten - startSize);
                 }
+#endif
+
+#if UNITY_EDITOR || DEVELOPMENT
+                bs.WriteByte(0b10101010);
 #endif
             }
         }
