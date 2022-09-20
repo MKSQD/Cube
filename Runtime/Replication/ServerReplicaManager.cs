@@ -305,7 +305,8 @@ namespace Cube.Replication {
                 var replica = view.RelevantReplicas[currentReplicaIdx];
 
                 var relevance = replica.GetRelevance(view); // #todo COSTLY
-                if (relevance <= _server.ReplicaManagerSettings.LowRelevance) {
+                var isLowRelevance = relevance <= _server.ReplicaManagerSettings.LowRelevance;
+                if (isLowRelevance) {
                     if (numSentLowRelevance > _server.ReplicaManagerSettings.MaxLowRelevancePerPacket)
                         continue; //  #todo should be break
 
@@ -320,14 +321,14 @@ namespace Cube.Replication {
                 WriteReplicaUpdate(dummyBs, replica, isOwner);
                 if (bytesSent + dummyBs.BytesWritten > _server.ReplicaManagerSettings.MaxBytesPerConnectionPerUpdate) {
 #if UNITY_EDITOR
-                    TransportDebugger.BeginScope($"Skipped Replica {replica.name} priorityAcc={priorityAcc:0} bytes={dummyBs.BytesWritten}");
+                    TransportDebugger.BeginScope($"No more bandwidth for Replica {replica.name} priorityAcc={priorityAcc:0} bytes={dummyBs.BytesWritten}");
                     TransportDebugger.EndScope(0);
 #endif
                     continue; // This Replica update would send too much data, try the next Replica
                 }
 
 #if UNITY_EDITOR
-                TransportDebugger.BeginScope($"Update Replica {replica.name} priorityAcc={priorityAcc:0} bytes={dummyBs.BytesWritten}");
+                TransportDebugger.BeginScope($"Update Replica {replica.name} priorityAcc={priorityAcc:0} relevance={relevance:0.0} bytes={dummyBs.BytesWritten}" + (isLowRelevance ? " low_relevance" : ""));
 #endif
 
                 var updateBs = new BitWriter(dummyBs.BytesWritten / 2);
@@ -374,6 +375,13 @@ namespace Cube.Replication {
         }
 
         void WriteReplicaUpdate(IBitWriter bs, Replica replica, bool isOwner) {
+#if UNITY_EDITOR
+            var isDummy = bs is DummyBitWriter;
+            if (!isDummy) {
+                TransportDebugger.BeginScope("Header");
+            }
+#endif
+
             bs.WriteByte((byte)MessageId.ReplicaUpdate);
             bs.WriteReplicaId(replica.Id);
             bs.WriteBool(replica.isSceneReplica);
@@ -381,6 +389,12 @@ namespace Cube.Replication {
                 bs.WriteUShort(replica.PrefabHash);
             }
             bs.WriteBool(isOwner);
+
+#if UNITY_EDITOR
+            if (!isDummy) {
+                TransportDebugger.EndScope(8 + 16 + 1 + 16 + 1);
+            }
+#endif
 
             var serializeCtx = new ReplicaBehaviour.SerializeContext() {
                 IsOwner = isOwner
