@@ -264,14 +264,14 @@ namespace Cube.Transport {
             normalizedValue = (float)integerValue / maxIntegerValueF;
             c = (normalizedValue * delta) + minimum;
 
-            Quaternion value = Quaternion.identity;
+            Quaternion result = Quaternion.identity;
             float d = Mathf.Sqrt(1f - a * a - b * b - c * c);
-            value[largest] = d;
-            value[(largest + 1) % 4] = a;
-            value[(largest + 2) % 4] = b;
-            value[(largest + 3) % 4] = c;
+            result[largest] = d;
+            result[(largest + 1) % 4] = a;
+            result[(largest + 2) % 4] = b;
+            result[(largest + 3) % 4] = c;
 
-            return value;
+            return result;
         }
 
         public void Read(ref IBitSerializable obj) {

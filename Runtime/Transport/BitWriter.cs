@@ -155,6 +155,101 @@ namespace Cube.Transport {
             WriteFloat(value.z);
         }
 
+        public static Quaternion QuantizeQuaternion(Quaternion value) {
+            uint readData;
+            {
+                int largest = 0;
+                float a, b, c;
+
+                float abs_w = Mathf.Abs(value.w);
+                float abs_x = Mathf.Abs(value.x);
+                float abs_y = Mathf.Abs(value.y);
+                float abs_z = Mathf.Abs(value.z);
+
+                float largest_value = abs_x;
+
+                if (abs_y > largest_value) {
+                    largest = 1;
+                    largest_value = abs_y;
+                }
+                if (abs_z > largest_value) {
+                    largest = 2;
+                    largest_value = abs_z;
+                }
+                if (abs_w > largest_value) {
+                    largest = 3;
+                    largest_value = abs_w;
+                }
+                if (value[largest] >= 0f) {
+                    a = value[(largest + 1) % 4];
+                    b = value[(largest + 2) % 4];
+                    c = value[(largest + 3) % 4];
+                } else {
+                    a = -value[(largest + 1) % 4];
+                    b = -value[(largest + 2) % 4];
+                    c = -value[(largest + 3) % 4];
+                }
+
+                // serialize
+                const float minimum = -1f / 1.414214f;        // note: 1.0f / sqrt(2)
+                const float maximum = +1f / 1.414214f;
+                const float delta = maximum - minimum;
+                const uint maxIntegerValue = (1 << 10) - 1; // 10 bits
+                const float maxIntegerValueF = maxIntegerValue;
+                float normalizedValue;
+                uint integerValue;
+
+                uint sentData = ((uint)largest) << 30;
+                // a
+                normalizedValue = Mathf.Clamp01((a - minimum) / delta);
+                integerValue = (uint)Mathf.Floor(normalizedValue * maxIntegerValueF + 0.5f);
+                sentData = sentData | ((integerValue & maxIntegerValue) << 20);
+                // b
+                normalizedValue = Mathf.Clamp01((b - minimum) / delta);
+                integerValue = (uint)Mathf.Floor(normalizedValue * maxIntegerValueF + 0.5f);
+                sentData = sentData | ((integerValue & maxIntegerValue) << 10);
+                // c
+                normalizedValue = Mathf.Clamp01((c - minimum) / delta);
+                integerValue = (uint)Mathf.Floor(normalizedValue * maxIntegerValueF + 0.5f);
+                sentData = sentData | (integerValue & maxIntegerValue);
+
+                readData = sentData;
+            }
+            {
+                int largest = (int)(readData >> 30);
+                float a, b, c;
+
+                const float minimum = -1f / 1.414214f;        // note: 1.0f / sqrt(2)
+                const float maximum = +1f / 1.414214f;
+                const float delta = maximum - minimum;
+                const uint maxIntegerValue = (1 << 10) - 1; // 10 bits
+                const float maxIntegerValueF = (float)maxIntegerValue;
+                uint integerValue;
+                float normalizedValue;
+                // a
+                integerValue = (readData >> 20) & maxIntegerValue;
+                normalizedValue = (float)integerValue / maxIntegerValueF;
+                a = (normalizedValue * delta) + minimum;
+                // b
+                integerValue = (readData >> 10) & maxIntegerValue;
+                normalizedValue = (float)integerValue / maxIntegerValueF;
+                b = (normalizedValue * delta) + minimum;
+                // c
+                integerValue = readData & maxIntegerValue;
+                normalizedValue = (float)integerValue / maxIntegerValueF;
+                c = (normalizedValue * delta) + minimum;
+
+                Quaternion result = Quaternion.identity;
+                float d = Mathf.Sqrt(1f - a * a - b * b - c * c);
+                result[largest] = d;
+                result[(largest + 1) % 4] = a;
+                result[(largest + 2) % 4] = b;
+                result[(largest + 3) % 4] = c;
+
+                return result;
+            }
+        }
+
         public void WriteQuaternion(Quaternion value) {
             int largest = 0;
             float a, b, c;
