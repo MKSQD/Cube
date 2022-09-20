@@ -132,7 +132,7 @@ namespace Cube.Replication {
             if (!_networkPrefabLookup.TryGetClientPrefabForIndex(prefabIdx, out GameObject prefab))
                 throw new Exception($"Prefab for index {prefabIdx} not found!");
 
-            var newGameObject = UnityEngine.Object.Instantiate(prefab, _instantiateTransform);
+            var newGameObject = UnityEngine.Object.Instantiate(prefab, new Vector3(100000, 100000, 100000), Quaternion.identity, _instantiateTransform);
 
             var replica = newGameObject.GetComponent<Replica>();
             if (replica == null)
