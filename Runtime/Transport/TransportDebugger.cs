@@ -23,7 +23,7 @@ namespace Cube.Transport {
         public int CurrentFrameIdx = 0;
         public List<Frame> Frames;
         public Frame CurrentFrame;
-        public List<string> Statistics = new List<string>();
+        public List<string> Statistics = new();
 
         class SimpleTreeView : TreeView {
             public TransportDebugger Debugger;

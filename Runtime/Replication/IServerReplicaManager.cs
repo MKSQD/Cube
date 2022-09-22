@@ -9,8 +9,6 @@ namespace Cube.Replication {
     public interface IServerReplicaManager : IReplicaManager {
         ReadOnlyCollection<Replica> Replicas { get; }
 
-        void ProcessSceneReplicasInScene(Scene scene);
-
         void Tick();
         void Update();
 

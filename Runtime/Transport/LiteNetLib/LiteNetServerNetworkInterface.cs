@@ -77,7 +77,7 @@ namespace Cube.Transport.LiteNet {
                 var f = _server.Statistics.BytesReceived / Time.time;
                 f /= 1024; // b -> kb
                 var f2 = Mathf.RoundToInt(f * 100) * 0.01f;
-                TransportDebugger.ReportStatistic($"in {_server.Statistics.PacketsSent} {f2}kb/s");
+                TransportDebugger.ReportStatistic($"in {_server.Statistics.PacketsReceived} {f2}kb/s");
             }
 #endif
         }

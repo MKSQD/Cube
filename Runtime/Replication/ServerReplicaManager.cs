@@ -40,15 +40,19 @@ namespace Cube.Replication {
             _server = server;
             server.Reactor.AddPacketHandler((byte)MessageId.ReplicaRpc, OnReplicaRpc);
 
-            SceneManager.sceneLoaded += (scene, mode) => ProcessSceneReplicasInScene(scene);
+            SceneManager.sceneLoaded += ProcessSceneReplicasInScene;
 
 #if UNITY_EDITOR
             Main = this;
 #endif
         }
 
+        public void Shutdown() {
+            SceneManager.sceneLoaded -= ProcessSceneReplicasInScene;
+        }
+
         /// Scan a newly loaded Scene for scene Replicas.
-        public void ProcessSceneReplicasInScene(Scene scene) {
+        void ProcessSceneReplicasInScene(Scene scene, LoadSceneMode _) {
             var sceneReplicas = ReplicaUtils.GatherSceneReplicas(scene);
             foreach (var replica in sceneReplicas) {
                 replica.Id = ReplicaId.CreateFromExisting(replica.sceneIdx);

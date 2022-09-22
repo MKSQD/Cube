@@ -72,6 +72,7 @@ namespace Cube {
         protected virtual void Tick() { }
 
         protected virtual void OnApplicationQuit() {
+            ReplicaManager.Shutdown();
             NetworkInterface.Shutdown(0);
         }
 

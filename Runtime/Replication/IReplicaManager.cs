@@ -13,5 +13,6 @@ namespace Cube.Replication {
         Replica GetReplica(ReplicaId id);
 
         void Reset();
+        void Shutdown();
     }
 }

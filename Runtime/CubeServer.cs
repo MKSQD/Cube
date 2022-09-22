@@ -170,6 +170,7 @@ namespace Cube {
         }
 
         protected virtual void OnApplicationQuit() {
+            ReplicaManager.Shutdown();
             NetworkInterface.Shutdown();
 
             ReplicaManager = null;

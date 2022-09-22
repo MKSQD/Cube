@@ -31,14 +31,20 @@ namespace Cube.Replication {
 
             _networkScene = new NetworkScene();
 
-            SceneManager.sceneLoaded += (scene, mode) => OnSceneLoaded(scene);
+            SceneManager.sceneLoaded += OnSceneLoaded;
 
 #if UNITY_EDITOR
             All.Add(this);
 #endif
         }
 
-        void OnSceneLoaded(Scene scene) {
+        public void Shutdown() {
+            SceneManager.sceneLoaded -= OnSceneLoaded;
+        }
+
+        void OnSceneLoaded(Scene scene, LoadSceneMode _) {
+            Debug.Log("CLIENT ON SCENE LOADED " + scene.name);
+
             var sceneReplicas = ReplicaUtils.GatherSceneReplicas(scene);
             foreach (var replica in sceneReplicas) {
                 replica.client = _client;
