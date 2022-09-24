@@ -175,7 +175,7 @@ namespace Cube.Transport {
         public uint ReadUInt() => ReadBits(32);
 
         public string ReadString() {
-            var length = 0;
+            int length;
 
             var under32 = ReadBool();
             if (under32) {

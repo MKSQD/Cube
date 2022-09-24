@@ -157,7 +157,6 @@ namespace Cube.Replication {
                     TransportDebugger.EndScope(bs.BitsWritten - startSize);
                 }
 #endif
-
 #if UNITY_EDITOR || DEVELOPMENT
                 bs.WriteByte(0b10101010);
 #endif

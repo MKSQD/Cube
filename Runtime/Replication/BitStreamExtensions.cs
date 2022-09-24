@@ -18,6 +18,10 @@ namespace Cube.Replication {
         }
 
         public static void WriteNetworkObject(this IBitWriter bs, NetworkObject networkObject) {
+            if (networkObject != null) {
+                Assert.IsTrue(networkObject == NetworkObjectLookup.Instance.CreateFromNetworkAssetId(networkObject.NetworkAssetId));
+            }
+
             var max = NetworkObjectLookup.Instance.Entries.Length;
             var idx = networkObject != null ? networkObject.NetworkAssetId : -1;
             bs.WriteIntInRange(idx, -1, max);
@@ -31,7 +35,7 @@ namespace Cube.Replication {
 
             var networkObject = NetworkObjectLookup.Instance.CreateFromNetworkAssetId(id);
 #if UNITY_EDITOR
-            if (!(networkObject is T)) {
+            if (networkObject is not T) {
                 Debug.Log($"Merde; Tried to read {typeof(T).Name}, but NO was {networkObject.GetType().Name}");
                 return null;
             }

@@ -1,4 +1,5 @@
-﻿using UnityEngine.Assertions;
+﻿using UnityEngine;
+using UnityEngine.Assertions;
 
 namespace Cube.Replication {
     /// <summary>

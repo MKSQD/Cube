@@ -43,8 +43,6 @@ namespace Cube.Replication {
         }
 
         void OnSceneLoaded(Scene scene, LoadSceneMode _) {
-            Debug.Log("CLIENT ON SCENE LOADED " + scene.name);
-
             var sceneReplicas = ReplicaUtils.GatherSceneReplicas(scene);
             foreach (var replica in sceneReplicas) {
                 replica.client = _client;

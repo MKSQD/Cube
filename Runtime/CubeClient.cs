@@ -105,7 +105,7 @@ namespace Cube {
         protected virtual void OnEndedLoadingMap() { }
 
         IEnumerator LoadMap(string mapName) {
-            Debug.Log($"[Client] <b>Loading map</b> <i>{mapName}</i>");
+            Debug.Log($"[Client] Loading map '{mapName}'...");
 
             OnStartedLoadingMap(mapName);
 
@@ -122,8 +122,6 @@ namespace Cube {
             _sceneHandle = Addressables.LoadSceneAsync(mapName, LoadSceneMode.Additive);
             yield return _sceneHandle;
             var scene = _sceneHandle.Result.Scene;
-
-            
 #endif
 
             ReplicaManager.ProcessSceneReplicasInScene(scene);

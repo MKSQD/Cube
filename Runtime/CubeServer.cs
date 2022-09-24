@@ -45,7 +45,7 @@ namespace Cube {
         /// </summary>
         /// <param name="name"></param>
         public void LoadMap(string name) {
-            Debug.Log($"[Server] Loading map <i>{name}</i>...");
+            Debug.Log($"[Server] Loading map '{name}'...");
 
             Assert.IsTrue(name.Length > 0);
 
@@ -60,8 +60,6 @@ namespace Cube {
 
             ReplicaManager.Reset();
 
-            BroadcastLoadMap(name, _loadMapGeneration);
-
             // Disable ReplicaViews during level load
             foreach (var connection in Connections) {
                 var replicaView = ReplicaManager.GetReplicaView(connection);
@@ -69,6 +67,8 @@ namespace Cube {
                     replicaView.IsLoadingLevel = true;
                 }
             }
+
+            BroadcastLoadMap(name, _loadMapGeneration);
 
             // Unload old scene
             if (_mapHandle.IsValid()) {
@@ -145,10 +145,13 @@ namespace Cube {
 
             //
             var replicaView = ReplicaManager.GetReplicaView(connection);
-            if (replicaView != null) {
-                replicaView.IsLoadingLevel = false;
-                ReplicaManager.ForceReplicaViewRefresh(replicaView);
+            if (replicaView == null) {
+                Debug.LogWarning("ReplicaView null");
+                return;
             }
+
+            replicaView.IsLoadingLevel = false;
+            ReplicaManager.ForceReplicaViewRefresh(replicaView);
         }
 
         protected virtual void Update() {

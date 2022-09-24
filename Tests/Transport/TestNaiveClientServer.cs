@@ -1,11 +1,18 @@
 ﻿using System.Collections;
 using Cube.Transport.LiteNet;
 using NUnit.Framework;
+using UnityEngine;
 using UnityEngine.TestTools;
 
 namespace Cube.Transport.Tests {
     public class TestNaiveClientServer {
-        static LiteNetTransport Transport => new LiteNetTransport() { Port = 42000 };
+        static LiteNetTransport Transport {
+            get {
+                var transport = ScriptableObject.CreateInstance<LiteNetTransport>();
+                transport.Port = 42000;
+                return transport;
+            }
+        }
 
         [Test]
         public void StartAndShutdownServer() {
