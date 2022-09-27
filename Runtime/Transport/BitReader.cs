@@ -115,8 +115,7 @@ namespace Cube.Transport {
             if (numWords > 0) {
                 Assert.IsTrue((_bitsRead % 32) == 0);
 
-                _data.Span.Slice(_wordIndex, numWords).CopyTo(MemoryMarshal.Cast<byte, uint>(data.Slice(headBytes)));
-                //memcpy(data + headBytes, &m_data[m_wordIndex], numWords * 4);
+                _data.Span.Slice(_wordIndex, numWords).CopyTo(MemoryMarshal.Cast<byte, uint>(data[headBytes..]));
                 _bitsRead += numWords * 32;
                 _wordIndex += numWords;
                 _scratchBits = 0;
@@ -166,7 +165,11 @@ namespace Cube.Transport {
 
         public int ReadIntInRange(int minInclusive, int maxInclusive) {
             var bits = BitUtil.ComputeRequiredIntBits(minInclusive, maxInclusive);
-            return (int)(ReadBits(bits) + minInclusive);
+            var result = (int)(ReadBits(bits) + minInclusive);
+            if (result > maxInclusive)
+                throw new Exception("value outside valid range");
+
+            return result;
         }
 
 
@@ -192,6 +195,8 @@ namespace Cube.Transport {
             }
 
             Assert.IsTrue(length > 0);
+            if (length > 4096) // Abitary limit of 4kb
+                throw new Exception("value outside valid range");
 
             var chars = new char[length];
             for (int i = 0; i < length; ++i) {
