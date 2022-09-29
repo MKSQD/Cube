@@ -55,10 +55,6 @@ namespace Cube.Replication {
 
         [SerializeField]
         ReplicaBehaviour[] _replicaBehaviours;
-#if UNITY_EDITOR
-        [SerializeField]
-        string[] _replicaBehavioursNames;
-#endif
 
         public void AssignOwnership(Connection owner) {
             Assert.IsTrue(isServer);
@@ -145,7 +141,7 @@ namespace Cube.Replication {
                 int startSize = 0;
                 var isDummy = bs is DummyBitWriter;
                 if (!isDummy) {
-                    TransportDebugger.BeginScope(_replicaBehavioursNames[i]);
+                    TransportDebugger.BeginScope(replicaBehaviour.GetType().Name);
                     startSize = bs.BitsWritten;
                 }
 #endif
@@ -217,9 +213,6 @@ namespace Cube.Replication {
             }
 
             _replicaBehaviours = rbs.ToArray();
-#if UNITY_EDITOR
-            _replicaBehavioursNames = rbNames.ToArray();
-#endif
         }
 
         void Awake() {
