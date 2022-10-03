@@ -53,6 +53,7 @@ namespace Cube.Replication {
 
         static bool applicationQuitting;
 
+        [HideInInspector]
         [SerializeField]
         ReplicaBehaviour[] _replicaBehaviours;
 
