@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using Cube.Replication;
 using Cube.Transport;
 using UnityEngine;
@@ -17,6 +18,7 @@ namespace Cube {
 #if UNITY_EDITOR
         public Transport.Transport TransportInEditor;
 #endif
+        public NetworkPrefabs Prefabs;
 
         public IServerNetworkInterface NetworkInterface { get; private set; }
         public ServerReactor Reactor { get; private set; }
@@ -28,14 +30,13 @@ namespace Cube {
         ServerReplicaManagerSettings ICubeServer.ReplicaManagerSettings => ReplicaManagerSettings;
 
         public bool IsLoadingMap { get; private set; }
+        public bool HasMap { get; private set; }
         public string CurrentMapName { get; private set; }
 
         double _nextNetworkTick;
 
         AsyncOperationHandle<SceneInstance> _mapHandle;
         byte _loadMapGeneration;
-
-        public void ReloadCurrentMap() => LoadMap(CurrentMapName);
 
         protected virtual void OnLeaveMap() { }
 
@@ -45,20 +46,18 @@ namespace Cube {
         /// </summary>
         /// <param name="name"></param>
         public void LoadMap(string name) {
-            Debug.Log($"[Server] Loading map '{name}'...");
-
             Assert.IsTrue(name.Length > 0);
 
             if (IsLoadingMap)
                 throw new Exception("Currently loading map");
 
-            OnLeaveMap();
+            UnloadMap();
 
+            Debug.Log($"[Server] Loading map '{name}'...");
+            HasMap = true;
             IsLoadingMap = true;
             ++_loadMapGeneration;
             CurrentMapName = name;
-
-            ReplicaManager.Reset();
 
             // Disable ReplicaViews during level load
             foreach (var connection in Connections) {
@@ -69,13 +68,6 @@ namespace Cube {
             }
 
             BroadcastLoadMap(name, _loadMapGeneration);
-
-            // Unload old scene
-            if (_mapHandle.IsValid()) {
-                var op = Addressables.UnloadSceneAsync(_mapHandle);
-                op.Completed += ctx => { LoadMapImpl(); };
-                return;
-            }
 
 #if UNITY_EDITOR
             var loadedScene = SceneManager.GetSceneByName(name);
@@ -89,9 +81,27 @@ namespace Cube {
             LoadMapImpl();
         }
 
+        public void UnloadMap() {
+            if (!HasMap)
+                return;
+
+            Debug.Log($"[Server] Unloading map ...");
+
+            OnLeaveMap();
+
+            ReplicaManager.Reset();
+
+            if (_mapHandle.IsValid()) {
+                Addressables.UnloadSceneAsync(_mapHandle);
+            }
+
+            CurrentMapName = "";
+            HasMap = false;
+        }
+
         void BroadcastLoadMap(string sceneName, byte gen) {
             var bs = new BitWriter();
-            bs.WriteByte((byte)MessageId.LoadScene);
+            bs.WriteByte((byte)MessageId.LoadMap);
             bs.WriteString(sceneName);
             bs.WriteByte(gen);
 
@@ -155,6 +165,11 @@ namespace Cube {
         }
 
         protected virtual void Update() {
+            if (!HasMap) {
+                // Sleep while no player is connected
+                Thread.Sleep(1000);
+            }
+
             ReplicaManager.Update();
             NetworkInterface.Update();
 
@@ -190,14 +205,19 @@ namespace Cube {
             Connections.Add(connection);
             var replicaView = CreateReplicaView(connection);
 
-            // Send load scene packet if we loaded one previously
-            if (CurrentMapName != null) {
+            if (!HasMap) {
+                // Load map when the first player enters
+                LoadMap("SC_Ship");
+            } else if (CurrentMapName != null) {
+                // Send load scene packet if we loaded one previously
                 var bs2 = new BitWriter();
-                bs2.WriteByte((byte)MessageId.LoadScene);
+                bs2.WriteByte((byte)MessageId.LoadMap);
                 bs2.WriteString(CurrentMapName);
                 bs2.WriteByte(_loadMapGeneration);
 
                 NetworkInterface.SendPacket(bs2, PacketReliability.ReliableSequenced, connection, MessageChannel.SceneLoad);
+
+                Debug.Log("[Server] Send LoadMap to client");
             }
 
             OnNewConnectionEstablished(connection, replicaView);

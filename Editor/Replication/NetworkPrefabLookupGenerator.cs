@@ -18,120 +18,55 @@ namespace Cube.Replication.Editor {
         static void Generate() {
             var serverAndClientPrefabs = new List<(string, GameObject, GameObject)>();
 
-            var assetGuids = AssetDatabase.FindAssets("t:Prefab");
-            foreach (var serverAssetGuid in assetGuids) {
-                var serverAssetPath = AssetDatabase.GUIDToAssetPath(serverAssetGuid);
+            // var assetGuids = AssetDatabase.FindAssets("t:Prefab");
+            // foreach (var serverAssetGuid in assetGuids) {
+            //     var serverAssetPath = AssetDatabase.GUIDToAssetPath(serverAssetGuid);
 
-                var isClientPrefab = serverAssetPath.IndexOf(ClientPrefabPrefix, StringComparison.InvariantCultureIgnoreCase) != -1;
-                if (isClientPrefab)
-                    continue;
+            //     var isClientPrefab = serverAssetPath.IndexOf(ClientPrefabPrefix, StringComparison.InvariantCultureIgnoreCase) != -1;
+            //     if (isClientPrefab)
+            //         continue;
 
-                var serverPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(serverAssetPath);
-                if (serverPrefab == null)
-                    continue;
+            //     var serverPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(serverAssetPath);
+            //     if (serverPrefab == null)
+            //         continue;
 
-                var isReplicaPrefab = serverPrefab.GetComponent<Replica>() != null;
-                if (!isReplicaPrefab)
-                    continue;
+            //     var isReplicaPrefab = serverPrefab.GetComponent<Replica>() != null;
+            //     if (!isReplicaPrefab)
+            //         continue;
 
-                var clientPrefab = serverPrefab;
-                if (serverAssetPath.IndexOf("Server_", StringComparison.InvariantCultureIgnoreCase) != -1) {
-                    var clientAssetPath = ReplaceString(serverAssetPath, ServerPrefabPrefix, ClientPrefabPrefix, StringComparison.InvariantCultureIgnoreCase);
+            //     var clientPrefab = serverPrefab;
+            //     if (serverAssetPath.IndexOf("Server_", StringComparison.InvariantCultureIgnoreCase) != -1) {
+            //         var clientAssetPath = serverAssetPath.ReplaceWorkaround(ServerPrefabPrefix, ClientPrefabPrefix, StringComparison.InvariantCultureIgnoreCase);
 
-                    clientPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(clientAssetPath);
-                    if (clientPrefab == null) {
-                        Debug.LogWarning("Client Replica prefab for server prefab not found, this will lead to network errors: " + serverAssetPath);
-                        continue;
-                    }
-                }
+            //         clientPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(clientAssetPath);
+            //         if (clientPrefab == null) {
+            //             Debug.LogWarning("Client Replica prefab for server prefab not found, this will lead to network errors: " + serverAssetPath);
+            //             continue;
+            //         }
+            //     }
 
-                serverAndClientPrefabs.Add((serverAssetGuid, serverPrefab, clientPrefab));
-            }
+            //     serverAndClientPrefabs.Add((serverAssetGuid, serverPrefab, clientPrefab));
+            // }
 
-            int numChanged = 0;
 
-            var prefabs = new List<GameObject>(serverAndClientPrefabs.Count);
-            var hashes = new List<ushort>(serverAndClientPrefabs.Count);
-            foreach (var tuple in serverAndClientPrefabs.OrderBy(tuple => tuple.Item1)) {
-                var serverPrefab = tuple.Item2;
-                var clientPrefab = tuple.Item3;
-
-                var hash = NameToHash(serverPrefab.name);
-                if (hashes.Contains(hash)) {
-                    Debug.LogWarning($"Duplicated Replica Prefab Hash {serverPrefab.name} ({hash})");
-                    continue;
-                }
-
-                hashes.Add(hash);
-
-                var serverReplica = serverPrefab.GetComponent<Replica>();
-                if (serverReplica.PrefabHash != hash) {
-                    serverReplica.PrefabHash = hash;
-                    EditorUtility.SetDirty(serverPrefab);
-                    ++numChanged;
-                }
-
-                var clientReplica = clientPrefab.GetComponent<Replica>();
-                if (clientReplica.PrefabHash != hash) {
-                    clientReplica.PrefabHash = hash;
-                    EditorUtility.SetDirty(clientPrefab);
-                    ++numChanged;
-                }
-
-                // Fix copy&paste errors
-                if (serverReplica.sceneIdx != 0) {
-                    serverReplica.sceneIdx = 0;
-                    EditorUtility.SetDirty(serverPrefab);
-                }
-                if (clientReplica.sceneIdx != 0) {
-                    clientReplica.sceneIdx = 0;
-                    EditorUtility.SetDirty(clientReplica);
-                }
-
-                prefabs.Add(clientPrefab);
-            }
-
-            var hashesArray = hashes.ToArray();
-            var prefabsArray = prefabs.ToArray();
-            Array.Sort(hashesArray, prefabsArray);
-
-            var dirty = false;
-
-            var lookup = NetworkPrefabLookup.Instance;
-            if (lookup.Prefabs == null || !lookup.Prefabs.SequenceEqual(prefabsArray)) {
-                lookup.Prefabs = prefabsArray;
-                dirty |= true;
-
-            }
-            if (lookup.Hashes == null || !lookup.Hashes.SequenceEqual(hashesArray)) {
-                lookup.Hashes = hashesArray;
-                dirty |= true;
-            }
-
-            if (dirty) {
-                EditorUtility.SetDirty(lookup);
-            }
-
-            Debug.Log($"done (#changed={numChanged})");
         }
 
-        static ushort NameToHash(string name) => (ushort)name.GetHashCode();
+        static ushort NameToHash(string name) => (ushort)GetStableHashCode(name);
 
-        static string ReplaceString(string str, string oldValue, string newValue, StringComparison comparison) {
-            var sb = new StringBuilder();
+        static int GetStableHashCode(string str) {
+            unchecked {
+                int hash1 = 5381;
+                int hash2 = hash1;
 
-            int previousIndex = 0;
-            int index = str.IndexOf(oldValue, comparison);
-            while (index != -1) {
-                sb.Append(str[previousIndex..index]);
-                sb.Append(newValue);
-                index += oldValue.Length;
+                for (int i = 0; i < str.Length && str[i] != '\0'; i += 2) {
+                    hash1 = ((hash1 << 5) + hash1) ^ str[i];
+                    if (i == str.Length - 1 || str[i + 1] == '\0')
+                        break;
+                    hash2 = ((hash2 << 5) + hash2) ^ str[i + 1];
+                }
 
-                previousIndex = index;
-                index = str.IndexOf(oldValue, index, comparison);
+                return hash1 + (hash2 * 1566083941);
             }
-            sb.Append(str[previousIndex..]);
-            return sb.ToString();
         }
     }
 }

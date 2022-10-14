@@ -2,7 +2,7 @@
 namespace Cube.Transport {
     public enum MessageId : byte {
         // Server -> Client
-        LoadScene,
+        LoadMap,
 
         ReplicaUpdate,
         ReplicaRpc,

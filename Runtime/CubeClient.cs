@@ -14,6 +14,7 @@ namespace Cube {
 #if UNITY_EDITOR
         public Transport.Transport TransportInEditor;
 #endif
+        public NetworkPrefabs Prefabs;
 
         public IClientNetworkInterface NetworkInterface { get; private set; }
         public ClientReactor Reactor { get; private set; }
@@ -40,9 +41,9 @@ namespace Cube {
 #endif
 
             Reactor = new ClientReactor(NetworkInterface);
-            ReplicaManager = new ClientReplicaManager(this, transform);
+            ReplicaManager = new ClientReplicaManager(this, Prefabs, transform);
 
-            Reactor.AddPacketHandler((byte)MessageId.LoadScene, OnLoadScene);
+            Reactor.AddPacketHandler((byte)MessageId.LoadMap, OnLoadScene);
 
             NetworkInterface.Disconnected += OnDisconnectedImpl;
         }
@@ -91,6 +92,8 @@ namespace Cube {
         }
 
         void OnLoadScene(BitReader bs) {
+            Debug.Log("[Client] Got LoadMap");
+
             var sceneName = bs.ReadString();
             var generation = bs.ReadByte();
 

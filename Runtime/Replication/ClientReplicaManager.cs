@@ -15,13 +15,13 @@ namespace Cube.Replication {
         readonly Transform _instantiateTransform;
 
         readonly NetworkScene _networkScene;
-        readonly NetworkPrefabLookup _networkPrefabLookup;
+        readonly NetworkPrefabs _networkPrefabLookup;
 
-        public ClientReplicaManager(ICubeClient client, Transform instantiateTransform) {
+        public ClientReplicaManager(ICubeClient client, NetworkPrefabs networkPrefabLookup, Transform instantiateTransform) {
             Assert.IsNotNull(client);
             Assert.IsNotNull(instantiateTransform);
 
-            _networkPrefabLookup = NetworkPrefabLookup.Instance;
+            _networkPrefabLookup = networkPrefabLookup;
             _instantiateTransform = instantiateTransform;
             _client = client;
 
@@ -93,7 +93,7 @@ namespace Cube.Replication {
             var replicaId = bs.ReadReplicaId();
             var isSceneReplica = bs.ReadBool();
 
-            ushort prefabHash = ushort.MaxValue;
+            ushort prefabHash = 0;
             if (!isSceneReplica) {
                 prefabHash = bs.ReadUShort();
             }
@@ -104,8 +104,8 @@ namespace Cube.Replication {
                 if (isSceneReplica)
                     return; // Don't construct scene Replicas
 
-                var prefabIdx = NetworkPrefabLookup.Instance.GetIndexForHash(prefabHash);
-                replica = ConstructReplica(prefabIdx, replicaId);
+
+                replica = ConstructReplica(prefabHash, replicaId);
                 AddReplica(replica);
             }
 
@@ -130,12 +130,9 @@ namespace Cube.Replication {
             replica.lastUpdateTime = Time.time;
         }
 
-        Replica ConstructReplica(ushort prefabIdx, ReplicaId replicaId) {
-            Assert.IsTrue(prefabIdx != 0);
-
-            if (!_networkPrefabLookup.TryGetClientPrefabForIndex(prefabIdx, out GameObject prefab))
-                throw new Exception($"Prefab for index {prefabIdx} not found!");
-
+        Replica ConstructReplica(ushort prefabHash, ReplicaId replicaId) {
+            var prefabIdx = _networkPrefabLookup.GetIndexForHash(prefabHash);
+            var prefab = _networkPrefabLookup.GetClientPrefabForIndex(prefabIdx);
             var newGameObject = UnityEngine.Object.Instantiate(prefab, new Vector3(100000, 100000, 100000), Quaternion.identity, _instantiateTransform);
 
             var replica = newGameObject.GetComponent<Replica>();

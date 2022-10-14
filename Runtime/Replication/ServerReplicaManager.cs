@@ -127,7 +127,7 @@ namespace Cube.Replication {
             newReplica.TakeOwnership();
 
             // Wait for one frame until Start is called before replicating to clients
-            _replicasInConstruction[newReplica.Id] = newReplica;
+            _replicasInConstruction.Add(newReplica.Id, newReplica);
         }
 
         /// <summary>
