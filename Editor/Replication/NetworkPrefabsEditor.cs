@@ -14,8 +14,6 @@ namespace Cube.Replication {
         Vector2 _scrollPos;
 
         public override void OnInspectorGUI() {
-
-
             var prefabs = (NetworkPrefabs)target;
 
             _scrollPos = GUILayout.BeginScrollView(_scrollPos);
@@ -26,10 +24,10 @@ namespace Cube.Replication {
                 GUILayout.Label($"{i}:");
                 GUILayout.EndVertical();
                 GUILayout.BeginVertical();
-                GUILayout.Label(pair.Server?.name ?? "-");
+                GUILayout.Label(pair.Server != null ? pair.Server.name : "-");
                 GUILayout.EndVertical();
                 GUILayout.BeginVertical();
-                GUILayout.Label(pair.Client?.name ?? "-");
+                GUILayout.Label(pair.Client != null ? pair.Client.name : "-");
                 GUILayout.EndVertical();
                 GUILayout.EndHorizontal();
             }
@@ -73,6 +71,10 @@ namespace Cube.Replication {
 
                 prefabs.Pairs = pairs.ToArray();
                 EditorUtility.SetDirty(prefabs);
+            }
+
+            if (GUILayout.Button("Validate")) {
+                prefabs.Validate();
             }
 
             DrawDefaultInspector();

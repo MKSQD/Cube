@@ -39,7 +39,7 @@ namespace Cube.Replication {
         }
 
 #if UNITY_EDITOR
-        void OnValidate() {
+        public void Validate() {
             int numChanged = 0;
 
             var prefabs = new List<GameObject>(Prefabs.Length);
