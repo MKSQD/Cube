@@ -38,6 +38,7 @@ namespace Cube.Replication {
             throw new Exception($"hash {hash} not found");
         }
 
+#if UNITY_EDITOR
         void OnValidate() {
             int numChanged = 0;
 
@@ -123,5 +124,6 @@ namespace Cube.Replication {
                 return hash1 + (hash2 * 1566083941);
             }
         }
+#endif
     }
 }
