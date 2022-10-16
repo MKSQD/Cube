@@ -57,7 +57,6 @@ namespace Cube.Replication {
 
                 var serverReplica = pair.Server.GetComponent<Replica>();
                 if (serverReplica.PrefabHash != hash) {
-                    Debug.Log($"CHanged hash {serverReplica.PrefabHash} -> {hash}");
                     serverReplica.PrefabHash = hash;
                     EditorUtility.SetDirty(pair.Server);
                     ++numChanged;
@@ -65,7 +64,6 @@ namespace Cube.Replication {
 
                 var clientReplica = pair.Client.GetComponent<Replica>();
                 if (clientReplica.PrefabHash != hash) {
-                    Debug.Log($"CHanged hash {clientReplica.PrefabHash} -> {hash}");
                     clientReplica.PrefabHash = hash;
                     EditorUtility.SetDirty(pair.Client);
                     ++numChanged;
