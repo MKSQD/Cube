@@ -92,8 +92,6 @@ namespace Cube {
         }
 
         void OnLoadScene(BitReader bs) {
-            Debug.Log("[Client] Got LoadMap");
-
             var sceneName = bs.ReadString();
             var generation = bs.ReadByte();
 
