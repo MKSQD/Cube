@@ -38,6 +38,9 @@ namespace Cube.Replication {
         ReplicaView GetReplicaView(Connection connection);
         void AddReplicaView(ReplicaView view);
         void RemoveReplicaView(Connection connection);
+        /// <summary>
+        /// Force a rebuild of relevant Replicas.
+        /// </summary>
         void ForceReplicaViewRefresh(ReplicaView view);
 
         ushort AllocateLocalReplicaId();

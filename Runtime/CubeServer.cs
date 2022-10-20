@@ -155,10 +155,8 @@ namespace Cube {
 
             //
             var replicaView = ReplicaManager.GetReplicaView(connection);
-            if (replicaView == null) {
-                Debug.LogWarning("ReplicaView null");
+            if (replicaView == null)
                 return;
-            }
 
             replicaView.IsLoadingLevel = false;
             ReplicaManager.ForceReplicaViewRefresh(replicaView);
