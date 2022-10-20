@@ -25,7 +25,7 @@ namespace Cube.Transport.LiteNet {
             Transport = transport;
 
             _server = new NetManager(this);
-            _server.ChannelsCount = 4;
+            _server.ChannelsCount = 5;
 
 #if UNITY_EDITOR
             _server.EnableStatistics = true;

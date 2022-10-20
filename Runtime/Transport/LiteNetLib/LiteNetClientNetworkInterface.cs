@@ -22,7 +22,7 @@ namespace Cube.Transport.LiteNet {
             Transport = transport;
 
             _client = new NetManager(this);
-            _client.ChannelsCount = 4;
+            _client.ChannelsCount = 5;
             _client.MaxConnectAttempts = 3;
             _client.NatPunchEnabled = true;
 
