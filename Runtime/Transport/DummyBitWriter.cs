@@ -44,5 +44,24 @@ namespace Cube.Transport {
         public void WriteQuaternion(Quaternion value) => WriteUInt(0);
 
         public void WriteSerializable(IBitSerializable obj) => obj.Serialize(this);
+
+        public void WriteString(string value) {
+            if (value.Length <= 32) {
+                WriteBool(true);
+                WriteIntInRange(value.Length, 0, 32);
+            } else if (value.Length <= 256) {
+                WriteBool(false);
+                WriteBool(true);
+                WriteIntInRange(value.Length, 0, 256);
+            } else {
+                WriteBool(false);
+                WriteBool(false);
+                WriteUShort((ushort)value.Length);
+            }
+
+            for (int i = 0; i < value.Length; ++i) {
+                WriteIntInRange(value[i], 0x0020, 0x007E);
+            }
+        }
     }
 }

@@ -13,6 +13,7 @@ namespace Cube.Transport {
         void WriteInt(int value);
         void WriteIntInRange(int value, int minInclusive, int maxInclusive);
         void WriteUInt(uint value);
+        void WriteString(string value);
         void WriteVector3(Vector3 value);
         void WriteFloat(float value);
         void WriteLossyFloat(float value, float min, float max, float precision = 0.1f);

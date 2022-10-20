@@ -140,7 +140,7 @@ namespace Cube.Transport {
             }
 
             for (int i = 0; i < value.Length; ++i) {
-                WriteIntInRange((int)value[i], 0x0020, 0x007E);
+                WriteIntInRange(value[i], 0x0020, 0x007E);
             }
         }
 
