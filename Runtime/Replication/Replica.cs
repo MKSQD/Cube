@@ -134,7 +134,7 @@ namespace Cube.Replication {
             for (int i = 0; i < _replicaBehaviours.Length; ++i) {
                 var replicaBehaviour = _replicaBehaviours[i];
 
-#if UNITY_EDITOR || DEVELOPMENT
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
                 bs.WriteInt(replicaBehaviour.GetType().GetHashCode());
 #endif
 
@@ -154,7 +154,7 @@ namespace Cube.Replication {
                     TransportDebugger.EndScope(bs.BitsWritten - startSize);
                 }
 #endif
-#if UNITY_EDITOR || DEVELOPMENT
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
                 bs.WriteByte(0b10101010);
 #endif
             }
@@ -162,7 +162,7 @@ namespace Cube.Replication {
 
         public void Deserialize(BitReader bs) {
             foreach (var replicaBehaviour in _replicaBehaviours) {
-#if UNITY_EDITOR || DEVELOPMENT
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
                 var expectedComponentTypeHash = bs.ReadInt();
                 if (expectedComponentTypeHash != replicaBehaviour.GetType().GetHashCode()) {
                     Debug.LogError($"{replicaBehaviour} not the expected component type", gameObject);
@@ -172,7 +172,7 @@ namespace Cube.Replication {
 
                 replicaBehaviour.Deserialize(bs);
 
-#if UNITY_EDITOR || DEVELOPMENT
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
                 try {
                     if (bs.WouldReadPastEnd(8)) {
                         Debug.LogError($"{replicaBehaviour} violated serialization guard (exhausted)", gameObject);
@@ -192,13 +192,9 @@ namespace Cube.Replication {
         }
 
         public void RebuildCaches() {
-            // #todo This is disgusting
             var brbs = GetComponentsInChildren<BaseReplicaBehaviour>();
 
-            var rbs = new List<ReplicaBehaviour>();
-#if UNITY_EDITOR
-            var rbNames = new List<string>();
-#endif
+            var rbs = new List<ReplicaBehaviour>(brbs.Length);
 
             byte idx = 0;
             foreach (var brb in brbs) {
@@ -207,9 +203,6 @@ namespace Cube.Replication {
                 if (brb is ReplicaBehaviour rb) {
                     rb.ReplicaComponentIdx = idx++;
                     rbs.Add(rb);
-#if UNITY_EDITOR
-                    rbNames.Add(rb.ToString());
-#endif
                 }
             }
 

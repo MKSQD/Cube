@@ -115,7 +115,7 @@ namespace Cube {
             if (_sceneHandle.IsValid())
                 yield return Addressables.UnloadSceneAsync(_sceneHandle);
 
-#if UNITY_EDITOR
+#if UNITY_EDITOR && SERVER
             // Assume server loaded map already
             var scene = SceneManager.GetSceneByName(mapName);
             Assert.IsTrue(scene.IsValid());
