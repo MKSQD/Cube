@@ -10,7 +10,7 @@ namespace Cube.Replication {
             var result = new List<Replica>();
             foreach (var go in scene.GetRootGameObjects()) {
                 foreach (var replica in go.GetComponentsInChildren<Replica>()) {
-                    if (!replica.isSceneReplica)
+                    if (!replica.HasStaticId)
                         continue;
 
                     result.Add(replica);

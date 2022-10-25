@@ -6,7 +6,7 @@ using UnityEngine.Assertions;
 using UnityEngine.SceneManagement;
 
 namespace Cube.Replication {
-    public sealed class ClientReplicaManager : IClientReplicaManager {
+    public sealed class ClientReplicaManager : IReplicaManager {
 #if UNITY_EDITOR
         public static List<ClientReplicaManager> All = new();
 #endif
@@ -54,8 +54,7 @@ namespace Cube.Replication {
 
             var sceneReplicas = ReplicaUtils.GatherSceneReplicas(scene);
             foreach (var replica in sceneReplicas) {
-                replica.Id = ReplicaId.CreateFromExisting(replica.sceneIdx);
-                _networkScene.AddReplica(replica);
+                AddReplica(replica);
             }
         }
 
@@ -71,7 +70,7 @@ namespace Cube.Replication {
             var replicas = _networkScene.Replicas;
             for (int i = 0; i < replicas.Count; ++i) {
                 var replica = replicas[i];
-                if (replica == null || replica.isSceneReplica)
+                if (replica == null || replica.HasStaticId)
                     continue;
 
                 var replicaTimeout = replica.lastUpdateTime < Time.time - replica.Settings.DesiredUpdateRate * 30;
@@ -83,10 +82,18 @@ namespace Cube.Replication {
             }
         }
 
-        public void AddReplica(Replica replica) {
-            replica.client = _client;
+        public void AddReplica(Replica newReplica) {
+            newReplica.client = _client;
 
-            _networkScene.AddReplica(replica);
+            if (newReplica.HasStaticId) {
+                if (newReplica.Id == ReplicaId.Invalid) {
+                    newReplica.Id = ReplicaId.CreateFromExisting(newReplica.StaticId);
+                }
+            } else {
+                Assert.IsTrue(newReplica.Id != ReplicaId.Invalid);
+            }
+
+            _networkScene.AddReplica(newReplica);
         }
 
         void OnReplicaUpdate(BitReader bs) {

@@ -18,7 +18,7 @@ namespace Cube {
 
         public IClientNetworkInterface NetworkInterface { get; private set; }
         public ClientReactor Reactor { get; private set; }
-        public IClientReplicaManager ReplicaManager { get; private set; }
+        public ClientReplicaManager ReplicaManager { get; private set; }
 
         public bool AutoConnectInEditor = true;
 

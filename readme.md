@@ -1,13 +1,16 @@
 # Cube
 Cube tries to do eventual consistency based object replication for [Unity](https://unity.com/) and nothing more.
 
-Eventual consistency means unreliable packets only - inspired by [GDC Vault: I Shot You First! Gameplay Networking in Halo: Reach](http://www.gdcvault.com/play/1014345/I-Shot-You-First-Networking) - which makes it scalable, robust to bad network conditions and simple.
+Eventual consistency means unreliable packets only - inspired by [GDC Vault: I Shot You First! Gameplay Networking in Halo: Reach](http://www.gdcvault.com/play/1014345/I-Shot-You-First-Networking)
+- which makes it scalable, robust to bad network conditions and simple.
 
-Apart from replication, basic features required by every network game are provided, such as low level network api abstraction, rpcs-as-method-calls via Cecil assembly patching and level loading. In editor, single instance, client+server development is possible and recommended.
+Apart from replication, basic features required by every network game are provided, such as low level network api abstraction, rpcs-as-method-calls via Cecil assembly patching and level loading.
+In editor, single instance, client+server development is possible.
 
 
 ## State
-This library has been in development for a long time and works. It has not yet been used in any released game. It's still being actively developed and APIs might change but the aim is to do proper semver versioning with breaking changes being major versions with explicit warnings. Basic tooling is there. Patches, requests and feeding are welcome.
+Far from production ready. Networking is hard. The library works, it's simple, robust and hackable. But there are a lot of spots were it's far from good enough.
+All patches, pull requests and feedback welcome.
 
 
 ## Getting Started

@@ -70,12 +70,12 @@ namespace Cube.Replication {
                 }
 
                 // Fix copy&paste errors
-                if (serverReplica.sceneIdx != 0) {
-                    serverReplica.sceneIdx = 0;
+                if (serverReplica.StaticId != 0) {
+                    serverReplica.StaticId = 0;
                     EditorUtility.SetDirty(pair.Server);
                 }
-                if (clientReplica.sceneIdx != 0) {
-                    clientReplica.sceneIdx = 0;
+                if (clientReplica.StaticId != 0) {
+                    clientReplica.StaticId = 0;
                     EditorUtility.SetDirty(clientReplica);
                 }
 

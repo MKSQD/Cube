@@ -24,10 +24,13 @@ namespace Cube.Replication {
 
         [HideInInspector]
         public ushort PrefabHash;
-        [HideInInspector]
-        public byte sceneIdx;
 
-        public bool isSceneReplica => sceneIdx != 0;
+        /// <summary>
+        /// Preallocated Replica ID (f.i. level Replicas).
+        /// </summary>
+        [HideInInspector]
+        public ushort StaticId;
+        public bool HasStaticId => StaticId != 0;
 
         public ICubeServer server;
         public ICubeClient client;
@@ -84,7 +87,7 @@ namespace Cube.Replication {
 
         // [0,1]
         public float GetRelevance(ReplicaView view) {
-            if (!isSceneReplica && Owner == view.Connection)
+            if (!HasStaticId && Owner == view.Connection)
                 return 1;
 
             if ((Settings.priorityFlags & ReplicaPriorityFlag.IgnorePosition) == ReplicaPriorityFlag.IgnorePosition)

@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace Cube.Replication {
     public interface ICubeServer {
-        IServerReplicaManager ReplicaManager { get; }
+        ServerReplicaManager ReplicaManager { get; }
         ServerReactor Reactor { get; }
         IServerNetworkInterface NetworkInterface { get; }
         Transform ReplicaParentTransform { get; }

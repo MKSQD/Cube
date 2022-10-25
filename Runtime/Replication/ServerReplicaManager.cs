@@ -10,12 +10,12 @@ using UnityEngine.SceneManagement;
 
 
 namespace Cube.Replication {
-    public sealed class ServerReplicaManager : IServerReplicaManager {
+    public sealed class ServerReplicaManager : IReplicaManager {
 #if UNITY_EDITOR
         public static ServerReplicaManager Main;
 #endif
 
-        const ushort FirstLocalReplicaId = 255; // The first 255 values are reserved for scene Replicas
+        const ushort FirstLocalReplicaId = 1000; // The first N values are reserved for scene Replicas
 
         readonly ICubeServer _server;
         readonly NetworkScene _networkScene = new();
@@ -55,7 +55,7 @@ namespace Cube.Replication {
         void ProcessSceneReplicasInScene(Scene scene, LoadSceneMode _) {
             var sceneReplicas = ReplicaUtils.GatherSceneReplicas(scene);
             foreach (var replica in sceneReplicas) {
-                replica.Id = ReplicaId.CreateFromExisting(replica.sceneIdx);
+                replica.Id = ReplicaId.CreateFromExisting(replica.StaticId);
                 replica.server = _server;
 
                 _networkScene.AddReplica(replica);
@@ -123,8 +123,13 @@ namespace Cube.Replication {
             Assert.IsTrue(newReplica.Id == ReplicaId.Invalid);
 
             newReplica.server = _server;
-            newReplica.Id = ReplicaId.Create(this);
             newReplica.TakeOwnership();
+
+            if (newReplica.HasStaticId) {
+                newReplica.Id = ReplicaId.CreateFromExisting(newReplica.StaticId);
+            } else {
+                newReplica.Id = ReplicaId.Create(this);
+            }
 
             // Wait for one frame until Start is called before replicating to clients
             _replicasInConstruction.Add(newReplica.Id, newReplica);
@@ -388,8 +393,8 @@ namespace Cube.Replication {
 
             bs.WriteByte((byte)MessageId.ReplicaUpdate);
             bs.WriteReplicaId(replica.Id);
-            bs.WriteBool(replica.isSceneReplica);
-            if (!replica.isSceneReplica) {
+            bs.WriteBool(replica.HasStaticId);
+            if (!replica.HasStaticId) {
                 bs.WriteUShort(replica.PrefabHash);
             }
             bs.WriteBool(isOwner);

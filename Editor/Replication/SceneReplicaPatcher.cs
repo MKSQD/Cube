@@ -24,7 +24,7 @@ namespace Cube.Replication.Editor {
 
                 var sceneReplicas = GatherSceneReplicas(scene);
                 foreach (var replica in sceneReplicas) {
-                    replica.sceneIdx = 0;
+                    replica.StaticId = 0;
                     PrefabUtility.RecordPrefabInstancePropertyModifications(replica);
                 }
 
@@ -39,15 +39,15 @@ namespace Cube.Replication.Editor {
             var sceneReplicas = GatherSceneReplicas(scene);
 
             // Collect existing IDs
-            var usedIdcs = new HashSet<byte>();
+            var usedIdcs = new HashSet<ushort>();
             foreach (var replica in sceneReplicas) {
-                if (replica.sceneIdx == 0)
+                if (replica.StaticId == 0)
                     continue;
 
-                if (!usedIdcs.Contains(replica.sceneIdx)) {
-                    usedIdcs.Add(replica.sceneIdx);
+                if (!usedIdcs.Contains(replica.StaticId)) {
+                    usedIdcs.Add(replica.StaticId);
                 } else {
-                    replica.sceneIdx = 0;
+                    replica.StaticId = 0;
                     PrefabUtility.RecordPrefabInstancePropertyModifications(replica);
                 }
             }
@@ -56,23 +56,23 @@ namespace Cube.Replication.Editor {
 
             var lastUsedSceneIdx = 0;
             foreach (var replica2 in sceneReplicas) {
-                lastUsedSceneIdx = Math.Max(lastUsedSceneIdx, replica2.sceneIdx);
+                lastUsedSceneIdx = Math.Max(lastUsedSceneIdx, replica2.StaticId);
             }
 
             // Assign new IDs
             foreach (var replica in sceneReplicas) {
-                if (replica.sceneIdx != 0)
+                if (replica.StaticId != 0)
                     continue;
 
-                while (usedIdcs.Contains((byte)nextSceneIdx) && nextSceneIdx <= 255) {
+                while (usedIdcs.Contains((byte)nextSceneIdx) && nextSceneIdx < 1000) {
                     ++nextSceneIdx;
                 }
-                if (nextSceneIdx > 255) {
-                    Debug.LogError("More than 255 scene Replicas, not yet supported. Aborting.");
+                if (nextSceneIdx >= 1000) {
+                    Debug.LogError("More than 1000 scene Replicas, not yet supported. Aborting.");
                     return;
                 }
 
-                replica.sceneIdx = (byte)nextSceneIdx;
+                replica.StaticId = (byte)nextSceneIdx;
                 ++nextSceneIdx;
 
                 PrefabUtility.RecordPrefabInstancePropertyModifications(replica);

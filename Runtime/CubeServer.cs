@@ -22,7 +22,7 @@ namespace Cube {
 
         public IServerNetworkInterface NetworkInterface { get; private set; }
         public ServerReactor Reactor { get; private set; }
-        public IServerReplicaManager ReplicaManager { get; private set; }
+        public ServerReplicaManager ReplicaManager { get; private set; }
         public List<Connection> Connections { get; private set; }
         public Transform ReplicaParentTransform => transform;
 
