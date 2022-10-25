@@ -77,7 +77,7 @@ namespace Cube.Transport.LiteNet {
             NetworkError();
         }
 
-        readonly Memory<uint> memory = new(new uint[64]);
+        readonly Memory<uint> memory = new(new uint[512]);
         public void OnNetworkReceive(NetPeer peer, NetPacketReader reader, byte channelNumber, DeliveryMethod deliveryMethod) {
             var span = new ReadOnlySpan<byte>(reader.RawData, reader.UserDataOffset, reader.UserDataSize);
             var bs = new BitReader(span, memory);

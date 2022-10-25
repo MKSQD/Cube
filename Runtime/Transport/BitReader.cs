@@ -230,14 +230,6 @@ namespace Cube.Transport {
             return val;
         }
 
-        public Vector3 ReadNormalisedVector3() {
-            var result = Vector3.zero;
-            result.x = ReadNormalisedFloat();
-            result.y = ReadNormalisedFloat();
-            result.z = ReadNormalisedFloat();
-            return result;
-        }
-
         public void Read(ref Quaternion val) {
             val = ReadQuaternion();
         }

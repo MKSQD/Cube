@@ -26,7 +26,8 @@ namespace Cube.Replication {
         public ushort PrefabHash;
 
         /// <summary>
-        /// Preallocated Replica ID (f.i. level Replicas).
+        /// Preallocated Replica ID (f.i. level Replicas). If set Cube will assume
+        /// that client and server have this and will not attempt to instantiate it if missing.
         /// </summary>
         [HideInInspector]
         public ushort StaticId;
