@@ -26,14 +26,16 @@ namespace Cube.Replication {
         Quaternion _rotationError;
 
         void Awake() {
-            _rigidbody = GetComponent<Rigidbody>();
-
             if (Settings == null) {
                 if (DefaultSettings == null) {
                     DefaultSettings = ScriptableObject.CreateInstance<ReplicaRigidbodySettings>();
                 }
                 Settings = DefaultSettings;
             }
+
+            _rigidbody = GetComponent<Rigidbody>();
+            _rigidbody.maxLinearVelocity = Settings.MaxVelocity;
+            _rigidbody.maxAngularVelocity = Settings.MaxAngularVelocity;
         }
 
         void Update() {
@@ -79,7 +81,7 @@ namespace Cube.Replication {
                 if (velocity.x > maxVelocity || velocity.x < -maxVelocity
                     || velocity.y > maxVelocity || velocity.y < -maxVelocity
                     || velocity.z > maxVelocity || velocity.z < -maxVelocity) {
-                    Debug.LogWarning("Velocity exceeded MaxVelocity (change settings or limit Rigidbody)");
+                    Debug.LogWarning("Velocity out of range. To change the rigidbody's max velocity, change ReplicaRigidbody settings.", gameObject);
                 }
 #endif
 
