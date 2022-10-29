@@ -11,7 +11,7 @@ namespace Cube.Replication {
     [CreateAssetMenu(menuName = "Cube/ReplicaSettings")]
     public class ReplicaSettings : ScriptableObject {
         [Tooltip("Desired update rate for Replicas. The Replica will never receive updates more often than this but is usually updated less often due to prioritisation and bandwidth.")]
-        [Range(0, 2048)]
+        [Range(0, 2000)]
         public int DesiredUpdateRateMS = 200;
         public float DesiredUpdateRate => DesiredUpdateRateMS * 0.001f;
 
