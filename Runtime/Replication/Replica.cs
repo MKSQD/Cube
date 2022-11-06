@@ -265,9 +265,7 @@ namespace Cube.Replication {
             if (connection != Connection.Invalid) {
                 var isReplicaOwnedByCaller = Owner == connection;
                 if (!isReplicaOwnedByCaller) {
-#if CUBE_DEBUG_REP
                     Debug.LogWarning($"Replica RPC called by non-owner, rejected (Replica={gameObject})", gameObject);
-#endif
                     return;
                 }
             }

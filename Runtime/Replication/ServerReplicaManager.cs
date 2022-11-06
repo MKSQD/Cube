@@ -556,9 +556,7 @@ namespace Cube.Replication {
 
             var replica = _networkScene.GetReplicaById(replicaId);
             if (replica == null) {
-#if CUBE_DEBUG_REP
                 Debug.LogWarning($"Received RPC for invalid Replica <i>{replicaId}</i>");
-#endif
                 return;
             }
 
