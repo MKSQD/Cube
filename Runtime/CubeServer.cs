@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using Cube.Replication;
 using Cube.Transport;
+using GameCore;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.Assertions;
